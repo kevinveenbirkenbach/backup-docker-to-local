@@ -14,7 +14,8 @@ do
     echo "trying to backup $rsync_source_path..."
     rsync_host_destination_path="$HOME$rsync_docker_destination_path";
     mkdir -p "$rsync_host_destination_path";
-    docker run --rm --volumes-from "$docker_container_name" -v "$host_backup_folder_path:$docker_backup_folder_path" "kevinveenbirkenbach/alpine-rsync" rsync -a --delete "$rsync_source_path" "$rsync_docker_destination_path" > /dev/null && echo "successfull" || rmdir "$rsync_host_destination_path" && echo "skipped.";
+    (docker run --rm --volumes-from "$docker_container_name" -v "$host_backup_folder_path:$docker_backup_folder_path" "kevinveenbirkenbach/alpine-rsync" rsync -a --delete "$rsync_source_path" "$rsync_docker_destination_path") &> /dev/null 
+    || rmdir "$rsync_host_destination_path" && echo "skipped.";
   done
   echo "start container: $docker_container_name" && docker start "$docker_container_name"
 done
