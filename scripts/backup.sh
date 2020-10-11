@@ -6,7 +6,7 @@ for docker_container_name in $(docker ps --format '{{.Names}}');
 do
   #backup_dir_base_path="$docker_backup_folder_path""archive/$(date '+%Y%m%d%H%M%S')/""$docker_container_name/"
   echo "stop container: $docker_container_name" && docker stop "$docker_container_name"
-  for rsync_source_path in $(docker inspect --format '{{ range .Mounts }}{{ .Destination }}{{ end }}' "$docker_container_name");
+  for rsync_source_path in $(docker inspect --format '{{ range .Mounts }}{{ println .Destination }}{{ end }}' "$docker_container_name");
   do
     rsync_docker_destination_path="$docker_backup_folder_path""last/""$docker_container_name$rsync_source_path";
     #backup_dir_path="$backup_dir_base_path$rsync_source_path";
