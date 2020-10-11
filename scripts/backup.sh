@@ -11,9 +11,14 @@ do
     rsync_docker_destination_path="$docker_backup_folder_path""last/""$docker_container_name$rsync_source_path";
     #backup_dir_path="$backup_dir_base_path$rsync_source_path";
     echo "trying to backup $rsync_source_path..."
-    rsync_host_destination_path="$HOME$rsync_docker_destination_path";
-    mkdir -p "$rsync_host_destination_path";
-    docker run --rm --volumes-from "$docker_container_name" -v "$host_backup_folder_path:$docker_backup_folder_path" "kevinveenbirkenbach/alpine-rsync" sh -c "rsync -a --delete $rsync_source_path $rsync_docker_destination_path";
+    #rsync_host_destination_path="$HOME$rsync_docker_destination_path";
+    #mkdir -p "$rsync_host_destination_path";
+    docker run --rm --volumes-from "$docker_container_name" -v "$host_backup_folder_path:$docker_backup_folder_path" "kevinveenbirkenbach/alpine-rsync" sh -c "
+    test -d $rsync_source_path &&
+    mkdir -p $rsync_docker_destination_path &&
+    rsync -a --delete $rsync_source_path $rsync_docker_destination_path ||
+    mkdir -p $(dirname $rsync_docker_destination_path) &&
+    rsync -a --delete $rsync_source_path $(dirname $rsync_docker_destination_path)";
   done
   echo "start container: $docker_container_name" && docker start "$docker_container_name"
 done
