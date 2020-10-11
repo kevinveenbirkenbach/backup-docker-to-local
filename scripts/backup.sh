@@ -1,8 +1,8 @@
 #!/bin/bash
 host_backup_folder_path="$HOME/Backup/docker/"
 docker_backup_folder_path="/Backup/docker/"
-mkdir -p "$backup_folder_path"
-docker_container_ids="$(docker ps)";
+mkdir -p "$host_backup_folder_path"
+docker_container_ids="$(docker ps -q)";
 backup_folders=("/var/www/html/" "/var/lib/mysql/");
 for docker_container_id in "${docker_container_ids[@]}";
 do
