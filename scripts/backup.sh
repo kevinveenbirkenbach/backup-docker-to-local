@@ -17,12 +17,14 @@ do
       then
         echo "backup: $source_path"
         destination_path="$latest_destination_path";
-        mkdir -p "$native_backups_mount_prefix$backup_dir_path";
+
       else
         echo "first backup: $source_path"
         destination_path="$first_destination_path";
+        mkdir -vp "$native_backups_mount_prefix$first_destination_path";
+        mkdir -vp "$native_backups_mount_prefix$latest_destination_path";
+        mkdir -vp "$native_backups_mount_prefix$backup_dir_path";
     fi
-    mkdir -p "$native_backups_mount_prefix$destination_path";
     docker run --rm --volumes-from "$docker_container_name" -v "$native_backups_mount:$docker_backups_mount" "kevinveenbirkenbach/alpine-rsync" sh -c "
     test -d $source_path &&
     mkdir -p \"$destination_path\" &&
