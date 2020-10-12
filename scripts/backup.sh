@@ -12,7 +12,7 @@ do
     application_path="$docker_backups_mount$(cat /etc/machine-id)/docker/$docker_container_name/"
     first_destination_path="$application_path""first""$source_path";
     latest_destination_path="$application_path""latest""$source_path";
-    backup_dir_path="$application_path""diffs/$backup_time/$source_path"
+    backup_dir_path="$application_path""diffs/$backup_time$source_path"
     if [ -d "$native_backups_mount_prefix$first_destination_path" ]
       then
         echo "backup: $source_path"
