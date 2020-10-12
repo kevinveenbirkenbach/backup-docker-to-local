@@ -13,7 +13,7 @@ do
     first_destination_path="$application_path""first""$source_path";
     latest_destination_path="$application_path""latest""$source_path";
     backup_dir_path="$application_path""diffs/$backup_time/$source_path"
-    if [ -d "$first_destination_path)" ]
+    if [ -d "$first_destination_path" ]
       then
         echo "backup: $source_path"
         destination_path="$latest_destination_path";
