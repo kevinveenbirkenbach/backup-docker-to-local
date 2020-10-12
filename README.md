@@ -9,6 +9,12 @@ Execute:
 ./docker-volume-backup.sh
 ```
 
+Optional a directory for the backup folder can be defined:
+
+```bash
+./docker-volume-backup.sh /tmp
+```
+
 ## Test
 Delete the volume.
 
