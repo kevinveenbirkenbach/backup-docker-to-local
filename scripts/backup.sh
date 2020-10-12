@@ -26,11 +26,7 @@ do
         mkdir -vp "$native_backups_mount_prefix$backup_dir_path";
     fi
     docker run --rm --volumes-from "$docker_container_name" -v "$native_backups_mount:$docker_backups_mount" "kevinveenbirkenbach/alpine-rsync" sh -c "
-    test -d $source_path &&
-    mkdir -p \"$destination_path\" &&
-    rsync -ab --delete --delete-excluded --backup-dir=\"$backup_dir_path\" $source_path $destination_path ||
-    mkdir -p \"$(dirname "$destination_path")\" &&
-    rsync -ab --delete --delete-excluded --backup-dir=\"$(dirname "$backup_dir_path")\" $source_path $(dirname "$destination_path")";
+    rsync -ab --delete --delete-excluded --backup-dir=\"$($backup_dir_path)\" $source_path $destination_path";
     if [ "$destination_path" == "$first_destination_path" ]
       then
         echo "Cloning first to latest..."
