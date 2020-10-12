@@ -5,24 +5,24 @@ This script backups all docker-volumes with the help of rsync.
 ## Backup
 Execute:
 
-``bash
+```bash
 ./docker-volume-backup.sh
-``
+```
 
 ## Test
 Delete the volume.
 
-``bash
+```bash
 docker rm -f container-name
 docker volume rm volume-name
-``
+```
 
 Recover the volume:
 
-``bash
+```bash
 docker volume create volume-name
 docker run --rm -v volume-name:/recover/ -v ~/backup/:/backup/ "kevinveenbirkenbach/alpine-rsync" sh -c "rsync -avv /backup/ /recover/"
-``
+```
 
 Restart the container.
 
