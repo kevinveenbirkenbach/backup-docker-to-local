@@ -11,6 +11,7 @@ do
   do
     application_path="$docker_backups_mount$(cat /etc/machine-id)/docker/$docker_container_name/";
     destination_path="$application_path""latest""$source_path";
+    log_path="$application_path""log.txt";
     backup_dir_path="$application_path""diffs/$backup_time$source_path";
     if [ -d "$native_backups_mount_prefix$destination_path" ]
       then
@@ -21,7 +22,7 @@ do
         mkdir -vp "$native_backups_mount_prefix$backup_dir_path";
     fi
     docker run --rm --volumes-from "$docker_container_name" -v "$native_backups_mount:$docker_backups_mount" "kevinveenbirkenbach/alpine-rsync" sh -c "
-    rsync -ab --delete --delete-excluded --backup-dir=\"$(dirname "$backup_dir_path")\" $source_path $destination_path";
+    rsync -abvv --delete --delete-excluded --log-file=$log_path --backup-dir=$(dirname "$backup_dir_path") $source_path $destination_path";
   done
   echo "start container: $docker_container_name" && docker start "$docker_container_name"
 done
