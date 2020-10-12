@@ -22,7 +22,7 @@ do
         mkdir -vp "$native_backups_mount_prefix$backup_dir_path";
     fi
     docker run --rm --volumes-from "$docker_container_name" -v "$native_backups_mount:$docker_backups_mount" "kevinveenbirkenbach/alpine-rsync" sh -c "
-    rsync -abvv --delete --delete-excluded --log-file=$log_path --backup-dir=$(dirname "$backup_dir_path") $source_path $destination_path";
+    rsync -abvv --delete --delete-excluded --log-file=$log_path --backup-dir=$backup_dir_path '$source_path/' $destination_path";
   done
   echo "start container: $docker_container_name" && docker start "$docker_container_name"
 done
