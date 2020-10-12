@@ -17,6 +17,7 @@ do
       then
         echo "backup: $source_path"
         destination_path="$latest_destination_path";
+        mkdir -p "$backup_dir_path";
       else
         echo "first backup: $source_path"
         destination_path="$first_destination_path";
