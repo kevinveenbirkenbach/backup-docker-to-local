@@ -29,6 +29,11 @@ do
     rsync -ab --delete --backup-dir=\"$backup_dir_path\" $source_path $destination_path ||
     mkdir -p \"$(dirname "$destination_path")\" &&
     rsync -ab --delete --backup-dir=\"$(dirname "$backup_dir_path")\" $source_path $(dirname "$destination_path")";
+    if [ "$destination_path" == "$first_destination_path" ]
+      then
+        echo "Cloning first to latest..."
+        rsync -a "$native_backups_mount_prefix$first_destination_path" "$native_backups_mount_prefix$latest_destination_path"
+    fi
   done
   echo "start container: $docker_container_name" && docker start "$docker_container_name"
 done
