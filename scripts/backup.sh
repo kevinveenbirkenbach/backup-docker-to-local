@@ -4,15 +4,13 @@ docker_backup_folder_path="/Backup/docker/"
 mkdir -p "$host_backup_folder_path"
 for docker_container_name in $(docker ps --format '{{.Names}}');
 do
-  #backup_dir_base_path="$docker_backup_folder_path""archive/$(date '+%Y%m%d%H%M%S')/""$docker_container_name/"
+  backup_dir_base_path="$docker_backup_folder_path""archive/$(date '+%Y%m%d%H%M%S')/";
   echo "stop container: $docker_container_name" && docker stop "$docker_container_name"
   for rsync_source_path in $(docker inspect --format '{{ range .Mounts }}{{ if eq .Type "volume" }}{{ println .Destination }}{{ end }}{{ end }}' "$docker_container_name");
   do
-    rsync_docker_destination_path="$docker_backup_folder_path""last/""$docker_container_name$rsync_source_path";
-    #backup_dir_path="$backup_dir_base_path$rsync_source_path";
-    echo "trying to backup $rsync_source_path..."
-    #rsync_host_destination_path="$HOME$rsync_docker_destination_path";
-    #mkdir -p "$rsync_host_destination_path";
+    rsync_docker_destination_path="$docker_backup_folder_path""latest/""$docker_container_name$rsync_source_path";
+    rsync_docker_backup_dir_path="$backup_dir_base_path$docker_container_name$rsync_source_path";
+    echo "backup $rsync_source_path..."
     docker run --rm --volumes-from "$docker_container_name" -v "$host_backup_folder_path:$docker_backup_folder_path" "kevinveenbirkenbach/alpine-rsync" sh -c "
     test -d $rsync_source_path &&
     mkdir -p $rsync_docker_destination_path &&
