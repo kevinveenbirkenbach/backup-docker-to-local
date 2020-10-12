@@ -21,13 +21,13 @@ do
         echo "first backup: $source_path"
         destination_path="$first_destination_path";
     fi
-    mkdir "$native_backups_mount_prefix$destination_path";
+    mkdir -p "$native_backups_mount_prefix$destination_path";
     docker run --rm --volumes-from "$docker_container_name" -v "$native_backups_mount:$docker_backups_mount" "kevinveenbirkenbach/alpine-rsync" sh -c "
     test -d $source_path &&
-    mkdir -p $destination_path &&
-    rsync -a --delete --backup-dir="$backup_dir_path" $source_path $destination_path ||
-    mkdir -p $(dirname $destination_path) &&
-    rsync -a --delete --backup-dir="$(dirname $backup_dir_path)" $source_path $(dirname $destination_path)";
+    mkdir -p \"$destination_path\" &&
+    rsync -a --delete --backup-dir=\"$backup_dir_path\" $source_path $destination_path ||
+    mkdir -p \"$(dirname "$destination_path")\" &&
+    rsync -a --delete --backup-dir=\"$(dirname "$backup_dir_path")\" $source_path $(dirname "$destination_path")";
   done
   echo "start container: $docker_container_name" && docker start "$docker_container_name"
 done
