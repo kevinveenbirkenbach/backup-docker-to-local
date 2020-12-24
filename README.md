@@ -9,10 +9,10 @@ Execute:
 ./docker-volume-backup.sh
 ```
 
-Optional a directory for the backup folder can be defined:
+Optional a user for the backup can be defined:
 
 ```bash
-./docker-volume-backup.sh /tmp
+./docker-volume-backup.sh administrator
 ```
 
 ## Test

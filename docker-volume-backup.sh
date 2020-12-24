@@ -1,11 +1,11 @@
 #!/bin/bash
 # @todo rethink optional parameter
-# @param $1 [optional] : The path for the backups folder. DEFAULT $HOME/Backups/
+# @param $1 [optional] : The user for the backups
 # @see https://www.freedesktop.org/software/systemd/man/machine-id.html
 
 backup_time="$(date '+%Y%m%d%H%M%S')"
-docker_backups_mount="$(test -z "$1" && echo "/Backups/" || echo "/$(basename "$1")/")"
-native_backups_mount_prefix="$(test -z "$1" && echo "$HOME" || echo "/$(dirname "$1")/")"
+docker_backups_mount="/Backups/"
+native_backups_mount_prefix="$(test -z "$1" && echo "$HOME" || echo "/home/$1")"
 native_backups_mount="$native_backups_mount_prefix$docker_backups_mount"
 for docker_container_name in $(docker ps --format '{{.Names}}');
 do
