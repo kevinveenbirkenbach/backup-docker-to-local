@@ -14,10 +14,10 @@ do
   do
     repository_name="$(basename -s .git `git config --get remote.origin.url`)";
     machine_id="$(sha256sum /etc/machine-id | head -c 64)";
-    application_path="$docker_backups_mount$machine_id/$repository_name/$docker_container_name/";
-    destination_path="$application_path""latest""$source_path";
-    log_path="$application_path""log.txt";
-    backup_dir_path="$application_path""diffs/$backup_time$source_path";
+    backup_repository_folder="$docker_backups_mount$machine_id/$repository_name/";
+    destination_path="$backup_repository_folder""latest/$docker_container_name$source_path";
+    log_path="$backup_repository_folder""log.txt";
+    backup_dir_path="$backup_repository_folder""diffs/$backup_time/$docker_container_name$source_path";
     if [ -d "$native_backups_mount_prefix$destination_path" ]
       then
         echo "backup: $source_path"
