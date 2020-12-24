@@ -12,7 +12,9 @@ do
   echo "stop container: $docker_container_name" && docker stop "$docker_container_name"
   for source_path in $(docker inspect --format '{{ range .Mounts }}{{ if eq .Type "volume" }}{{ println .Destination }}{{ end }}{{ end }}' "$docker_container_name");
   do
-    application_path="$docker_backups_mount$(sha256sum /etc/machine-id | head -c 64)/docker/$docker_container_name/";
+    repository_name="$(basename -s .git `git config --get remote.origin.url`)";
+    machine_id="$(sha256sum /etc/machine-id | head -c 64)";
+    application_path="$docker_backups_mount$machine_id/$repository_name/$docker_container_name/";
     destination_path="$application_path""latest""$source_path";
     log_path="$application_path""log.txt";
     backup_dir_path="$application_path""diffs/$backup_time$source_path";
