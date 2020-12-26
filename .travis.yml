@@ -1,0 +1,2 @@
+language: shell
+script: shellcheck $(find . -type f -name '*.sh')
