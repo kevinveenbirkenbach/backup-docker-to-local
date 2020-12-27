@@ -16,6 +16,15 @@ Execute:
 ./docker-volume-backup.sh
 ```
 
+## Debug
+To checkout what's going on in the mount container type in the following command:
+
+```bash
+docker run -it --entrypoint /bin/sh --rm --volumes-from {{container_name}} -v /Backups/:/Backups/ kevinveenbirkenbach/alpine-rsync
+```
+## Manual Backup
+rsync -aPvv  '***{{source_path}}***/' ***{{destination_path}}***";
+
 ## Test
 Delete the volume.
 
