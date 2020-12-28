@@ -1,5 +1,4 @@
 #!/bin/bash
-# @see https://www.freedesktop.org/software/systemd/man/machine-id.html
 backup_time="$(date '+%Y%m%d%H%M%S')";
 backups_folder="/Backups/";
 for docker_container_name in $(docker ps --format '{{.Names}}');

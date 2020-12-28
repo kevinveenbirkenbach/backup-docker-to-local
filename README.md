@@ -42,5 +42,9 @@ docker run --rm -v volume-name:/recover/ -v ~/backup/:/backup/ "kevinveenbirkenb
 
 Restart the container.
 
+## Optimation
+This setup script is not optimized yet for performance. Please optimized this script for performance if you want to use it in a professional environment.
+
 ## More information
-See https://blog.ssdnodes.com/blog/docker-backup-volumes/.
+- https://blog.ssdnodes.com/blog/docker-backup-volumes/
+- https://www.baculasystems.com/blog/docker-backup-containers/
