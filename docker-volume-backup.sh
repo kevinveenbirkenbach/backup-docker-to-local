@@ -1,4 +1,6 @@
 #!/bin/bash
+# If rsync stucks consider: 
+# @see https://stackoverflow.com/questions/20773118/rsync-suddenly-hanging-indefinitely-during-transfers
 backup_time="$(date '+%Y%m%d%H%M%S')";
 backups_folder="/Backups/";
 for docker_container_name in $(docker ps --format '{{.Names}}');
@@ -21,7 +23,7 @@ do
         mkdir -vp "$backup_dir_path";
     fi
     docker run --rm --volumes-from "$docker_container_name" -v "$backups_folder:$backups_folder" "kevinveenbirkenbach/alpine-rsync" sh -c "
-    rsync -abvv --delete --delete-excluded --log-file=$log_path --backup-dir=$backup_dir_path '$source_path/' $destination_path";
+    rsync -abP --delete --delete-excluded --log-file=$log_path --backup-dir=$backup_dir_path '$source_path/' $destination_path";
   done
   echo "start container: $docker_container_name" && docker start "$docker_container_name";
 done
