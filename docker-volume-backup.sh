@@ -17,18 +17,24 @@ do
     for source_path in $(docker inspect --format "{{ range .Mounts }}{{ if eq .Type \"volume\"}}{{ if eq .Name \"$volume_name\"}}{{ println .Destination }}{{ end }}{{ end }}{{ end }}" "$container_name");
     do
       destination_path="$backup_repository_folder""latest/$volume_name";
+      raw_destination_path="$destination_path/raw"
+      prepared_destination_path="$destination_path/prepared"
       log_path="$backup_repository_folder""log.txt";
       backup_dir_path="$backup_repository_folder""diffs/$backup_time/$volume_name";
+      raw_backup_dir_path="$backup_dir_path/raw";
+      prepared_backup_dir_path="$backup_dir_path/prepared";
       if [ -d "$destination_path" ]
         then
           echo "backup volume: $volume_name";
         else
           echo "first backup volume: $volume_name"
-          mkdir -vp "$destination_path";
-          mkdir -vp "$backup_dir_path";
+          mkdir -vp "$raw_destination_path";
+          mkdir -vp "$raw_backup_dir_path";
+          mkdir -vp "$prepared_destination_path";
+          mkdir -vp "$prepared_backup_dir_path";
       fi
       docker run --rm --volumes-from "$container_name" -v "$backups_folder:$backups_folder" "kevinveenbirkenbach/alpine-rsync" sh -c "
-      rsync -abP --delete --delete-excluded --log-file=$log_path --backup-dir=$backup_dir_path '$source_path/' $destination_path";
+      rsync -abP --delete --delete-excluded --log-file=$log_path --backup-dir=$raw_backup_dir_path '$source_path/' $raw_destination_path";
     done
     echo "start container: $container_name" && docker start "$container_name";
   done
