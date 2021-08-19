@@ -13,7 +13,7 @@ do
   for container_name in $(docker ps -a --filter volume=$volume_name --format '{{.Names}}');
   do
     echo "stop container: $container_name" && docker stop "$container_name"
-    for source_path in $(docker inspect --format '{{ range .Mounts }}{{ if eq .Type "volume" }}{{ println .Destination }}{{ end }}{{ end }}' "$container_name");
+    for source_path in $(docker inspect --format "{{ range .Mounts }}{{ if eq .Type \"volume\"}}{{ if eq .Name \"$volume_name\"}}{{ println .Destination }}{{ end }}{{ end }}{{ end }}" "$container_name");
     do
       destination_path="$backup_repository_folder""latest/$container_name$source_path";
       log_path="$backup_repository_folder""log.txt";
