@@ -15,9 +15,9 @@ do
     echo "stop container: $container_name" && docker stop "$container_name"
     for source_path in $(docker inspect --format "{{ range .Mounts }}{{ if eq .Type \"volume\"}}{{ if eq .Name \"$volume_name\"}}{{ println .Destination }}{{ end }}{{ end }}{{ end }}" "$container_name");
     do
-      destination_path="$backup_repository_folder""latest/$container_name$source_path";
+      destination_path="$backup_repository_folder""latest/$volume_name";
       log_path="$backup_repository_folder""log.txt";
-      backup_dir_path="$backup_repository_folder""diffs/$backup_time/$container_name$source_path";
+      backup_dir_path="$backup_repository_folder""diffs/$backup_time/$volume_name";
       if [ -d "$destination_path" ]
         then
           echo "backup: $source_path";
