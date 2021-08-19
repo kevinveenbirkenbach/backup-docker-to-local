@@ -10,6 +10,7 @@ machine_id="$(sha256sum /etc/machine-id | head -c 64)";
 backup_repository_folder="$backups_folder$machine_id/$repository_name/";
 for volume_name in $(docker volume ls --format '{{.Name}}');
 do
+  echo "start backup routine: $volume_name";
   for container_name in $(docker ps -a --filter volume=$volume_name --format '{{.Names}}');
   do
     echo "stop container: $container_name" && docker stop "$container_name"
@@ -20,9 +21,9 @@ do
       backup_dir_path="$backup_repository_folder""diffs/$backup_time/$volume_name";
       if [ -d "$destination_path" ]
         then
-          echo "backup: $source_path";
+          echo "backup volume: $volume_name";
         else
-          echo "first backup: $source_path"
+          echo "first backup volume: $volume_name"
           mkdir -vp "$destination_path";
           mkdir -vp "$backup_dir_path";
       fi
@@ -31,4 +32,5 @@ do
     done
     echo "start container: $container_name" && docker start "$container_name";
   done
+  echo "end backup routine: $volume_name";
 done
