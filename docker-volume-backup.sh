@@ -14,7 +14,7 @@ do
   containers="$(docker ps --filter volume="$volume_name" --format '{{.Names}}')";
   containers_array=($containers)
   container=${containers_array[0]}
-  echo "stop containers: $containers" && docker stop "$containers"
+  echo "stop containers:" && docker stop $containers
   for source_path in $(docker inspect --format "{{ range .Mounts }}{{ if eq .Type \"volume\"}}{{ if eq .Name \"$volume_name\"}}{{ println .Destination }}{{ end }}{{ end }}{{ end }}" "$container");
   do
     destination_path="$backup_repository_folder""latest/$volume_name";
@@ -36,7 +36,7 @@ do
     fi
     docker run --rm --volumes-from "$container" -v "$backups_folder:$backups_folder" "kevinveenbirkenbach/alpine-rsync" sh -c "
     rsync -abP --delete --delete-excluded --log-file=$log_path --backup-dir=$raw_backup_dir_path '$source_path/' $raw_destination_path";
-    echo "start containers: $containers" && docker start "$containers";
+    echo "start containers:" && docker start $containers;
   done
   echo "end backup routine: $volume_name";
 done
