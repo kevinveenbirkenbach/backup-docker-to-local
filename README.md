@@ -16,6 +16,13 @@ Execute:
 ./docker-volume-backup.sh
 ```
 
+## Recover
+Execute:
+
+```bash
+./docker-volume-recover.sh {{volume_name}} {{backup_path}}
+```
+
 ## Debug
 To checkout what's going on in the mount container type in the following command:
 
