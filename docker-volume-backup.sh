@@ -37,6 +37,10 @@ do
       rsync -abP --delete --delete-excluded --log-file=$log_path --backup-dir=$raw_backup_dir_path '$source_path/' $raw_destination_path";
     done
     echo "start container: $container_name" && docker start "$container_name";
+    if [ "mariadb" == "$(docker inspect --format='{{.Config.Image}}' $container_name)"]
+      then
+        docker exec some-mariadb sh -c 'exec mysqldump --all-databases -uroot -p"$MARIADB_ROOT_PASSWORD"' > /some/path/on/your/host/all-databases.sql
+      fi
   done
   echo "end backup routine: $volume_name";
 done
