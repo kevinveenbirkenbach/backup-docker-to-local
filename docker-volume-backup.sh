@@ -11,7 +11,7 @@ backup_repository_folder="$backups_folder$machine_id/$repository_name/";
 for volume_name in $(docker volume ls --format '{{.Name}}');
 do
   echo "start backup routine: $volume_name";
-  for container_name in $(docker ps -a --filter volume=$volume_name --format '{{.Names}}');
+  for container_name in $(docker ps -a --filter volume="$volume_name" --format '{{.Names}}');
   do
     echo "stop container: $container_name" && docker stop "$container_name"
     for source_path in $(docker inspect --format "{{ range .Mounts }}{{ if eq .Type \"volume\"}}{{ if eq .Name \"$volume_name\"}}{{ println .Destination }}{{ end }}{{ end }}{{ end }}" "$container_name");
