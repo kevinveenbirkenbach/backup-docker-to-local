@@ -3,7 +3,8 @@
 # If rsync stucks consider:
 # @see https://stackoverflow.com/questions/20773118/rsync-suddenly-hanging-indefinitely-during-transfers
 #
-echo "start volume backups..."
+echo "start backup routine..." &&
+echo "start volume backups..." &&
 backup_time="$(date '+%Y%m%d%H%M%S')" &&
 backups_folder="/Backups/" &&
 repository_name="$(cd "$(dirname "$(readlink -f "${0}")")" && basename `git rev-parse --show-toplevel`)" &&
@@ -46,4 +47,7 @@ do
   fi
   echo "end backup routine for volume: $volume_name" || exit 1
 done
+echo "finished volume backups." &&
+echo "restart docker service..." &&
+systemctl restart docker || exit 1
 echo "finished backup routine." || exit 1
