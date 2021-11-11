@@ -55,3 +55,4 @@ This setup script is not optimized yet for performance. Please optimized this sc
 ## More information
 - https://blog.ssdnodes.com/blog/docker-backup-volumes/
 - https://www.baculasystems.com/blog/docker-backup-containers/
+- https://stackoverflow.com/questions/26331651/how-can-i-backup-a-docker-container-with-its-data-volumes
