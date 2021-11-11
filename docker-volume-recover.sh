@@ -3,7 +3,7 @@
 # @param $2 Hash-Name
 volume_name="$1"
 backup_hash="$2"
-backup_path="/Backups/$backup_hash/docker-volume-backup/latest/$volume_name"
+backup_path="/Backups/$backup_hash/docker-volume-backup/latest/$volume_name/raw"
 echo "Inspect volume $volume_name"
 docker volume inspect "$volume_name"
 exit_status_volume_inspect=$?
