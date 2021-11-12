@@ -36,6 +36,8 @@ docker run -it --entrypoint /bin/sh --rm --volumes-from {{container_name}} -v /B
 This setup script is not optimized yet for performance. Please optimized this script for performance if you want to use it in a professional environment.
 
 ## More information
+- https://docs.docker.com/storage/volumes/
 - https://blog.ssdnodes.com/blog/docker-backup-volumes/
 - https://www.baculasystems.com/blog/docker-backup-containers/
 - https://stackoverflow.com/questions/26331651/how-can-i-backup-a-docker-container-with-its-data-volumes
+- https://netfuture.ch/2013/08/simple-versioned-timemachine-like-backup-using-rsync/
