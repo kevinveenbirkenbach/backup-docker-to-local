@@ -35,6 +35,9 @@ docker run -it --entrypoint /bin/sh --rm --volumes-from {{container_name}} -v /B
 ## Optimation
 This setup script is not optimized yet for performance. Please optimized this script for performance if you want to use it in a professional environment.
 
+## Stucking rsync
+- https://stackoverflow.com/questions/20773118/rsync-suddenly-hanging-indefinitely-during-transfers
+
 ## More information
 - https://docs.docker.com/storage/volumes/
 - https://blog.ssdnodes.com/blog/docker-backup-volumes/
@@ -42,3 +45,4 @@ This setup script is not optimized yet for performance. Please optimized this sc
 - https://gist.github.com/spalladino/6d981f7b33f6e0afe6bb
 - https://stackoverflow.com/questions/26331651/how-can-i-backup-a-docker-container-with-its-data-volumes
 - https://netfuture.ch/2013/08/simple-versioned-timemachine-like-backup-using-rsync/
+- https://zwischenzugs.com/2016/08/29/bash-to-python-converter/
