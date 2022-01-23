@@ -46,21 +46,21 @@ for volume_name in volume_names:
         source_path_command_result_filtered=list(filter(None, bash(source_path_command)))
         for source_path in source_path_command_result_filtered:
             destination_path=backup_repository_folder+"latest/"+ volume_name
-            raw_destination_path=destination_path + "/raw"
-            prepared_destination_path=destination_path + "/prepared"
+            sql_destination_path=destination_path + "/files"
+            sql_destination_path=destination_path + "/sql"
             log_path=backup_repository_folder + "log.txt"
             backup_dir_path=backup_repository_folder + "diffs/"+ backup_time + "/" + volume_name
-            raw_backup_dir_path=backup_dir_path + "/raw"
-            prepared_backup_dir_path=backup_dir_path + "/prepared"
+            files_backup_dir_path=backup_dir_path + "/files"
+            sql_backup_dir_path=backup_dir_path + "/sql"
             if os.path.exists(destination_path):
                 print("backup volume: " + volume_name);
             else:
                 print("first backup volume: " + volume_name);
-                pathlib.Path(raw_destination_path).mkdir(parents=True, exist_ok=True)
-                pathlib.Path(raw_backup_dir_path).mkdir(parents=True, exist_ok=True)
-                pathlib.Path(prepared_destination_path).mkdir(parents=True, exist_ok=True)
-                pathlib.Path(prepared_backup_dir_path).mkdir(parents=True, exist_ok=True)
-            print_bash("docker run --rm --volumes-from " + container + " -v "+backups_folder+":"+ backups_folder +" \"kevinveenbirkenbach/alpine-rsync\" sh -c \"rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + raw_backup_dir_path +" '"+ source_path +"/' " + raw_destination_path +"\"")
+                pathlib.Path(sql_destination_path).mkdir(parents=True, exist_ok=True)
+                pathlib.Path(files_backup_dir_path).mkdir(parents=True, exist_ok=True)
+                pathlib.Path(sql_destination_path).mkdir(parents=True, exist_ok=True)
+                pathlib.Path(sql_backup_dir_path).mkdir(parents=True, exist_ok=True)
+            print_bash("docker run --rm --volumes-from " + container + " -v "+backups_folder+":"+ backups_folder +" \"kevinveenbirkenbach/alpine-rsync\" sh -c \"rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + files_backup_dir_path +" '"+ source_path +"/' " + sql_destination_path +"\"")
         print("start containers:")
         print_bash("docker start " + list_to_string(containers))
     print("end backup routine for volume:" + volume_name)
