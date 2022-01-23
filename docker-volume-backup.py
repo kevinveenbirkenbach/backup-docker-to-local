@@ -26,12 +26,13 @@ def list_to_string(list):
     return str(' '.join(list));
 
 print('start backup routine...')
-print('load connection data...');
-databases=pandas.read_csv("databases.csv",sep=";");
 print('start volume backups...')
 backup_time=datetime.now().strftime("%Y%m%d%H%M%S")
 backups_folder='/Backups/'
-repository_name=os.path.basename(os.path.dirname(__file__))
+dirname=os.path.dirname(__file__)
+repository_name=os.path.basename(dirname)
+print('load connection data...');
+databases=pandas.read_csv(dirname + "/databases.csv",sep=";");
 machine_id=bash("sha256sum /etc/machine-id")[0][0:64]
 backup_repository_folder=backups_folder + machine_id + "/" + repository_name + "/"
 volume_names=bash("docker volume ls --format '{{.Name}}'")
