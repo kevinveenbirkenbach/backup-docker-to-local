@@ -3,7 +3,6 @@
 #
 import subprocess, os, sys, pathlib, csv, pandas
 from datetime import datetime
-from pprint import pprint
 
 def bash(command):
     print(command);
