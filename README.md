@@ -32,6 +32,9 @@ To checkout what's going on in the mount container type in the following command
 docker run -it --entrypoint /bin/sh --rm --volumes-from {{container_name}} -v /Backups/:/Backups/ kevinveenbirkenbach/alpine-rsync
 ```
 
+## Setup
+Install pandas
+
 ## Optimation
 This setup script is not optimized yet for performance. Please optimized this script for performance if you want to use it in a professional environment.
 
