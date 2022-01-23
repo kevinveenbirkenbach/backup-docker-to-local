@@ -1,17 +1,20 @@
 #!/bin/python
 # Backups volumes of running containers
 #
-import subprocess, os, sys
+import subprocess, os, sys, pathlib
 from datetime import datetime
+from pprint import pprint
 
 def bash(command):
-    out, err=subprocess.Popen([command],stdout=subprocess.PIPE, shell=True).communicate()
-    stdout=out.read().splitlines()
+    process=subprocess.Popen([command],stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    out, err=process.communicate()
+    stdout=out.splitlines()
     output=[]
     for line in stdout:
         output.append(line.decode("utf-8"))
-    if err > 0:
-        raise Exception("Error is greater then 0", output, command)
+    if process.wait() > bool(0):
+        print(command,out,err);
+        raise Exception("Error is greater then 0")
     return output
 
 def print_bash(command):
@@ -33,30 +36,31 @@ volume_names=bash("docker volume ls --format '{{.Name}}'")
 for volume_name in volume_names:
     print('start backup routine for volume: ' + volume_name);
     containers=bash("docker ps --filter volume=\""+ volume_name +"\" --format '{{.Names}}'")
-    container=containers[0]
     if len(containers) == 0:
         print('skipped due to no running containers using this volume.');
     else:
+        container=containers[0]
         print("stop containers:");
         print_bash("docker stop " + list_to_string(containers))
-        for source_path in bash("docker inspect --format \"{{ range .Mounts }}{{ if eq .Type \\\"volume\\\"}}{{ if eq .Name \\\"" + volume_name +"\\\"}}{{ println .Destination }}{{ end }}{{ end }}{{ end }}\" \""+ container +"\""):
+        source_path_command="docker inspect --format \"{{ range .Mounts }}{{ if eq .Type \\\"volume\\\"}}{{ if eq .Name \\\"" + volume_name +"\\\"}}{{ println .Destination }}{{ end }}{{ end }}{{ end }}\" \""+ container +"\""
+        source_path_command_result_filtered=list(filter(None, bash(source_path_command)))
+        for source_path in source_path_command_result_filtered:
             destination_path=backup_repository_folder+"latest/"+ volume_name
-            raw_destination_path="destination_path/raw"
+            raw_destination_path=destination_path + "/raw"
             prepared_destination_path=destination_path + "/prepared"
             log_path=backup_repository_folder + "log.txt"
             backup_dir_path=backup_repository_folder + "diffs/"+ backup_time + "/" + volume_name
             raw_backup_dir_path=backup_dir_path + "/raw"
             prepared_backup_dir_path=backup_dir_path + "/prepared"
-            if path.exists(destination_path):
+            if os.path.exists(destination_path):
                 print("backup volume: " + volume_name);
             else:
-                print("first backup volume" + volume_name);
-                os.mkdir(raw_destination_path)
-                os.mkdir(raw_backup_dir_path)
-                os.mkdir(prepared_destination_path)
-                os.mkdir(prepared_backup_dir_path)
-        print_bash("rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + raw_backup_dir_path +" '"+ source_path +"/' " + raw_destination_path)
-        print_bash("docker run --rm --volumes-from " + container + " -v "+backups_folder+":"+ backups_folder +" \"kevinveenbirkenbach/alpine-rsync\" sh -c ")
+                print("first backup volume: " + volume_name);
+                pathlib.Path(raw_destination_path).mkdir(parents=True, exist_ok=True)
+                pathlib.Path(raw_backup_dir_path).mkdir(parents=True, exist_ok=True)
+                pathlib.Path(prepared_destination_path).mkdir(parents=True, exist_ok=True)
+                pathlib.Path(prepared_backup_dir_path).mkdir(parents=True, exist_ok=True)
+            print_bash("docker run --rm --volumes-from " + container + " -v "+backups_folder+":"+ backups_folder +" \"kevinveenbirkenbach/alpine-rsync\" sh -c \"rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + raw_backup_dir_path +" '"+ source_path +"/' " + raw_destination_path +"\"")
         print("start containers:")
         print_bash("docker start " + list_to_string(containers))
     print("end backup routine for volume:" + volume_name)
