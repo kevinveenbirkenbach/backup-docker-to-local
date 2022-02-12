@@ -16,7 +16,13 @@ Execute:
 ./docker-volume-backup.sh
 ```
 
-## Recover one volume
+## Recover
+
+```bash
+  docker exec -i mysql_container mysql -uroot -psecret database < db.sql
+```
+
+### Volume
 Execute:
 
 ```bash
@@ -24,6 +30,8 @@ Execute:
 bash ./docker-volume-recover.sh "{{volume_name}}" "$(sha256sum /etc/machine-id | head -c 64)"
 
 ```
+
+### Database
 
 ## Debug
 To checkout what's going on in the mount container type in the following command:
