@@ -18,11 +18,12 @@ Execute:
 
 ## Recover
 
+### database
 ```bash
   docker exec -i mysql_container mysql -uroot -psecret database < db.sql
 ```
 
-### Volume
+### volume
 Execute:
 
 ```bash
