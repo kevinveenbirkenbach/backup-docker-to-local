@@ -49,3 +49,5 @@ This setup script is not optimized yet for performance. Please optimized this sc
 - https://stackoverflow.com/questions/26331651/how-can-i-backup-a-docker-container-with-its-data-volumes
 - https://netfuture.ch/2013/08/simple-versioned-timemachine-like-backup-using-rsync/
 - https://zwischenzugs.com/2016/08/29/bash-to-python-converter/
+- https://en.wikipedia.org/wiki/Incremental_backup#Incremental
+- https://unix.stackexchange.com/questions/567837/linux-backup-utility-for-incremental-backups
