@@ -65,9 +65,13 @@ for volume_name in volume_names:
             files_backup_dir_path=backup_dir_path + "/files"
             pathlib.Path(files_backup_dir_path).mkdir(parents=True, exist_ok=True)
             pathlib.Path(files_destination_path).mkdir(parents=True, exist_ok=True)
+            print("Backup data during container is running...")
+            rsync_command="rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + files_backup_dir_path +" '"+ source_path +"/' " + files_destination_path
+            print_bash(rsync_command)
             print("stop containers...");
+            print("Backup data after container is stopped...")
             print_bash("docker stop " + list_to_string(containers))
-            print_bash("rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + files_backup_dir_path +" '"+ source_path +"/' " + files_destination_path)
+            print_bash(rsync_command)
             print("start containers...")
             print_bash("docker start " + list_to_string(containers))
     print("end backup routine for volume:" + volume_name)
