@@ -46,27 +46,27 @@ for volume_name in volume_names:
         source_path="/var/lib/docker/volumes/" + volume_name + "/_data"
         destination_path=backup_repository_folder+"latest/"+ volume_name
         log_path=backup_repository_folder + "log.txt"
-        backup_dir_path=backup_repository_folder + "diffs/"+ backup_time + "/" + volume_name
+        versions_dir_path=backup_repository_folder + "versions/"+ backup_time + "/" + volume_name
         databases_entries=databases.loc[databases['container'] == container];
         if len(databases_entries) == 1:
             print("Backup database...")
             sql_destination_path=destination_path + "/sql"
-            sql_backup_dir_path=backup_dir_path + "/sql"
+            sql_versions_dir_path=versions_dir_path + "/sql"
             sql_destination_dir_file_path=sql_destination_path+"/backup.sql"
             pathlib.Path(sql_destination_path).mkdir(parents=True, exist_ok=True)
-            pathlib.Path(sql_backup_dir_path).mkdir(parents=True, exist_ok=True)
+            pathlib.Path(sql_versions_dir_path).mkdir(parents=True, exist_ok=True)
             database_entry=databases_entries.iloc[0];
             database_backup_command="docker exec "+ database_entry["container"] + " /usr/bin/mysqldump -u "+ database_entry["username"] + " -p"+ database_entry["password"] + " "+ database_entry["database"] + " > " + sql_destination_dir_file_path
             print_bash(database_backup_command)
-            print_bash("cp -v " + sql_destination_dir_file_path + " " + sql_backup_dir_path)
+            print_bash("cp -v " + sql_destination_dir_file_path + " " + sql_versions_dir_path)
         else:
             print("Backup files...")
             files_destination_path=destination_path + "/files"
-            files_backup_dir_path=backup_dir_path + "/files"
-            pathlib.Path(files_backup_dir_path).mkdir(parents=True, exist_ok=True)
+            files_versions_dir_path=versions_dir_path + "/files"
+            pathlib.Path(files_versions_dir_path).mkdir(parents=True, exist_ok=True)
             pathlib.Path(files_destination_path).mkdir(parents=True, exist_ok=True)
             print("Backup data during container is running...")
-            rsync_command="rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + files_backup_dir_path +" '"+ source_path +"/' " + files_destination_path
+            rsync_command="rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + files_versions_dir_path +" '"+ source_path +"/' " + files_destination_path
             print_bash(rsync_command)
             print("stop containers...");
             print("Backup data after container is stopped...")
