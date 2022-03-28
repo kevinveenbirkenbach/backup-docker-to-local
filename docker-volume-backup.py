@@ -63,15 +63,15 @@ for volume_name in volume_names:
             sql_cp_destination_path = current_version_dir_path + "/sql"
             sql_destination_dir_file_path = sql_cp_destination_path + "/backup.sql"
             pathlib.Path(sql_cp_destination_path).mkdir(parents=True, exist_ok=True)
-            database_entry=databases_entries.iloc[0]
+            database_entry = databases_entries.iloc[0]
             database_backup_command="docker exec "+ database_entry["container"] + " /usr/bin/mysqldump -u "+ database_entry["username"] + " -p"+ database_entry["password"] + " "+ database_entry["database"] + " > " + sql_destination_dir_file_path
             print_bash(database_backup_command)
         else:
             print("Backup files...")
-            files_rsync_destination_path=destination_path + "/files"
+            files_rsync_destination_path = destination_path + "/files"
             pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
             print("Backup data during container is running...")
-            rsync_command="rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + files_version_dir_path +" '"+ source_path +"/' " + files_rsync_destination_path
+            rsync_command = "rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + files_version_dir_path +" '"+ source_path +"/' " + files_rsync_destination_path
             print_bash(rsync_command)
             print("stop containers...")
             print("Backup data after container is stopped...")
