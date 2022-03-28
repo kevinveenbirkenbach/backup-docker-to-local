@@ -64,8 +64,8 @@ for volume_name in volume_names:
             pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
             versions = os.listdir(versions_dir_path)
             versions.sort(reverse=True)
-            if len(versions) >= 0:
-                last_version = versions[0]
+            if len(versions) > 1:
+                last_version = versions[1]
                 last_version_dir_path = versions_dir_path + last_version + "/" + volume_name
                 if os.path.isdir(last_version_dir_path):
                     link_dest_parameter="--link-dest='" + last_version_dir_path + "' "
