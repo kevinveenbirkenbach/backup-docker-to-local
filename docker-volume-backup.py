@@ -47,22 +47,20 @@ for volume_name in volume_names:
         print('skipped due to no running containers using this volume.')
     else:
         container = containers[0]
-        source_path = "/var/lib/docker/volumes/" + volume_name + "/_data"
         versions_dir_path = backup_repository_folder + "versions/"
-        destination_path = versions_dir_path + backup_time + "/" + volume_name
+        general_destination_dir = versions_dir_path + backup_time + "/" + volume_name
         databases_entries = databases.loc[databases['container'] == container]
         if len(databases_entries) == 1:
             print("Backup database...")
-            sql_cp_source_path = destination_path + "/sql"
-            sql_cp_destination_path = destination_path + "/sql"
-            sql_destination_dir_file_path = sql_cp_destination_path + "/backup.sql"
-            pathlib.Path(sql_cp_destination_path).mkdir(parents=True, exist_ok=True)
+            mysqldump_destination_dir = general_destination_dir + "/sql"
+            mysqldump_destination_file = mysqldump_destination_dir + "/backup.sql"
+            pathlib.Path(mysqldump_destination_dir).mkdir(parents=True, exist_ok=True)
             database_entry = databases_entries.iloc[0]
-            database_backup_command="docker exec "+ database_entry["container"] + " /usr/bin/mysqldump -u "+ database_entry["username"] + " -p"+ database_entry["password"] + " "+ database_entry["database"] + " > " + sql_destination_dir_file_path
+            database_backup_command = "docker exec " + database_entry["container"] + " /usr/bin/mysqldump -u " + database_entry["username"] + " -p" + database_entry["password"] + " " + database_entry["database"] + " > " + mysqldump_destination_file
             print_bash(database_backup_command)
         else:
             print("Backup files...")
-            files_rsync_destination_path = destination_path + "/files"
+            files_rsync_destination_path = general_destination_dir + "/files"
             pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
             versions = os.listdir(versions_dir_path)
             versions.sort(reverse=True)
@@ -70,14 +68,15 @@ for volume_name in volume_names:
                 last_version = versions[0]
                 last_version_dir_path = versions_dir_path + last_version + "/" + volume_name
                 if os.path.isdir(last_version_dir_path):
-                    link_dest_parameter="--link-dest='" + last_version_dir_path + "'"
+                    link_dest_parameter="--link-dest='" + last_version_dir_path + "' "
                 else:
                     print("No previous version exists in path "+ last_version_dir_path + ".")
                     link_dest_parameter=""
             else:
                 print("No previous version exists in path "+ last_version_dir_path + ".")
                 link_dest_parameter=""
-            rsync_command = "rsync -abP --delete --delete-excluded " + link_dest_parameter + "'" + source_path + "/' " + files_rsync_destination_path
+            source_dir = "/var/lib/docker/volumes/" + volume_name + "/_data/"
+            rsync_command = "rsync -abP --delete --delete-excluded " + link_dest_parameter + source_dir + files_rsync_destination_path
             print_bash(rsync_command)
             print("stop containers...")
             print("Backup data after container is stopped...")
