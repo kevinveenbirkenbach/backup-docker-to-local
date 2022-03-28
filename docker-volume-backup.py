@@ -76,7 +76,7 @@ for volume_name in volume_names:
                 print("No previous version exists in path "+ last_version_dir_path + ".")
                 link_dest_parameter=""
             source_dir = "/var/lib/docker/volumes/" + volume_name + "/_data/"
-            rsync_command = "rsync -abP --delete --delete-excluded " + link_dest_parameter + source_dir + files_rsync_destination_path
+            rsync_command = "rsync -abP --delete --delete-excluded " + link_dest_parameter + source_dir + " " + files_rsync_destination_path
             print_bash(rsync_command)
             print("stop containers...")
             print("Backup data after container is stopped...")
