@@ -42,25 +42,19 @@ backup_repository_folder = backups_folder + machine_id + "/" + repository_name +
 volume_names = bash("docker volume ls --format '{{.Name}}'")
 for volume_name in volume_names:
     print('start backup routine for volume: ' + volume_name)
-    containers = bash("docker ps --filter volume=\""+ volume_name +"\" --format '{{.Names}}'")
+    containers = bash("docker ps --filter volume=\"" + volume_name + "\" --format '{{.Names}}'")
     if len(containers) == 0:
         print('skipped due to no running containers using this volume.')
     else:
         container = containers[0]
         source_path = "/var/lib/docker/volumes/" + volume_name + "/_data"
-        log_path = backup_repository_folder + "log.txt"
-        destination_path = backup_repository_folder + "versions/"+ backup_time + "/" + volume_name
         versions_dir_path = backup_repository_folder + "versions/"
+        destination_path = versions_dir_path + backup_time + "/" + volume_name
         databases_entries = databases.loc[databases['container'] == container]
-        backup_versions = os.listdir(versions_dir_path)
-        backup_versions.sort(reverse=True)
-        last_version = backup_versions[0]
-        last_version_dir_path = versions_dir_path + last_version + "/" + volume_name
-        current_version_dir_path = versions_dir_path + backup_time + "/" + volume_name
         if len(databases_entries) == 1:
             print("Backup database...")
             sql_cp_source_path = destination_path + "/sql"
-            sql_cp_destination_path = current_version_dir_path + "/sql"
+            sql_cp_destination_path = destination_path + "/sql"
             sql_destination_dir_file_path = sql_cp_destination_path + "/backup.sql"
             pathlib.Path(sql_cp_destination_path).mkdir(parents=True, exist_ok=True)
             database_entry = databases_entries.iloc[0]
@@ -70,8 +64,20 @@ for volume_name in volume_names:
             print("Backup files...")
             files_rsync_destination_path = destination_path + "/files"
             pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
-            print("Backup data during container is running...")
-            rsync_command = "rsync -abP --delete --delete-excluded --log-file=" + log_path +" --backup-dir=" + files_version_dir_path +" '"+ source_path +"/' " + files_rsync_destination_path
+            versions = os.listdir(versions_dir_path)
+            versions.sort(reverse=True)
+            if len(versions) >= 0:
+                last_version = versions[0]
+                last_version_dir_path = versions_dir_path + last_version + "/" + volume_name
+                if os.path.isdir(last_version_dir_path):
+                    link_dest_parameter="--link-dest='" + last_version_dir_path + "'"
+                else:
+                    print("No previous version exists in path "+ last_version_dir_path + ".")
+                    link_dest_parameter=""
+            else:
+                print("No previous version exists in path "+ last_version_dir_path + ".")
+                link_dest_parameter=""
+            rsync_command = "rsync -abP --delete --delete-excluded " + link_dest_parameter + "'" + source_path + "/' " + files_rsync_destination_path
             print_bash(rsync_command)
             print("stop containers...")
             print("Backup data after container is stopped...")
