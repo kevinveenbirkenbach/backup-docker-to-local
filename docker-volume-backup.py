@@ -1,7 +1,10 @@
 #!/bin/python
 # Backups volumes of running containers
 #
-import subprocess, os, pathlib, pandas
+import subprocess
+import os
+import pathlib
+import pandas
 from datetime import datetime
 
 
@@ -30,15 +33,31 @@ def list_to_string(list):
 
 
 print('start backup routine...')
-print('start volume backups...')
-backup_time = datetime.now().strftime("%Y%m%d%H%M%S")
-backups_folder = '/Backups/'
+
 dirname = os.path.dirname(__file__)
 repository_name = os.path.basename(dirname)
+# identifier of this backups
+machine_id = bash("sha256sum /etc/machine-id")[0][0:64]
+# Folder in which all Backups are stored
+backups_dir = '/Backups/'
+# Folder in which docker volume backups are stored
+backup_type_dir = backups_dir + machine_id + "/" + repository_name + "/"
+# Folder containing all versions
+versions_dir = backup_type_dir + "versions/"
+# Time when the backup started
+backup_time = datetime.now().strftime("%Y%m%d%H%M%S")
+# Folder containing the current version
+version_dir = versions_dir + backup_time + "/"
+# Define latest path
+latest_link = backup_type_dir + "/latest/"
+# Create folder to store version in
+pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
+# Link latest to current version
+pathlib.Path(latest_link).symlink_to(version_dir)
+
+print('start volume backups...')
 print('load connection data...')
 databases = pandas.read_csv(dirname + "/databases.csv", sep=";")
-machine_id = bash("sha256sum /etc/machine-id")[0][0:64]
-backup_repository_folder = backups_folder + machine_id + "/" + repository_name + "/"
 volume_names = bash("docker volume ls --format '{{.Name}}'")
 for volume_name in volume_names:
     print('start backup routine for volume: ' + volume_name)
@@ -47,12 +66,12 @@ for volume_name in volume_names:
         print('skipped due to no running containers using this volume.')
     else:
         container = containers[0]
-        versions_dir_path = backup_repository_folder + "versions/"
-        general_destination_dir = versions_dir_path + backup_time + "/" + volume_name
+        # Folder to which the volumes are copied
+        volume_destination_dir = version_dir + volume_name
         databases_entries = databases.loc[databases['container'] == container]
         if len(databases_entries) == 1:
             print("Backup database...")
-            mysqldump_destination_dir = general_destination_dir + "/sql"
+            mysqldump_destination_dir = volume_destination_dir + "/sql"
             mysqldump_destination_file = mysqldump_destination_dir + "/backup.sql"
             pathlib.Path(mysqldump_destination_dir).mkdir(parents=True, exist_ok=True)
             database_entry = databases_entries.iloc[0]
@@ -60,13 +79,13 @@ for volume_name in volume_names:
             print_bash(database_backup_command)
         else:
             print("Backup files...")
-            files_rsync_destination_path = general_destination_dir + "/files"
+            files_rsync_destination_path = volume_destination_dir + "/files"
             pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
-            versions = os.listdir(versions_dir_path)
+            versions = os.listdir(versions_dir)
             versions.sort(reverse=True)
             if len(versions) > 1:
                 last_version = versions[1]
-                last_version_files_dir = versions_dir_path + last_version + "/" + volume_name + "/files"
+                last_version_files_dir = versions_dir + last_version + "/" + volume_name + "/files"
                 if os.path.isdir(last_version_files_dir):
                     link_dest_parameter="--link-dest='" + last_version_files_dir + "' "
                 else:
