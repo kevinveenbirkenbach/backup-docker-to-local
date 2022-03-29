@@ -52,6 +52,10 @@ version_dir = versions_dir + backup_time + "/"
 latest_link = backup_type_dir + "/latest/"
 # Create folder to store version in
 pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
+
+if pathlib.Path(latest_link).is_symlink():
+    print("Unlink " + latest_link + "...")
+    pathlib.Path(latest_link).unlink()
 # Link latest to current version
 pathlib.Path(latest_link).symlink_to(version_dir)
 
