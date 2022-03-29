@@ -66,14 +66,14 @@ for volume_name in volume_names:
             versions.sort(reverse=True)
             if len(versions) > 1:
                 last_version = versions[1]
-                last_version_dir_path = versions_dir_path + last_version + "/" + volume_name
-                if os.path.isdir(last_version_dir_path):
-                    link_dest_parameter="--link-dest='" + last_version_dir_path + "' "
+                last_version_files_dir = versions_dir_path + last_version + "/" + volume_name + "/files"
+                if os.path.isdir(last_version_files_dir):
+                    link_dest_parameter="--link-dest='" + last_version_files_dir + "' "
                 else:
-                    print("No previous version exists in path "+ last_version_dir_path + ".")
+                    print("No previous version exists in path "+ last_version_files_dir + ".")
                     link_dest_parameter=""
             else:
-                print("No previous version exists in path "+ last_version_dir_path + ".")
+                print("No previous version exists in path "+ last_version_files_dir + ".")
                 link_dest_parameter=""
             source_dir = "/var/lib/docker/volumes/" + volume_name + "/_data/"
             rsync_command = "rsync -abP --delete --delete-excluded " + link_dest_parameter + source_dir + " " + files_rsync_destination_path
