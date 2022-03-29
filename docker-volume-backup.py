@@ -49,7 +49,7 @@ backup_time = datetime.now().strftime("%Y%m%d%H%M%S")
 # Folder containing the current version
 version_dir = versions_dir + backup_time + "/"
 # Define latest path
-latest_link = backup_type_dir + "/latest/"
+latest_link = backup_type_dir + "latest/"
 # Create folder to store version in
 pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
 
