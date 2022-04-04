@@ -3,6 +3,7 @@
 #
 import subprocess
 import os
+import re
 import pathlib
 import pandas
 from datetime import datetime
@@ -72,14 +73,17 @@ for volume_name in volume_names:
         container = containers[0]
         # Folder to which the volumes are copied
         volume_destination_dir = version_dir + volume_name
-        databases_entries = databases.loc[databases['container'] == container]
+        # Database name
+        database_name = re.split("_|-", container)[0]
+        # Entries with database login data concerning this container
+        databases_entries = databases.loc[databases['database'] == database_name]
         if len(databases_entries) == 1:
             print("Backup database...")
             mysqldump_destination_dir = volume_destination_dir + "/sql"
             mysqldump_destination_file = mysqldump_destination_dir + "/backup.sql"
             pathlib.Path(mysqldump_destination_dir).mkdir(parents=True, exist_ok=True)
             database_entry = databases_entries.iloc[0]
-            database_backup_command = "docker exec " + database_entry["container"] + " /usr/bin/mysqldump -u " + database_entry["username"] + " -p" + database_entry["password"] + " " + database_entry["database"] + " > " + mysqldump_destination_file
+            database_backup_command = "docker exec " + container + " /usr/bin/mysqldump -u " + database_entry["username"] + " -p" + database_entry["password"] + " " + database_entry["database"] + " > " + mysqldump_destination_file
             print_bash(database_backup_command)
         else:
             print("Backup files...")
