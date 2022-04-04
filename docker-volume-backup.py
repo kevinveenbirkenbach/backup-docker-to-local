@@ -77,7 +77,8 @@ for volume_name in volume_names:
         database_name = re.split("(_|-)(database|db)", container)[0]
         # Entries with database login data concerning this container
         databases_entries = databases.loc[databases['database'] == database_name]
-        if len(databases_entries) == 1:
+        # Exception for akaunting due to fast implementation
+        if len(databases_entries) == 1 and container != 'akaunting':
             print("Backup database...")
             mysqldump_destination_dir = volume_destination_dir + "/sql"
             mysqldump_destination_file = mysqldump_destination_dir + "/backup.sql"
