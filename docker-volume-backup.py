@@ -74,7 +74,7 @@ for volume_name in volume_names:
         # Folder to which the volumes are copied
         volume_destination_dir = version_dir + volume_name
         # Database name
-        database_name = re.split("_|-", container)[0]
+        database_name = re.split("(_|-)(database|db)", container)[0]
         # Entries with database login data concerning this container
         databases_entries = databases.loc[databases['database'] == database_name]
         if len(databases_entries) == 1:
