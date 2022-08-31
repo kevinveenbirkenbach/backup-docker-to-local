@@ -86,32 +86,31 @@ for volume_name in volume_names:
             database_entry = databases_entries.iloc[0]
             database_backup_command = "docker exec " + container + " /usr/bin/mysqldump -u " + database_entry["username"] + " -p" + database_entry["password"] + " " + database_entry["database"] + " > " + mysqldump_destination_file
             print_bash(database_backup_command)
-        else:
-            print("Backup files...")
-            files_rsync_destination_path = volume_destination_dir + "/files"
-            pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
-            versions = os.listdir(versions_dir)
-            versions.sort(reverse=True)
-            if len(versions) > 1:
-                last_version = versions[1]
-                last_version_files_dir = versions_dir + last_version + "/" + volume_name + "/files"
-                if os.path.isdir(last_version_files_dir):
-                    link_dest_parameter="--link-dest='" + last_version_files_dir + "' "
-                else:
-                    print("No previous version exists in path "+ last_version_files_dir + ".")
-                    link_dest_parameter=""
+        print("Backup files...")
+        files_rsync_destination_path = volume_destination_dir + "/files"
+        pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
+        versions = os.listdir(versions_dir)
+        versions.sort(reverse=True)
+        if len(versions) > 1:
+            last_version = versions[1]
+            last_version_files_dir = versions_dir + last_version + "/" + volume_name + "/files"
+            if os.path.isdir(last_version_files_dir):
+                link_dest_parameter="--link-dest='" + last_version_files_dir + "' "
             else:
                 print("No previous version exists in path "+ last_version_files_dir + ".")
                 link_dest_parameter=""
-            source_dir = "/var/lib/docker/volumes/" + volume_name + "/_data/"
-            rsync_command = "rsync -abP --delete --delete-excluded " + link_dest_parameter + source_dir + " " + files_rsync_destination_path
-            print_bash(rsync_command)
-            print("stop containers...")
-            print("Backup data after container is stopped...")
-            print_bash("docker stop " + list_to_string(containers))
-            print_bash(rsync_command)
-            print("start containers...")
-            print_bash("docker start " + list_to_string(containers))
+        else:
+            print("No previous version exists in path "+ last_version_files_dir + ".")
+            link_dest_parameter=""
+        source_dir = "/var/lib/docker/volumes/" + volume_name + "/_data/"
+        rsync_command = "rsync -abP --delete --delete-excluded " + link_dest_parameter + source_dir + " " + files_rsync_destination_path
+        print_bash(rsync_command)
+        print("stop containers...")
+        print("Backup data after container is stopped...")
+        print_bash("docker stop " + list_to_string(containers))
+        print_bash(rsync_command)
+        print("start containers...")
+        print_bash("docker start " + list_to_string(containers))
     print("end backup routine for volume:" + volume_name)
 print('finished volume backups.')
 print('restart docker service...')
