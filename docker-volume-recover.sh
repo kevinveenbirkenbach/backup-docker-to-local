@@ -2,9 +2,8 @@
 volume_name="$1"  # Volume-Name
 backup_hash="$2"  # Hashed Machine ID
 container="$3"    # optional
-user="$4"         # optional
-password="$5"     # optional
-database="$6"     # optional
+password="$4"     # optional
+database="$5"     # optional
 backup_folder="Backups/$backup_hash/docker-volume-backup/latest/$volume_name"
 backup_files="/$backup_folder/files"
 backup_sql="/$backup_folder/sql/backup.sql"
@@ -22,6 +21,6 @@ if [ ! -d "$backup_files" ]; then
     echo "ERROR: $backup_files and $backup_sql don't exist"
     exit 1
   fi
-  cat $backup_sql | docker exec -i $container /usr/bin/mysql -u $user --password=$password $database
+  cat $backup_sql | docker exec -i $container /usr/bin/mysql -u root --password=$password $database
 fi
 docker run --rm -v "$volume_name:/recover/" -v "$backup_files:/backup/" "kevinveenbirkenbach/alpine-rsync" sh -c "rsync -avv --delete /backup/ /recover/"
