@@ -19,7 +19,7 @@ def bash(command):
         output.append(line.decode("utf-8"))
     if process.wait() > bool(0):
         print(command, out, err)
-        raise Exception("Error is greater then 0")
+        raise Exception("Exitcode is greater then 0")
     return output
 
 
