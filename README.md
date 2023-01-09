@@ -28,7 +28,7 @@ Execute:
 
 ```bash
 
-bash ./docker-volume-recover.sh "{{volume_name}}" "$(sha256sum /etc/machine-id | head -c 64)"
+bash ./docker-volume-recover.sh "{{volume_name}}" "$(sha256sum /etc/machine-id | head -c 64)" "{{version_to_recover}}"
 
 ```
 
