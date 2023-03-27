@@ -20,7 +20,7 @@ fi
 
 if [ -f "$backup_sql" ]; then
   echo "recover mysql dump"
-  cat $backup_sql | docker exec -i "$container" '/usr/bin/mysql -u root --password="'$mysql_root_password'" "'$database'"'
+  cat $backup_sql | docker exec -i "$container" /usr/bin/mysql -u root --password="$mysql_root_password" $database
   exit 0
 else
   if [ -d "$backup_files" ]; then    
