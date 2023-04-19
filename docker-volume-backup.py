@@ -41,24 +41,15 @@ repository_name = os.path.basename(dirname)
 machine_id = bash("sha256sum /etc/machine-id")[0][0:64]
 # Folder in which all Backups are stored
 backups_dir = '/Backups/'
-# Folder in which docker volume backups are stored
-backup_type_dir = backups_dir + machine_id + "/" + repository_name + "/"
-# Folder containing all versions
-versions_dir = backup_type_dir + "versions/"
+# Folder in which the versions off docker volume backups are stored
+versions_dir = backups_dir + machine_id + "/" + repository_name + "/"
 # Time when the backup started
 backup_time = datetime.now().strftime("%Y%m%d%H%M%S")
 # Folder containing the current version
 version_dir = versions_dir + backup_time + "/"
-# Define latest path
-latest_link = backup_type_dir + "latest/"
+
 # Create folder to store version in
 pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
-
-if pathlib.Path(latest_link).is_symlink():
-    print("Unlink " + latest_link + "...")
-    pathlib.Path(latest_link).unlink()
-# Link latest to current version
-pathlib.Path(latest_link).symlink_to(version_dir)
 
 print('start volume backups...')
 print('load connection data...')
