@@ -5,7 +5,7 @@ version="$3"              # version to backup
 container="$4"            # optional
 mysql_root_password="$5"  # optional
 database="$6"             # optional
-backup_folder="Backups/$backup_hash/docker-volume-backup/versions/$version/$volume_name"
+backup_folder="Backups/$backup_hash/docker-volume-backup/$version/$volume_name"
 backup_files="/$backup_folder/files"
 backup_sql="/$backup_folder/sql/backup.sql"
 echo "Inspect volume $volume_name"
