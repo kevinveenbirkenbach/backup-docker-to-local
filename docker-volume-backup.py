@@ -75,7 +75,7 @@ for volume_name in volume_names:
             mysqldump_destination_file = mysqldump_destination_dir + "/backup.sql"
             pathlib.Path(mysqldump_destination_dir).mkdir(parents=True, exist_ok=True)
             database_entry = databases_entries.iloc[0]
-            database_backup_command = "docker exec " + container + " /usr/bin/mysqldump -u " + database_entry["username"] + " -p" + database_entry["password"] + " " + database_entry["database"] + " > " + mysqldump_destination_file
+            database_backup_command = "docker exec " + container + " /usr/bin/mariadb-dump -u " + database_entry["username"] + " -p" + database_entry["password"] + " " + database_entry["database"] + " > " + mysqldump_destination_file
             print_bash(database_backup_command)
         print("Backup files...")
         files_rsync_destination_path = volume_destination_dir + "/files"
