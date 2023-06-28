@@ -38,9 +38,8 @@ if [ -f "$backup_sql" ]; then
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to recover mysql dump"
         exit 1
-    else
-        exit 0
     fi
+    exit 0
   fi
   echo "A database backup exists, but a parameter is missing. Files will be recovered instead."
 fi 
@@ -52,6 +51,7 @@ if [ -d "$backup_files" ]; then
     echo "ERROR: Failed to recover files"
     exit 1
   fi
+  exit 0
 else
   echo "ERROR: $backup_files doesn't exist"
   exit 1
