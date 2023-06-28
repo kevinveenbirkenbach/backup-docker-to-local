@@ -19,14 +19,18 @@ if [ $exit_status_volume_inspect -eq 0 ]; then
 fi
 
 if [ -f "$backup_sql" ]; then
-  echo "recover mysql dump"
-  cat $backup_sql | docker exec -i "$container" /usr/bin/mysql -u root --password="$mysql_root_password" $database
-  exit 0
-else
-  if [ -d "$backup_files" ]; then    
-    echo "recover files"
-    docker run --rm -v "$volume_name:/recover/" -v "$backup_files:/backup/" "kevinveenbirkenbach/alpine-rsync" sh -c "rsync -avv --delete /backup/ /recover/"
+  if [ -n "$container" ] && [ -n "$mysql_root_password" ] && [ -n "$database" ]; then
+    echo "recover mysql dump"
+    cat $backup_sql | docker exec -i "$container" /usr/bin/mysql -u root --password="$mysql_root_password" $database
+    exit 0
   fi
+  echo "a database backup exists, but a parameter is missing. Files will be recovered instead."
+fi 
+
+if [ -d "$backup_files" ]; then    
+  echo "recover files"
+  docker run --rm -v "$volume_name:/recover/" -v "$backup_files:/backup/" "kevinveenbirkenbach/alpine-rsync" sh -c "rsync -avv --delete /backup/ /recover/"
 fi
+
 echo "ERROR: $backup_files and $backup_sql don't exist"
 exit 1
