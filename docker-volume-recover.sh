@@ -34,7 +34,7 @@ fi
 if [ -f "$backup_sql" ]; then
   if [ -n "$container" ] && [ -n "$mysql_root_password" ] && [ -n "$database" ]; then
     echo "recover mysql dump"
-    cat "$backup_sql" | docker exec -i "$container" /usr/bin/mysql -u root --password="$mysql_root_password" "$database"
+    cat "$backup_sql" | docker exec -i "$container" mariadb -u root --password="$mysql_root_password" "$database"
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to recover mysql dump"
         exit 1
