@@ -44,11 +44,15 @@ docker run -it --entrypoint /bin/sh --rm --volumes-from {{container_name}} -v /B
 ## Setup
 Install pandas
 
-## Optimation
-This setup script is not optimized yet for performance. Please optimized this script for performance if you want to use it in a professional environment.
+## Author
 
-## Stucking rsync
-- https://stackoverflow.com/questions/20773118/rsync-suddenly-hanging-indefinitely-during-transfers
+Kevin Veen-Birkenbach  
+- 📧 Email: [kevin@veen.world](mailto:kevin@veen.world)
+- 🌍 Website: [https://www.veen.world/](https://www.veen.world/)
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0. The full license text is available in the `LICENSE` file of this repository.
 
 ## More information
 - https://docs.docker.com/storage/volumes/
