@@ -1,4 +1,4 @@
-# docker-volume-backup
+# Backup Docker Volumes to Local
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](./LICENSE.txt) [![Travis CI](https://api.travis-ci.org/kevinveenbirkenbach/docker-volume-backup.svg?branch=main)](https://travis-ci.org/kevinveenbirkenbach/docker-volume-backup)
 
 ## goal
