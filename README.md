@@ -13,7 +13,7 @@ Further information you will find [in this blog post](https://www.veen.world/202
 Execute:
 
 ```bash
-./docker-volume-backup.sh
+./backup-docker-to-local.sh
 ```
 
 ## Recover
@@ -28,7 +28,7 @@ Execute:
 
 ```bash
 
-bash ./docker-volume-recover.sh "{{volume_name}}" "$(sha256sum /etc/machine-id | head -c 64)" "{{version_to_recover}}"
+bash ./recover-docker-from-local.sh "{{volume_name}}" "$(sha256sum /etc/machine-id | head -c 64)" "{{version_to_recover}}"
 
 ```
 
