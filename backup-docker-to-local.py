@@ -98,7 +98,7 @@ for volume_name in volume_names:
         print_bash(rsync_command)
         print("stop containers...")
         print("Backup data after container is stopped...")
-        print_bash("docker stop -t 7200" + list_to_string(containers))
+        print_bash("docker stop -t 7200 " + list_to_string(containers))
         print_bash(rsync_command)
         print("start containers...")
         print_bash("docker start " + list_to_string(containers))
