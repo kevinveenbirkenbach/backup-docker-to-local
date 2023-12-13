@@ -64,3 +64,4 @@ This project is licensed under the GNU Affero General Public License v3.0. The f
 - https://zwischenzugs.com/2016/08/29/bash-to-python-converter/
 - https://en.wikipedia.org/wiki/Incremental_backup#Incremental
 - https://unix.stackexchange.com/questions/567837/linux-backup-utility-for-incremental-backups
+- https://chat.openai.com/share/6d10f143-3f7c-4feb-8ae9-5644c3433a65

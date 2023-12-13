@@ -8,20 +8,29 @@ import pathlib
 import pandas
 from datetime import datetime
 
+class RsyncCode24Exception(Exception):
+    """Exception for rsync error code 24."""
+    """rsync warning: some files vanished before they could be transferred"""
+    pass
 
 def bash(command):
     print(command)
     process = subprocess.Popen([command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     out, err = process.communicate()
     stdout = out.splitlines()
-    output = []
-    for line in stdout:
-        output.append(line.decode("utf-8"))
-    if process.wait() > bool(0):
-        print(command, out, err)
-        raise Exception("Exitcode is greater then 0")
-    return output
+    stderr = err.decode("utf-8")
+    output = [line.decode("utf-8") for line in stdout]
 
+    exitcode = process.wait()
+    if exitcode != 0:
+        print(f"Error in command: {command}\nOutput: {out}\nError: {err}\nExit code: {exitcode}")
+        
+        if "rsync" in command and exitcode == 24:
+            raise RsyncCode24Exception(f"rsync error code 24 encountered: {stderr}")
+
+        raise Exception("Exit code is greater than 0")
+
+    return output
 
 def print_bash(command):
     output = bash(command)
@@ -95,7 +104,10 @@ for volume_name in volume_names:
             link_dest_parameter=""
         source_dir = "/var/lib/docker/volumes/" + volume_name + "/_data/"
         rsync_command = "rsync -abP --delete --delete-excluded " + link_dest_parameter + source_dir + " " + files_rsync_destination_path
-        print_bash(rsync_command)
+        try:
+            print_bash(rsync_command)
+        except RsyncCode24Exception:
+             print("Ignoring rsync error code 24, proceeding with the next command.")
         print("stop containers...")
         print("Backup data after container is stopped...")
         print_bash("docker stop " + list_to_string(containers))
