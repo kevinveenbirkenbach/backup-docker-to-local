@@ -137,6 +137,22 @@ def main():
     databases = pandas.read_csv(os.path.join(dirname, "databases.csv"), sep=";")
     volume_names = execute_shell_command("docker volume ls --format '{{.Name}}'")
     
+    # This whitelist is configurated for https://github.com/kevinveenbirkenbach/backup-docker-to-local 
+    stop_and_restart_not_needed = [
+        'baserow',
+        'element',
+        'gitea',
+        'listmonk',
+        'mastodon',
+        'matomo',
+        'memcached',
+        'nextcloud',
+        'openproject',
+        'pixelfed',
+        'redis',
+        'wordpress' 
+    ]
+    
     for volume_name in volume_names:
         print(f'Start backup routine for volume: {volume_name}')
         containers = execute_shell_command(f"docker ps --filter volume=\"{volume_name}\" --format '{{.Names}}'")
@@ -144,7 +160,7 @@ def main():
             print('Skipped due to no running containers using this volume.')
             continue
         
-        backup_routine_for_volume(volume_name, containers, databases, version_dir, [])
+        backup_routine_for_volume(volume_name, containers, databases, version_dir, stop_and_restart_not_needed)
 
     print('Finished volume backups.')
 
