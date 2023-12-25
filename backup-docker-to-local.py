@@ -35,39 +35,25 @@ def create_backup_directories(base_dir, machine_id, repository_name, backup_time
     pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
     return version_dir
 
-# OK
+# Muss modifiziert werden. 
 def get_database_name(container):
     """Extract the database name from the container name."""
     return re.split("(_|-)(database|db)", container)[0]
 
-# OK 
-def backup_mariadb(container, databases, version_dir):
-    """Backup database if applicable."""
+def backup_database(container, databases, version_dir, db_type):
+    """Backup database (MariaDB or PostgreSQL) if applicable."""
     database_name = get_database_name(container)
     database_entry = databases.loc[databases['database'] == database_name].iloc[0]
-    mysqldump_destination_dir = os.path.join(version_dir, "sql")
-    pathlib.Path(mysqldump_destination_dir).mkdir(parents=True, exist_ok=True)
-    mysqldump_destination_file = os.path.join(mysqldump_destination_dir, f"{database_name}_backup.sql")
-    database_backup_command = f"docker exec {container} /usr/bin/mariadb-dump -u {database_entry['username']} -p{database_entry['password']} {database_entry['database']} > {mysqldump_destination_file}"
-    execute_shell_command(database_backup_command)
-
-def backup_postgres(container, databases, version_dir):
-    """Backup PostgreSQL database if applicable."""
-    database_name = get_database_name(container)
-    database_entry = databases.loc[databases['database'] == database_name].iloc[0]
-    pg_dump_destination_dir = os.path.join(version_dir, "sql")
-    pathlib.Path(pg_dump_destination_dir).mkdir(parents=True, exist_ok=True)
-    pg_dump_destination_file = os.path.join(pg_dump_destination_dir, f"{database_name}_backup.sql")
-    # Docker command to execute pg_dump and save the output on the host system
-    database_backup_command = (
-        f"docker exec -i {container} pg_dump -U {database_entry['username']} "
-        f"-d {database_entry['database']} -h localhost "
-        f"--no-password"
-    )
-    # Redirect the output of docker exec to a file on the host system
-    full_command = f"PGPASSWORD={database_entry['password']} {database_backup_command} > {pg_dump_destination_file}"
-    execute_shell_command(full_command)
-
+    backup_destination_dir = os.path.join(version_dir, "sql")
+    pathlib.Path(backup_destination_dir).mkdir(parents=True, exist_ok=True)
+    backup_destination_file = os.path.join(backup_destination_dir, f"{database_name}_backup.sql")
+    
+    if db_type == 'mariadb':
+        backup_command = f"docker exec {container} /usr/bin/mariadb-dump -u {database_entry['username']} -p{database_entry['password']} {database_entry['database']} > {backup_destination_file}"
+    elif db_type == 'postgres':
+        backup_command = f"PGPASSWORD={database_entry['password']} docker exec -i {container} pg_dump -U {database_entry['username']} -d {database_entry['database']} -h localhost --no-password > {backup_destination_file}"
+    
+    execute_shell_command(backup_command)
 
 # OK 
 def backup_volume(volume_name, version_dir):
@@ -118,6 +104,21 @@ def is_any_image_not_whitelisted(containers, images):
     """Check if any of the containers are using images that are not whitelisted."""
     return any(not is_image_whitelisted(container, images) for container in containers)
 
+def backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images):
+    """Perform backup routine for a given volume."""
+    for container in containers:
+        if has_image(container, 'mariadb'):
+            backup_database(container, databases, version_dir, 'mariadb')
+        elif has_image(container, 'postgres'):
+            backup_database(container, databases, version_dir, 'postgres')
+        else:
+            if is_any_image_not_whitelisted(containers, whitelisted_images):
+                stop_containers(containers)
+                backup_volume(volume_name, version_dir)
+                start_containers(containers)
+            else:
+                backup_volume(volume_name, version_dir)
+
 def main():
     print('Start backup routine...')
     dirname = os.path.dirname(__file__)
@@ -137,30 +138,10 @@ def main():
         if not containers:
             print('Skipped due to no running containers using this volume.')
             continue
-
-        mariadb_container = get_container_with_image(containers,'mariadb')
-        if mariadb_container:
-            print(f"Backup MariaDB database for container: {mariadb_container}")
-            backup_mariaddb(mariadb_container, databases, version_dir)
-        else:
-            postgres_container = get_container_with_image(containers,'postgres')
-            if postgres_container:
-                print(f"Backup Postgres database for container: {postgres_container}")
-                backup_postgres(postgres_container, databases, version_dir)
-            # Data backup
-            else:
-                # Just copy without stopping
-                backup_volume(volume_name, version_dir)
-                # If container if not whitelisted stop and start container afterwards.
-                if is_any_image_not_whitelisted(containers, []):
-                    stop_containers(containers)
-                    backup_volume(volume_name, version_dir)
-                    start_containers(containers)
+        
+        backup_routine_for_volume(volume_name, containers, databases, version_dir, [])
 
     print('Finished volume backups.')
-    #print('Restart docker service...')
-    #execute_shell_command("systemctl restart docker")
-    #print('Finished backup routine.')
 
 if __name__ == "__main__":
     main()
