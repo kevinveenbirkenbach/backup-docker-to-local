@@ -79,8 +79,8 @@ def backup_volume(volume_name, version_dir):
     execute_shell_command(rsync_command)
 
 # OK
-def is_image(container,image):
-    """Check if the container is using a MariaDB image."""
+def has_image(container,image):
+    """Check if the container is using the image"""
     image_info = execute_shell_command(f"docker inspect {container} | jq -r '.[].Config.Image'")
     return image in image_info[0]
 
@@ -98,13 +98,13 @@ def start_containers(containers):
         execute_shell_command(f"docker start {container}")
 
 # OK
-def any_has_image(containers,image):
+def get_container_with_image(containers,image):
     for container in containers:
-        if is_mariadb_container(container,image):
+        if has_image(container,image):
             return container
     return False
 
-def is_whitelisted(container, images):
+def is_image_whitelisted(container, images):
     """Check if the container's image is one of the whitelisted images."""
     image_info = execute_shell_command(f"docker inspect {container} | jq -r '.[].Config.Image'")
     container_image = image_info[0]
@@ -114,9 +114,9 @@ def is_whitelisted(container, images):
             return True
     return False
 
-def is_any_not_whitelisted(containers, images):
+def is_any_image_not_whitelisted(containers, images):
     """Check if any of the containers are using images that are not whitelisted."""
-    return any(not is_whitelisted(container, images) for container in containers)
+    return any(not is_image_whitelisted(container, images) for container in containers)
 
 def main():
     print('Start backup routine...')
@@ -152,7 +152,7 @@ def main():
                 # Just copy without stopping
                 backup_volume(volume_name, version_dir)
                 # If container if not whitelisted stop and start container afterwards.
-                if is_any_not_whitelisted(containers, []):
+                if is_any_image_not_whitelisted(containers, []):
                     stop_containers(containers)
                     backup_volume(volume_name, version_dir)
                     start_containers(containers)
