@@ -8,20 +8,23 @@ def check_and_add_entry(file_path, host, database, username, password):
     except FileNotFoundError:
         df = pd.DataFrame(columns=['host', 'database', 'username', 'password'])
 
-    # Check if the entry exists
-    mask = (df['host'] == host) & (df['database'] == database) & (df['username'] == username) & (df['password'] == password)
+    # Check if the entry exists and remove it
+    mask = (df['host'] == host) & (df['database'] == database) & (df['username'] == username)
     if not df[mask].empty:
-        print("Entry already exists.")
+        print("Replacing existing entry.")
+        df = df[~mask]
     else:
-        # Add the new entry
-        new_entry = {'host': host, 'database': database, 'username': username, 'password': password}
-        df = df.append(new_entry, ignore_index=True)
-        # Save the updated CSV file
-        df.to_csv(file_path, sep=';', index=False)
-        print("New entry added.")
+        print("Adding new entry.")
+
+    # Add (or replace) the entry
+    new_entry = {'host': host, 'database': database, 'username': username, 'password': password}
+    df = df.append(new_entry, ignore_index=True)
+
+    # Save the updated CSV file
+    df.to_csv(file_path, sep=';', index=False)
 
 def main():
-    parser = argparse.ArgumentParser(description="Check and add a database entry to a CSV file.")
+    parser = argparse.ArgumentParser(description="Check and replace (or add) a database entry in a CSV file.")
     parser.add_argument("file_path", help="Path to the CSV file")
     parser.add_argument("host", help="Database host")
     parser.add_argument("database", help="Database name")
