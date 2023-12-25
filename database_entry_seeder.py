@@ -1,11 +1,14 @@
 import pandas as pd
 import argparse
+import os
 
 def check_and_add_entry(file_path, host, database, username, password):
-    # Read the existing CSV file
-    try:
-        df = pd.read_csv(file_path, sep=';', header=None, names=['host', 'database', 'username', 'password'])
-    except FileNotFoundError:
+    # Check if the file exists and is not empty
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        # Read the existing CSV file with header
+        df = pd.read_csv(file_path, sep=';')
+    else:
+        # Create a new DataFrame with columns if file does not exist
         df = pd.DataFrame(columns=['host', 'database', 'username', 'password'])
 
     # Check if the entry exists and remove it
