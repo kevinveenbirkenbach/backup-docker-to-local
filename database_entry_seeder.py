@@ -19,9 +19,11 @@ def check_and_add_entry(file_path, host, database, username, password):
     else:
         print("Adding new entry.")
 
-    # Add (or replace) the entry
-    new_entry = {'host': host, 'database': database, 'username': username, 'password': password}
-    df = df.append(new_entry, ignore_index=True)
+    # Create a new DataFrame for the new entry
+    new_entry = pd.DataFrame([{'host': host, 'database': database, 'username': username, 'password': password}])
+
+    # Add (or replace) the entry using concat
+    df = pd.concat([df, new_entry], ignore_index=True)
 
     # Save the updated CSV file
     df.to_csv(file_path, sep=';', index=False)
