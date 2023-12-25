@@ -2,17 +2,17 @@ import pandas as pd
 import argparse
 import os
 
-def check_and_add_entry(file_path, host, database, username, password):
+def check_and_add_entry(file_path, instance, host, database, username, password):
     # Check if the file exists and is not empty
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         # Read the existing CSV file with header
         df = pd.read_csv(file_path, sep=';')
     else:
         # Create a new DataFrame with columns if file does not exist
-        df = pd.DataFrame(columns=['host', 'database', 'username', 'password'])
+        df = pd.DataFrame(columns=['instance','host', 'database', 'username', 'password'])
 
     # Check if the entry exists and remove it
-    mask = (df['host'] == host) & (df['database'] == database) & (df['username'] == username)
+    mask = (df['instance'] == instance) & (df['host'] == host) & (df['database'] == database) & (df['username'] == username)
     if not df[mask].empty:
         print("Replacing existing entry.")
         df = df[~mask]
@@ -20,7 +20,7 @@ def check_and_add_entry(file_path, host, database, username, password):
         print("Adding new entry.")
 
     # Create a new DataFrame for the new entry
-    new_entry = pd.DataFrame([{'host': host, 'database': database, 'username': username, 'password': password}])
+    new_entry = pd.DataFrame([{'instance': instance, 'host': host, 'database': database, 'username': username, 'password': password}])
 
     # Add (or replace) the entry using concat
     df = pd.concat([df, new_entry], ignore_index=True)
@@ -31,6 +31,7 @@ def check_and_add_entry(file_path, host, database, username, password):
 def main():
     parser = argparse.ArgumentParser(description="Check and replace (or add) a database entry in a CSV file.")
     parser.add_argument("file_path", help="Path to the CSV file")
+    parser.add_argument("instance", help="Database instance")
     parser.add_argument("host", help="Database host")
     parser.add_argument("database", help="Database name")
     parser.add_argument("username", help="Username")
@@ -38,7 +39,7 @@ def main():
 
     args = parser.parse_args()
 
-    check_and_add_entry(args.file_path, args.host, args.database, args.username, args.password)
+    check_and_add_entry(args.file_path, args.instance, args.host, args.database, args.username, args.password)
 
 if __name__ == "__main__":
     main()

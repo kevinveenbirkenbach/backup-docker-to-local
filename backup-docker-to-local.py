@@ -35,20 +35,33 @@ def create_backup_directories(base_dir, machine_id, repository_name, backup_time
     pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
     return version_dir
 
-# Muss modifiziert werden. 
-def get_database_name(container):
-    database_name = re.split("(_|-)(database|db)", container)[0]
-    print(f"Extracted database name: {database_name}")
-    return database_name
+def get_instance(container):
+    instance_name = re.split("(_|-)(database|db|postgres)", container)[0]
+    print(f"Extracted instance name: {instance_name}")
+    return instance_name
 
 def backup_database(container, databases, version_dir, db_type):
     """Backup database (MariaDB or PostgreSQL) if applicable."""
     print(f"Starting database backup for {container} using {db_type}...")
-    database_name = get_database_name(container)
-    database_entry = databases.loc[databases['database'] == database_name].iloc[0]
+    instance_name = get_instance(container)
+
+    # Filter the DataFrame for the given instance_name
+    database_entries = databases.loc[databases['instance'] == instance_name]
+
+    # Check if there are more than one entries
+    if len(database_entries) > 1:
+        raise BackupException(f"More than one entry found for instance '{instance_name}'")
+
+    # Check if there is no entry
+    if database_entries.empty:
+        raise BackupException(f"No entry found for instance '{instance_name}'")
+
+    # Get the first (and only) entry
+    database_entry = database_entries.iloc[0]
+
     backup_destination_dir = os.path.join(version_dir, "sql")
     pathlib.Path(backup_destination_dir).mkdir(parents=True, exist_ok=True)
-    backup_destination_file = os.path.join(backup_destination_dir, f"{database_name}_backup.sql")
+    backup_destination_file = os.path.join(backup_destination_dir, f"backup.sql")
     
     if db_type == 'mariadb':
         backup_command = f"docker exec {container} /usr/bin/mariadb-dump -u {database_entry['username']} -p{database_entry['password']} {database_entry['database']} > {backup_destination_file}"
