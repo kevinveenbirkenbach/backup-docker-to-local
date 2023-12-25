@@ -37,11 +37,13 @@ def create_backup_directories(base_dir, machine_id, repository_name, backup_time
 
 # Muss modifiziert werden. 
 def get_database_name(container):
-    """Extract the database name from the container name."""
-    return re.split("(_|-)(database|db)", container)[0]
+    database_name = re.split("(_|-)(database|db)", container)[0]
+    print(f"Extracted database name: {database_name}")
+    return database_name
 
 def backup_database(container, databases, version_dir, db_type):
     """Backup database (MariaDB or PostgreSQL) if applicable."""
+    print(f"Starting database backup for {container} using {db_type}...")
     database_name = get_database_name(container)
     database_entry = databases.loc[databases['database'] == database_name].iloc[0]
     backup_destination_dir = os.path.join(version_dir, "sql")
@@ -54,15 +56,18 @@ def backup_database(container, databases, version_dir, db_type):
         backup_command = f"PGPASSWORD={database_entry['password']} docker exec -i {container} pg_dump -U {database_entry['username']} -d {database_entry['database']} -h localhost --no-password > {backup_destination_file}"
     
     execute_shell_command(backup_command)
+    print(f"Database backup for {container} completed.")
 
 # OK 
 def backup_volume(volume_name, version_dir):
     """Backup files of a volume."""
+    print(f"Starting backup routine for volume: {volume_name}")
     files_rsync_destination_path = os.path.join(version_dir, volume_name, "files")
     pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
     source_dir = f"/var/lib/docker/volumes/{volume_name}/_data/"
     rsync_command = f"rsync -abP --delete --delete-excluded {source_dir} {files_rsync_destination_path}"
     execute_shell_command(rsync_command)
+    print(f"Backup routine for volume: {volume_name} completed.")
 
 # OK
 def has_image(container,image):
