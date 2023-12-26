@@ -87,6 +87,7 @@ def get_last_backup_dir(versions_dir, volume_name):
         backup_dir = os.path.join(versions_dir, version, volume_name, "files")
         if os.path.isdir(backup_dir):
             return backup_dir
+    print(f"No previous backups available for volume: {volume_name}")
     return None
 
 def backup_volume(volume_name, volume_dir, versions_dir):
@@ -149,7 +150,7 @@ def create_volume_directory(version_dir,volume_name):
     pathlib.Path(volume_dir).mkdir(parents=True, exist_ok=True)
     return volume_dir
 
-def backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images):
+def backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images, versions_dir):
     """Perform backup routine for a given volume."""
     for container in containers:
         volume_dir = create_volume_directory(version_dir,volume_name)
@@ -159,10 +160,10 @@ def backup_routine_for_volume(volume_name, containers, databases, version_dir, w
             backup_database(container, databases, volume_dir, 'postgres')
         else:
             # Backup without start, stop to keep downtime low
-            backup_volume(volume_name, volume_dir, version_dir)
+            backup_volume(volume_name, volume_dir, versions_dir)
             if is_any_image_not_whitelisted(containers, whitelisted_images):
                 stop_containers(containers)
-                backup_volume(volume_name, volume_dir, version_dir)
+                backup_volume(volume_name, volume_dir, versions_dir)
                 start_containers(containers)
 
 def main():
@@ -171,8 +172,9 @@ def main():
     repository_name = os.path.basename(dirname)
     machine_id = get_machine_id()
     backups_dir = '/Backups/'
+    versions_dir = os.path.join(backups_dir, machine_id, repository_name)
     backup_time = datetime.now().strftime("%Y%m%d%H%M%S")
-    version_dir = create_version_directory(backups_dir, machine_id, repository_name, backup_time)
+    version_dir = create_version_directory(versions_dir, backup_time)
 
     print('Start volume backups...')
     databases = pandas.read_csv(os.path.join(dirname, "databases.csv"), sep=";")
@@ -201,7 +203,7 @@ def main():
             print('Skipped due to no running containers using this volume.')
             continue
         
-        backup_routine_for_volume(volume_name, containers, databases, version_dir, stop_and_restart_not_needed)
+        backup_routine_for_volume(volume_name, containers, databases, version_dir, stop_and_restart_not_needed, versions_dir)
 
     print('Finished volume backups.')
 
