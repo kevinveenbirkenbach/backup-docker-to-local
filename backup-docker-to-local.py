@@ -80,13 +80,15 @@ def backup_database(container, databases, volume_dir, db_type):
     execute_shell_command(backup_command)
     print(f"Database backup for {container} completed.")
 
-def get_last_backup_dir(versions_dir, volume_name):
+def get_last_backup_dir(versions_dir, volume_name, current_backup_dir):
     """Get the most recent backup directory for the specified volume."""
     versions = sorted(os.listdir(versions_dir), reverse=True)
     for version in versions:
         backup_dir = os.path.join(versions_dir, version, volume_name, "files")
-        if os.path.isdir(backup_dir):
-            return backup_dir
+        # Ignore current backup dir
+        if backup_dir != current_backup_dir:
+            if os.path.isdir(backup_dir):
+                return backup_dir
     print(f"No previous backups available for volume: {volume_name}")
     return None
 
@@ -96,7 +98,7 @@ def backup_volume(volume_name, volume_dir, versions_dir):
     files_rsync_destination_path = os.path.join(volume_dir, "files")
     pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
 
-    last_backup_dir = get_last_backup_dir(versions_dir, volume_name)
+    last_backup_dir = get_last_backup_dir(versions_dir, volume_name, files_rsync_destination_path)
     link_dest_option = f"--link-dest='{last_backup_dir}'" if last_backup_dir else ""
 
     source_dir = f"/var/lib/docker/volumes/{volume_name}/_data/"
