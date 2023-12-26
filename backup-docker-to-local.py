@@ -80,13 +80,26 @@ def backup_database(container, databases, volume_dir, db_type):
     execute_shell_command(backup_command)
     print(f"Database backup for {container} completed.")
 
-def backup_volume(volume_name, volume_dir):
-    """Backup files of a volume."""
+def get_last_backup_dir(versions_dir, volume_name):
+    """Get the most recent backup directory for the specified volume."""
+    versions = sorted(os.listdir(versions_dir), reverse=True)
+    for version in versions:
+        backup_dir = os.path.join(versions_dir, version, volume_name, "files")
+        if os.path.isdir(backup_dir):
+            return backup_dir
+    return None
+
+def backup_volume(volume_name, volume_dir, versions_dir):
+    """Backup files of a volume with incremental backups."""
     print(f"Starting backup routine for volume: {volume_name}")
     files_rsync_destination_path = os.path.join(volume_dir, "files")
     pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
+
+    last_backup_dir = get_last_backup_dir(versions_dir, volume_name)
+    link_dest_option = f"--link-dest='{last_backup_dir}'" if last_backup_dir else ""
+
     source_dir = f"/var/lib/docker/volumes/{volume_name}/_data/"
-    rsync_command = f"rsync -abP --delete --delete-excluded {source_dir} {files_rsync_destination_path}"
+    rsync_command = f"rsync -abP --delete --delete-excluded {link_dest_option} {source_dir} {files_rsync_destination_path}"
     execute_shell_command(rsync_command)
     print(f"Backup routine for volume: {volume_name} completed.")
 
@@ -145,12 +158,12 @@ def backup_routine_for_volume(volume_name, containers, databases, version_dir, w
         elif has_image(container, 'postgres'):
             backup_database(container, databases, volume_dir, 'postgres')
         else:
+            # Backup without start, stop to keep downtime low
+            backup_volume(volume_name, volume_dir, version_dir)
             if is_any_image_not_whitelisted(containers, whitelisted_images):
                 stop_containers(containers)
-                backup_volume(volume_name, volume_dir)
+                backup_volume(volume_name, volume_dir, version_dir)
                 start_containers(containers)
-            else:
-                backup_volume(volume_name, volume_dir)
 
 def main():
     print('Start backup routine...')
