@@ -90,9 +90,12 @@ def backup_volume(volume_name, volume_dir):
     execute_shell_command(rsync_command)
     print(f"Backup routine for volume: {volume_name} completed.")
 
+def get_image_info(container):
+    return execute_shell_command(f"docker inspect {container} | jq -r '.[].Config.Image'")
+
 def has_image(container,image):
     """Check if the container is using the image"""
-    image_info = execute_shell_command(f"docker inspect {container} | jq -r '.[].Config.Image'")
+    image_info = get_image_info(container)
     return image in image_info[0]
 
 def stop_containers(containers):
@@ -115,7 +118,7 @@ def get_container_with_image(containers,image):
 
 def is_image_whitelisted(container, images):
     """Check if the container's image is one of the whitelisted images."""
-    image_info = execute_shell_command(f"docker inspect {container} | jq -r '.[].Config.Image'")
+    image_info = get_image_info(container)
     container_image = image_info[0]
 
     for image in images:
