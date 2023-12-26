@@ -152,21 +152,38 @@ def create_volume_directory(version_dir,volume_name):
     pathlib.Path(volume_dir).mkdir(parents=True, exist_ok=True)
     return volume_dir
 
+def is_image_ignored(container, ignored_images):
+    """Check if the container's image is one of the ignored images."""
+    for image in ignored_images:
+        if has_image(container, image):
+            return True
+    return False
+
 def backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images, versions_dir):
     """Perform backup routine for a given volume."""
+    ignored_images = ['redis', 'memcached']
+
     for container in containers:
-        volume_dir = create_volume_directory(version_dir,volume_name)
+        if is_image_ignored(container, ignored_images):
+            print(f"Ignoring volume '{volume_name}' linked to container '{container}' with ignored image.")
+            continue
+
+        volume_dir = create_volume_directory(version_dir, volume_name)
         if has_image(container, 'mariadb'):
             backup_database(container, databases, volume_dir, 'mariadb')
-        elif has_image(container, 'postgres'):
+            continue
+        
+        if has_image(container, 'postgres'):
             backup_database(container, databases, volume_dir, 'postgres')
-        else:
-            # Backup without start, stop to keep downtime low
+            continue
+        
+        backup_volume(volume_name, volume_dir, versions_dir)
+        if is_any_image_not_whitelisted(containers, whitelisted_images):
+            stop_containers(containers)
             backup_volume(volume_name, volume_dir, versions_dir)
-            if is_any_image_not_whitelisted(containers, whitelisted_images):
-                stop_containers(containers)
-                backup_volume(volume_name, volume_dir, versions_dir)
-                start_containers(containers)
+            start_containers(containers)
+
+
 
 def main():
     print('Start backup routine...')
