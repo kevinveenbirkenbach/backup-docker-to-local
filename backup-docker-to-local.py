@@ -25,7 +25,7 @@ def get_machine_id():
     """Get the machine identifier."""
     return execute_shell_command("sha256sum /etc/machine-id")[0][0:64]
 
-def create_backup_directories(base_dir, machine_id, repository_name, backup_time):
+def create_version_directory(base_dir, machine_id, repository_name, backup_time):
     """Create necessary directories for backup."""
     version_dir = os.path.join(base_dir, machine_id, repository_name, backup_time)
     pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
@@ -36,7 +36,7 @@ def get_instance(container):
     print(f"Extracted instance name: {instance_name}")
     return instance_name
 
-def backup_database(container, databases, version_dir, db_type):
+def backup_database(container, databases, volume_dir, db_type):
     """Backup database (MariaDB or PostgreSQL) if applicable."""
     print(f"Starting database backup for {container} using {db_type}...")
     instance_name = get_instance(container)
@@ -55,7 +55,7 @@ def backup_database(container, databases, version_dir, db_type):
     # Get the first (and only) entry
     database_entry = database_entries.iloc[0]
 
-    backup_destination_dir = os.path.join(version_dir, "sql")
+    backup_destination_dir = os.path.join(volume_dir, "sql")
     pathlib.Path(backup_destination_dir).mkdir(parents=True, exist_ok=True)
     backup_destination_file = os.path.join(backup_destination_dir, f"backup.sql")
     
@@ -80,10 +80,10 @@ def backup_database(container, databases, version_dir, db_type):
     execute_shell_command(backup_command)
     print(f"Database backup for {container} completed.")
 
-def backup_volume(volume_name, version_dir):
+def backup_volume(volume_name, volume_dir):
     """Backup files of a volume."""
     print(f"Starting backup routine for volume: {volume_name}")
-    files_rsync_destination_path = os.path.join(version_dir, volume_name, "files")
+    files_rsync_destination_path = os.path.join(volume_dir, "files")
     pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
     source_dir = f"/var/lib/docker/volumes/{volume_name}/_data/"
     rsync_command = f"rsync -abP --delete --delete-excluded {source_dir} {files_rsync_destination_path}"
@@ -127,20 +127,27 @@ def is_any_image_not_whitelisted(containers, images):
     """Check if any of the containers are using images that are not whitelisted."""
     return any(not is_image_whitelisted(container, images) for container in containers)
 
+def create_volume_directory(version_dir,volume_name):
+    """Create necessary directories for backup."""
+    volume_dir = os.path.join(version_dir, volume_name)
+    pathlib.Path(volume_dir).mkdir(parents=True, exist_ok=True)
+    return volume_dir
+
 def backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images):
     """Perform backup routine for a given volume."""
     for container in containers:
+        volume_dir = create_volume_directory(version_dir,volume_name)
         if has_image(container, 'mariadb'):
-            backup_database(container, databases, version_dir, 'mariadb')
+            backup_database(container, databases, volume_dir, 'mariadb')
         elif has_image(container, 'postgres'):
-            backup_database(container, databases, version_dir, 'postgres')
+            backup_database(container, databases, volume_dir, 'postgres')
         else:
             if is_any_image_not_whitelisted(containers, whitelisted_images):
                 stop_containers(containers)
-                backup_volume(volume_name, version_dir)
+                backup_volume(volume_name, volume_dir)
                 start_containers(containers)
             else:
-                backup_volume(volume_name, version_dir)
+                backup_volume(volume_name, volume_dir)
 
 def main():
     print('Start backup routine...')
@@ -149,7 +156,7 @@ def main():
     machine_id = get_machine_id()
     backups_dir = '/Backups/'
     backup_time = datetime.now().strftime("%Y%m%d%H%M%S")
-    version_dir = create_backup_directories(backups_dir, machine_id, repository_name, backup_time)
+    version_dir = create_version_directory(backups_dir, machine_id, repository_name, backup_time)
 
     print('Start volume backups...')
     databases = pandas.read_csv(os.path.join(dirname, "databases.csv"), sep=";")
