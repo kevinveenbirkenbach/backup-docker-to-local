@@ -161,6 +161,7 @@ def is_image_ignored(container, ignored_images):
 
 def backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images, versions_dir):
     """Perform backup routine for a given volume."""
+    volume_dir=""
     for container in containers:
         
         # Skip ignored images
