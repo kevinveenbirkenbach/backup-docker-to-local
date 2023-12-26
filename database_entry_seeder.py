@@ -35,7 +35,7 @@ def main():
     parser.add_argument("host", help="Database host")
     parser.add_argument("database", help="Database name")
     parser.add_argument("username", help="Username")
-    parser.add_argument("password", help="Password")
+    parser.add_argument("password", nargs='?', default="", help="Password (optional)")
 
     args = parser.parse_args()
 
