@@ -25,9 +25,9 @@ def get_machine_id():
     """Get the machine identifier."""
     return execute_shell_command("sha256sum /etc/machine-id")[0][0:64]
 
-def create_version_directory(base_dir, machine_id, repository_name, backup_time):
+def create_version_directory(versions_dir, backup_time):
     """Create necessary directories for backup."""
-    version_dir = os.path.join(base_dir, machine_id, repository_name, backup_time)
+    version_dir = os.path.join(versions_dir, backup_time)
     pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
     return version_dir
 
