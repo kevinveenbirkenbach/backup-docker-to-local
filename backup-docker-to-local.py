@@ -161,22 +161,28 @@ def is_image_ignored(container, ignored_images):
 
 def backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images, versions_dir):
     """Perform backup routine for a given volume."""
-    ignored_images = ['redis', 'memcached']
-
     for container in containers:
-        if is_image_ignored(container, ignored_images):
+        
+        # Skip ignored images
+        if is_image_ignored(container, ['redis', 'memcached']):
             print(f"Ignoring volume '{volume_name}' linked to container '{container}' with ignored image.")
-            continue
+            continue 
 
+        # Directory which contains files and sqls
         volume_dir = create_volume_directory(version_dir, volume_name)
+        
+        # Execute MariaDB procedure
         if has_image(container, 'mariadb'):
             backup_database(container, databases, volume_dir, 'mariadb')
-            continue
-        
+            return
+
+        # Execute Postgres procedure
         if has_image(container, 'postgres'):
             backup_database(container, databases, volume_dir, 'postgres')
-            continue
-        
+            return
+
+    # Execute backup if image is not ignored
+    if volume_dir:    
         backup_volume(volume_name, volume_dir, versions_dir)
         if is_any_image_not_whitelisted(containers, whitelisted_images):
             stop_containers(containers)
