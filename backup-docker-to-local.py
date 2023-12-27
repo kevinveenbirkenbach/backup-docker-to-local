@@ -9,6 +9,29 @@ import pandas
 from datetime import datetime
 import argparse
 
+class BackupException(Exception):
+    """Generic exception for backup errors."""
+    pass
+
+def execute_shell_command(command):
+    """Execute a shell command and return its output."""
+    print(command)
+    process = subprocess.Popen([command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    out, err = process.communicate()
+    if process.returncode != 0:
+        raise BackupException(f"Error in command: {command}\nOutput: {out}\nError: {err}\nExit code: {process.returncode}")
+    return [line.decode("utf-8") for line in out.splitlines()]
+
+def create_version_directory():
+    """Create necessary directories for backup."""
+    version_dir = os.path.join(VERSIONS_DIR, BACKUP_TIME)
+    pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
+    return version_dir
+
+def get_machine_id():
+    """Get the machine identifier."""
+    return execute_shell_command("sha256sum /etc/machine-id")[0][0:64]
+
 ### GLOBAL CONFIGURATION ###
 
 IMAGES_NO_STOP_REQUIRED = [
@@ -38,29 +61,6 @@ BACKUPS_DIR = '/Backups/'
 VERSIONS_DIR = os.path.join(BACKUPS_DIR, MACHINE_ID, REPOSITORY_NAME)
 BACKUP_TIME = datetime.now().strftime("%Y%m%d%H%M%S")
 VERSION_DIR = create_version_directory()
-
-class BackupException(Exception):
-    """Generic exception for backup errors."""
-    pass
-
-def execute_shell_command(command):
-    """Execute a shell command and return its output."""
-    print(command)
-    process = subprocess.Popen([command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    out, err = process.communicate()
-    if process.returncode != 0:
-        raise BackupException(f"Error in command: {command}\nOutput: {out}\nError: {err}\nExit code: {process.returncode}")
-    return [line.decode("utf-8") for line in out.splitlines()]
-
-def get_machine_id():
-    """Get the machine identifier."""
-    return execute_shell_command("sha256sum /etc/machine-id")[0][0:64]
-
-def create_version_directory():
-    """Create necessary directories for backup."""
-    version_dir = os.path.join(VERSIONS_DIR, BACKUP_TIME)
-    pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
-    return version_dir
 
 def get_instance(container):
     instance_name = re.split("(_|-)(database|db|postgres)", container)[0]
