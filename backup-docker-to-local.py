@@ -30,6 +30,8 @@ IMAGES_NO_BACKUP_REQUIRED = [
     'memcached'
     ]
 
+DATABASES = pandas.read_csv(os.path.join(dirname, "databases.csv"), sep=";")
+
 class BackupException(Exception):
     """Generic exception for backup errors."""
     pass
@@ -58,13 +60,13 @@ def get_instance(container):
     print(f"Extracted instance name: {instance_name}")
     return instance_name
 
-def backup_database(container, databases, volume_dir, db_type):
+def backup_database(container, volume_dir, db_type):
     """Backup database (MariaDB or PostgreSQL) if applicable."""
     print(f"Starting database backup for {container} using {db_type}...")
     instance_name = get_instance(container)
 
     # Filter the DataFrame for the given instance_name
-    database_entries = databases.loc[databases['instance'] == instance_name]
+    database_entries = DATABASES.loc[DATABASES['instance'] == instance_name]
 
     # Check if there are more than one entries
     if len(database_entries) > 1:
@@ -186,7 +188,21 @@ def backup_with_containers_paused(volume_name, volume_dir, versions_dir, contain
     backup_volume(volume_name, volume_dir, versions_dir)
     start_containers(containers)
 
-def default_backup_routine_for_volume(volume_name, containers, databases, version_dir, versions_dir):
+def backup_mariadb_or_postgres(container, volume_dir):
+    # Execute MariaDB procedure
+    if has_image(container, 'mariadb'):
+        backup_database(container, volume_dir, 'mariadb')
+        return True
+
+    # Execute Postgres procedure
+    if has_image(container, 'postgres'):
+        backup_database(container, volume_dir, 'postgres')
+        return True
+
+    return False
+
+
+def default_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir):
     """Perform backup routine for a given volume."""
     volume_dir=""
     for container in containers:
@@ -199,14 +215,8 @@ def default_backup_routine_for_volume(volume_name, containers, databases, versio
         # Directory which contains files and sqls
         volume_dir = create_volume_directory(version_dir, volume_name)
         
-        # Execute MariaDB procedure
-        if has_image(container, 'mariadb'):
-            backup_database(container, databases, volume_dir, 'mariadb')
-            return
-
-        # Execute Postgres procedure
-        if has_image(container, 'postgres'):
-            backup_database(container, databases, volume_dir, 'postgres')
+        # Execute Database backup and exit if successfull
+        if backup_mariadb_or_postgres(container, volume_dir):
             return
 
     # Execute backup if image is not ignored
@@ -215,16 +225,20 @@ def default_backup_routine_for_volume(volume_name, containers, databases, versio
         if is_container_stop_required(containers):
             backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers)
 
-def force_file_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir):
+def backup_everything(volume_name, containers, version_dir, versions_dir):
     """Perform file backup routine for a given volume."""
     volume_dir=create_volume_directory(version_dir, volume_name)
+    # Execute sql dumps
+    for container in containers:
+        backup_mariadb_or_postgres(container, volume_dir)
+    # Execute file backups
     backup_volume(volume_name, volume_dir, versions_dir)
     backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers)
 
 def main():
     parser = argparse.ArgumentParser(description='Backup Docker volumes.')
-    parser.add_argument('--force-file-backup', action='store_true',
-                        help='Force file backup for all volumes, ignoring whitelists and database checks.')
+    parser.add_argument('--backup-everything', action='store_true',
+                        help='Force file backup for all volumes and additional execute database dumps')
     args = parser.parse_args()
     print('Start backup routine...')
     dirname = os.path.dirname(__file__)
@@ -236,7 +250,6 @@ def main():
     version_dir = create_version_directory(versions_dir, backup_time)
 
     print('Start volume backups...')
-    databases = pandas.read_csv(os.path.join(dirname, "databases.csv"), sep=";")
     volume_names = execute_shell_command("docker volume ls --format '{{.Name}}'")
     
     for volume_name in volume_names:
@@ -246,9 +259,9 @@ def main():
             print('Skipped due to no running containers using this volume.')
             continue
         if args.force_file_backup:
-            force_file_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir)
+            backup_everything(volume_name, containers, version_dir, versions_dir)
         else:    
-            default_backup_routine_for_volume(volume_name, containers, databases, version_dir, versions_dir)
+            default_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir)
 
     print('Finished volume backups.')
 
