@@ -234,7 +234,7 @@ def backup_everything(volume_name, containers, version_dir, versions_dir):
 
 def main():
     parser = argparse.ArgumentParser(description='Backup Docker volumes.')
-    parser.add_argument('--backup-everything', action='store_true',
+    parser.add_argument('--everything', action='store_true',
                         help='Force file backup for all volumes and additional execute database dumps')
     args = parser.parse_args()
     print('Start backup routine...')
