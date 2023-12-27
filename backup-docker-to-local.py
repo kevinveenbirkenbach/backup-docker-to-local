@@ -189,16 +189,11 @@ def backup_with_containers_paused(volume_name, volume_dir, versions_dir, contain
     start_containers(containers)
 
 def backup_mariadb_or_postgres(container, volume_dir):
-    # Execute MariaDB procedure
-    if has_image(container, 'mariadb'):
-        backup_database(container, volume_dir, 'mariadb')
-        return True
-
-    # Execute Postgres procedure
-    if has_image(container, 'postgres'):
-        backup_database(container, volume_dir, 'postgres')
-        return True
-
+    '''Performs database image specific backup procedures'''
+    for image in ['mariadb','postgres']:
+        if has_image(container, image):
+            backup_database(container, volume_dir, image)
+            return True
     return False
 
 
@@ -228,9 +223,11 @@ def default_backup_routine_for_volume(volume_name, containers, version_dir, vers
 def backup_everything(volume_name, containers, version_dir, versions_dir):
     """Perform file backup routine for a given volume."""
     volume_dir=create_volume_directory(version_dir, volume_name)
+    
     # Execute sql dumps
     for container in containers:
         backup_mariadb_or_postgres(container, volume_dir)
+
     # Execute file backups
     backup_volume(volume_name, volume_dir, versions_dir)
     backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers)
