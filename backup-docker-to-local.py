@@ -7,6 +7,7 @@ import re
 import pathlib
 import pandas
 from datetime import datetime
+import argparse
 
 class BackupException(Exception):
     """Generic exception for backup errors."""
@@ -159,7 +160,12 @@ def is_image_ignored(container, ignored_images):
             return True
     return False
 
-def backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images, versions_dir):
+def backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers):
+    stop_containers(containers)
+    backup_volume(volume_name, volume_dir, versions_dir)
+    start_containers(containers)
+
+def default_backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images, versions_dir):
     """Perform backup routine for a given volume."""
     volume_dir=""
     for container in containers:
@@ -186,13 +192,19 @@ def backup_routine_for_volume(volume_name, containers, databases, version_dir, w
     if volume_dir:    
         backup_volume(volume_name, volume_dir, versions_dir)
         if is_any_image_not_whitelisted(containers, whitelisted_images):
-            stop_containers(containers)
-            backup_volume(volume_name, volume_dir, versions_dir)
-            start_containers(containers)
+            backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers)
 
-
+def force_file_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir):
+    """Perform file backup routine for a given volume."""
+    volume_dir=create_volume_directory(version_dir, volume_name)
+    backup_volume(volume_name, volume_dir, versions_dir)
+    backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers)
 
 def main():
+    parser = argparse.ArgumentParser(description='Backup Docker volumes.')
+    parser.add_argument('--force-file-backup', action='store_true',
+                        help='Force file backup for all volumes, ignoring whitelists and database checks.')
+    args = parser.parse_args()
     print('Start backup routine...')
     dirname = os.path.dirname(__file__)
     repository_name = os.path.basename(dirname)
@@ -214,7 +226,6 @@ def main():
         'listmonk',
         'mastodon',
         'matomo',
-        'memcached',
         'nextcloud',
         'openproject',
         'pixelfed',
@@ -228,8 +239,10 @@ def main():
         if not containers:
             print('Skipped due to no running containers using this volume.')
             continue
-        
-        backup_routine_for_volume(volume_name, containers, databases, version_dir, stop_and_restart_not_needed, versions_dir)
+        if args.force_file_backup:
+            force_file_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir)
+        else:    
+            default_backup_routine_for_volume(volume_name, containers, databases, version_dir, stop_and_restart_not_needed, versions_dir)
 
     print('Finished volume backups.')
 
