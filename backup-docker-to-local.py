@@ -254,7 +254,7 @@ def main():
         if not containers:
             print('Skipped due to no running containers using this volume.')
             continue
-        if args.force_file_backup:
+        if args.everything:
             backup_everything(volume_name, containers)
         else:    
             default_backup_routine_for_volume(volume_name, containers)
