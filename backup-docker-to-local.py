@@ -9,6 +9,27 @@ import pandas
 from datetime import datetime
 import argparse
 
+### GLOBAL CONFIGURATION ###
+
+IMAGES_NO_STOP_REQUIRED = [
+    # 'baserow', Doesn't use an extra database
+    'element',
+    'gitea',
+    'listmonk',
+    'mastodon',
+    'matomo',
+    'nextcloud',
+    'openproject',
+    'pixelfed',
+    'redis',
+    'wordpress' 
+]
+
+IMAGES_NO_BACKUP_REQUIRED = [
+    'redis', 
+    'memcached'
+    ]
+
 class BackupException(Exception):
     """Generic exception for backup errors."""
     pass
@@ -143,9 +164,9 @@ def is_image_whitelisted(container, images):
             return True
     return False
 
-def is_any_image_not_whitelisted(containers, images):
+def is_container_stop_required(containers):
     """Check if any of the containers are using images that are not whitelisted."""
-    return any(not is_image_whitelisted(container, images) for container in containers)
+    return any(not is_image_whitelisted(container, IMAGES_NO_STOP_REQUIRED) for container in containers)
 
 def create_volume_directory(version_dir,volume_name):
     """Create necessary directories for backup."""
@@ -153,9 +174,9 @@ def create_volume_directory(version_dir,volume_name):
     pathlib.Path(volume_dir).mkdir(parents=True, exist_ok=True)
     return volume_dir
 
-def is_image_ignored(container, ignored_images):
+def is_image_ignored(container):
     """Check if the container's image is one of the ignored images."""
-    for image in ignored_images:
+    for image in IMAGES_NO_BACKUP_REQUIRED:
         if has_image(container, image):
             return True
     return False
@@ -165,13 +186,13 @@ def backup_with_containers_paused(volume_name, volume_dir, versions_dir, contain
     backup_volume(volume_name, volume_dir, versions_dir)
     start_containers(containers)
 
-def default_backup_routine_for_volume(volume_name, containers, databases, version_dir, whitelisted_images, versions_dir):
+def default_backup_routine_for_volume(volume_name, containers, databases, version_dir, versions_dir):
     """Perform backup routine for a given volume."""
     volume_dir=""
     for container in containers:
         
         # Skip ignored images
-        if is_image_ignored(container, ['redis', 'memcached']):
+        if is_image_ignored(container):
             print(f"Ignoring volume '{volume_name}' linked to container '{container}' with ignored image.")
             continue 
 
@@ -191,7 +212,7 @@ def default_backup_routine_for_volume(volume_name, containers, databases, versio
     # Execute backup if image is not ignored
     if volume_dir:    
         backup_volume(volume_name, volume_dir, versions_dir)
-        if is_any_image_not_whitelisted(containers, whitelisted_images):
+        if is_container_stop_required(containers):
             backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers)
 
 def force_file_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir):
@@ -218,21 +239,6 @@ def main():
     databases = pandas.read_csv(os.path.join(dirname, "databases.csv"), sep=";")
     volume_names = execute_shell_command("docker volume ls --format '{{.Name}}'")
     
-    # This whitelist is configurated for https://github.com/kevinveenbirkenbach/backup-docker-to-local 
-    stop_and_restart_not_needed = [
-        # 'baserow', Doesn't use an extra database
-        'element',
-        'gitea',
-        'listmonk',
-        'mastodon',
-        'matomo',
-        'nextcloud',
-        'openproject',
-        'pixelfed',
-        'redis',
-        'wordpress' 
-    ]
-    
     for volume_name in volume_names:
         print(f'Start backup routine for volume: {volume_name}')
         containers = execute_shell_command(f"docker ps --filter volume=\"{volume_name}\" --format '{{{{.Names}}}}'")
@@ -242,7 +248,7 @@ def main():
         if args.force_file_backup:
             force_file_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir)
         else:    
-            default_backup_routine_for_volume(volume_name, containers, databases, version_dir, stop_and_restart_not_needed, versions_dir)
+            default_backup_routine_for_volume(volume_name, containers, databases, version_dir, versions_dir)
 
     print('Finished volume backups.')
 
