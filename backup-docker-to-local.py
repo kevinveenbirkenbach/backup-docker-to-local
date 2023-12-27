@@ -21,7 +21,6 @@ IMAGES_NO_STOP_REQUIRED = [
     'nextcloud',
     'openproject',
     'pixelfed',
-    'redis',
     'wordpress' 
 ]
 
@@ -30,7 +29,15 @@ IMAGES_NO_BACKUP_REQUIRED = [
     'memcached'
     ]
 
-DATABASES = pandas.read_csv(os.path.join(dirname, "databases.csv"), sep=";")
+DIRNAME = os.path.dirname(__file__)
+
+DATABASES = pandas.read_csv(os.path.join(DIRNAME, "databases.csv"), sep=";")
+REPOSITORY_NAME = os.path.basename(DIRNAME)
+MACHINE_ID = get_machine_id()
+BACKUPS_DIR = '/Backups/'
+VERSIONS_DIR = os.path.join(BACKUPS_DIR, MACHINE_ID, REPOSITORY_NAME)
+BACKUP_TIME = datetime.now().strftime("%Y%m%d%H%M%S")
+VERSION_DIR = create_version_directory()
 
 class BackupException(Exception):
     """Generic exception for backup errors."""
@@ -49,9 +56,9 @@ def get_machine_id():
     """Get the machine identifier."""
     return execute_shell_command("sha256sum /etc/machine-id")[0][0:64]
 
-def create_version_directory(versions_dir, backup_time):
+def create_version_directory():
     """Create necessary directories for backup."""
-    version_dir = os.path.join(versions_dir, backup_time)
+    version_dir = os.path.join(VERSIONS_DIR, BACKUP_TIME)
     pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
     return version_dir
 
@@ -104,11 +111,11 @@ def backup_database(container, volume_dir, db_type):
     execute_shell_command(backup_command)
     print(f"Database backup for {container} completed.")
 
-def get_last_backup_dir(versions_dir, volume_name, current_backup_dir):
+def get_last_backup_dir(volume_name, current_backup_dir):
     """Get the most recent backup directory for the specified volume."""
-    versions = sorted(os.listdir(versions_dir), reverse=True)
+    versions = sorted(os.listdir(VERSIONS_DIR), reverse=True)
     for version in versions:
-        backup_dir = os.path.join(versions_dir, version, volume_name, "files")
+        backup_dir = os.path.join(VERSIONS_DIR, version, volume_name, "files")
         # Ignore current backup dir
         if backup_dir != current_backup_dir:
             if os.path.isdir(backup_dir):
@@ -116,13 +123,13 @@ def get_last_backup_dir(versions_dir, volume_name, current_backup_dir):
     print(f"No previous backups available for volume: {volume_name}")
     return None
 
-def backup_volume(volume_name, volume_dir, versions_dir):
+def backup_volume(volume_name, volume_dir):
     """Backup files of a volume with incremental backups."""
     print(f"Starting backup routine for volume: {volume_name}")
     files_rsync_destination_path = os.path.join(volume_dir, "files")
     pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
 
-    last_backup_dir = get_last_backup_dir(versions_dir, volume_name, files_rsync_destination_path)
+    last_backup_dir = get_last_backup_dir(volume_name, files_rsync_destination_path)
     link_dest_option = f"--link-dest='{last_backup_dir}'" if last_backup_dir else ""
 
     source_dir = f"/var/lib/docker/volumes/{volume_name}/_data/"
@@ -170,9 +177,9 @@ def is_container_stop_required(containers):
     """Check if any of the containers are using images that are not whitelisted."""
     return any(not is_image_whitelisted(container, IMAGES_NO_STOP_REQUIRED) for container in containers)
 
-def create_volume_directory(version_dir,volume_name):
+def create_volume_directory(volume_name):
     """Create necessary directories for backup."""
-    volume_dir = os.path.join(version_dir, volume_name)
+    volume_dir = os.path.join(VERSION_DIR, volume_name)
     pathlib.Path(volume_dir).mkdir(parents=True, exist_ok=True)
     return volume_dir
 
@@ -183,9 +190,9 @@ def is_image_ignored(container):
             return True
     return False
 
-def backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers):
+def backup_with_containers_paused(volume_name, volume_dir, containers):
     stop_containers(containers)
-    backup_volume(volume_name, volume_dir, versions_dir)
+    backup_volume(volume_name, volume_dir)
     start_containers(containers)
 
 def backup_mariadb_or_postgres(container, volume_dir):
@@ -197,7 +204,7 @@ def backup_mariadb_or_postgres(container, volume_dir):
     return False
 
 
-def default_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir):
+def default_backup_routine_for_volume(volume_name, containers):
     """Perform backup routine for a given volume."""
     volume_dir=""
     for container in containers:
@@ -208,7 +215,7 @@ def default_backup_routine_for_volume(volume_name, containers, version_dir, vers
             continue 
 
         # Directory which contains files and sqls
-        volume_dir = create_volume_directory(version_dir, volume_name)
+        volume_dir = create_volume_directory(volume_name)
         
         # Execute Database backup and exit if successfull
         if backup_mariadb_or_postgres(container, volume_dir):
@@ -216,35 +223,27 @@ def default_backup_routine_for_volume(volume_name, containers, version_dir, vers
 
     # Execute backup if image is not ignored
     if volume_dir:    
-        backup_volume(volume_name, volume_dir, versions_dir)
+        backup_volume(volume_name, volume_dir)
         if is_container_stop_required(containers):
-            backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers)
+            backup_with_containers_paused(volume_name, volume_dir, containers)
 
-def backup_everything(volume_name, containers, version_dir, versions_dir):
+def backup_everything(volume_name, containers):
     """Perform file backup routine for a given volume."""
-    volume_dir=create_volume_directory(version_dir, volume_name)
+    volume_dir=create_volume_directory(volume_name)
     
     # Execute sql dumps
     for container in containers:
         backup_mariadb_or_postgres(container, volume_dir)
 
     # Execute file backups
-    backup_volume(volume_name, volume_dir, versions_dir)
-    backup_with_containers_paused(volume_name, volume_dir, versions_dir, containers)
+    backup_volume(volume_name, volume_dir)
+    backup_with_containers_paused(volume_name, volume_dir, containers)
 
 def main():
     parser = argparse.ArgumentParser(description='Backup Docker volumes.')
     parser.add_argument('--everything', action='store_true',
                         help='Force file backup for all volumes and additional execute database dumps')
     args = parser.parse_args()
-    print('Start backup routine...')
-    dirname = os.path.dirname(__file__)
-    repository_name = os.path.basename(dirname)
-    machine_id = get_machine_id()
-    backups_dir = '/Backups/'
-    versions_dir = os.path.join(backups_dir, machine_id, repository_name)
-    backup_time = datetime.now().strftime("%Y%m%d%H%M%S")
-    version_dir = create_version_directory(versions_dir, backup_time)
 
     print('Start volume backups...')
     volume_names = execute_shell_command("docker volume ls --format '{{.Name}}'")
@@ -256,9 +255,9 @@ def main():
             print('Skipped due to no running containers using this volume.')
             continue
         if args.force_file_backup:
-            backup_everything(volume_name, containers, version_dir, versions_dir)
+            backup_everything(volume_name, containers)
         else:    
-            default_backup_routine_for_volume(volume_name, containers, version_dir, versions_dir)
+            default_backup_routine_for_volume(volume_name, containers)
 
     print('Finished volume backups.')
 
