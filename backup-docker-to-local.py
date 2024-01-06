@@ -123,6 +123,9 @@ def get_last_backup_dir(volume_name, current_backup_dir):
     print(f"No previous backups available for volume: {volume_name}")
     return None
 
+def getStoragePath(volume_name):
+    return execute_shell_command(f"docker volume inspect {volume_name} | jq -r '.[0].Mountpoint'")
+
 def backup_volume(volume_name, volume_dir):
     """Backup files of a volume with incremental backups."""
     print(f"Starting backup routine for volume: {volume_name}")
@@ -132,7 +135,7 @@ def backup_volume(volume_name, volume_dir):
     last_backup_dir = get_last_backup_dir(volume_name, files_rsync_destination_path)
     link_dest_option = f"--link-dest='{last_backup_dir}'" if last_backup_dir else ""
 
-    source_dir = f"/var/lib/docker/volumes/{volume_name}/_data/"
+    source_dir = getStoragePath(volume_name)
     rsync_command = f"rsync -abP --delete --delete-excluded {link_dest_option} {source_dir} {files_rsync_destination_path}"
     execute_shell_command(rsync_command)
     print(f"Backup routine for volume: {volume_name} completed.")
