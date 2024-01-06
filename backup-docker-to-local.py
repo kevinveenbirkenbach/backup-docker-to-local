@@ -87,32 +87,32 @@ def backup_database(container, volume_dir, db_type):
         raise BackupException(f"No entry found for instance '{instance_name}'")
 
     # Get the first (and only) entry
-    database_entry = database_entries.iloc[0]
-
-    backup_destination_dir = os.path.join(volume_dir, "sql")
-    pathlib.Path(backup_destination_dir).mkdir(parents=True, exist_ok=True)
-    backup_destination_file = os.path.join(backup_destination_dir, f"backup.sql")
-    
-    if db_type == 'mariadb':
-        backup_command = f"docker exec {container} /usr/bin/mariadb-dump -u {database_entry['username']} -p{database_entry['password']} {database_entry['database']} > {backup_destination_file}"
-    elif db_type == 'postgres':
-        if database_entry['password']:
-            # Include PGPASSWORD in the command when a password is provided
-            backup_command = (
-                f"PGPASSWORD={database_entry['password']} docker exec -i {container} "
-                f"pg_dump -U {database_entry['username']} -d {database_entry['database']} "
-                f"-h localhost > {backup_destination_file}"
-            )
-        else:
-            # Exclude PGPASSWORD and use --no-password when the password is empty
-            backup_command = (
-                f"docker exec -i {container} pg_dump -U {database_entry['username']} "
-                f"-d {database_entry['database']} -h localhost --no-password "
-                f"> {backup_destination_file}"
-            )
-
-    execute_shell_command(backup_command)
-    print(f"Database backup for {container} completed.")
+    for database_entry in database_entries.iloc:
+        database_name     = database_entry['database']
+        database_username = database_entry['username']
+        database_password = database_entry['password']
+        backup_destination_dir = os.path.join(volume_dir, "sql")
+        pathlib.Path(backup_destination_dir).mkdir(parents=True, exist_ok=True)
+        backup_destination_file = os.path.join(backup_destination_dir, f"{database_name}.backup.sql")
+        if db_type == 'mariadb':
+            backup_command = f"docker exec {container} /usr/bin/mariadb-dump -u {database_username} -p{database_password} {database_name} > {backup_destination_file}"
+        elif db_type == 'postgres':
+            if database_password:
+                # Include PGPASSWORD in the command when a password is provided
+                backup_command = (
+                    f"PGPASSWORD={database_password} docker exec -i {container} "
+                    f"pg_dump -U {database_username} -d {database_name} "
+                    f"-h localhost > {backup_destination_file}"
+                )
+            else:
+                # Exclude PGPASSWORD and use --no-password when the password is empty
+                backup_command = (
+                    f"docker exec -i {container} pg_dump -U {database_username} "
+                    f"-d {database_name} -h localhost --no-password "
+                    f"> {backup_destination_file}"
+                )
+        execute_shell_command(backup_command)
+        print(f"Database backup for database {container} completed.")
 
 def get_last_backup_dir(volume_name, current_backup_dir):
     """Get the most recent backup directory for the specified volume."""
