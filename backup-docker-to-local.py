@@ -35,7 +35,9 @@ def get_machine_id():
 ### GLOBAL CONFIGURATION ###
 
 IMAGES_NO_STOP_REQUIRED = [
-    # 'baserow', Doesn't use an extra database
+    'akaunting',
+    'baserow',
+    'discourse',
     'element',
     'gitea',
     'listmonk',
@@ -43,6 +45,7 @@ IMAGES_NO_STOP_REQUIRED = [
     'matomo',
     'nextcloud',
     'openproject',
+    'peertube',
     'pixelfed',
     'wordpress' 
 ]
