@@ -211,10 +211,13 @@ def is_image_ignored(container):
             return True
     return False
 
-def backup_with_containers_paused(volume_name, volume_dir, containers):
+def backup_with_containers_paused(volume_name, volume_dir, containers, shutdown):
     stop_containers(containers)
     backup_volume(volume_name, volume_dir)
-    start_containers(containers)
+    
+    # Just restart containers if shutdown is false
+    if not shutdown:
+        start_containers(containers)
 
 def backup_mariadb_or_postgres(container, volume_dir):
     '''Performs database image specific backup procedures'''
@@ -224,8 +227,7 @@ def backup_mariadb_or_postgres(container, volume_dir):
             return True
     return False
 
-
-def default_backup_routine_for_volume(volume_name, containers):
+def default_backup_routine_for_volume(volume_name, containers, shutdown):
     """Perform backup routine for a given volume."""
     volume_dir=""
     for container in containers:
@@ -246,9 +248,9 @@ def default_backup_routine_for_volume(volume_name, containers):
     if volume_dir:    
         backup_volume(volume_name, volume_dir)
         if is_container_stop_required(containers):
-            backup_with_containers_paused(volume_name, volume_dir, containers)
+            backup_with_containers_paused(volume_name, volume_dir, containers, shutdown)
 
-def backup_everything(volume_name, containers):
+def backup_everything(volume_name, containers, shutdown):
     """Perform file backup routine for a given volume."""
     volume_dir=create_volume_directory(volume_name)
     
@@ -258,12 +260,14 @@ def backup_everything(volume_name, containers):
 
     # Execute file backups
     backup_volume(volume_name, volume_dir)
-    backup_with_containers_paused(volume_name, volume_dir, containers)
+    backup_with_containers_paused(volume_name, volume_dir, containers, shutdown)
 
 def main():
     parser = argparse.ArgumentParser(description='Backup Docker volumes.')
     parser.add_argument('--everything', action='store_true',
                         help='Force file backup for all volumes and additional execute database dumps')
+    parser.add_argument('--shutdown', action='store_true',
+                        help='Doesn\'t restart containers after backup')
     args = parser.parse_args()
 
     print('Start volume backups...')
@@ -276,9 +280,9 @@ def main():
             print('Skipped due to no running containers using this volume.')
             continue
         if args.everything:
-            backup_everything(volume_name, containers)
+            backup_everything(volume_name, containers, args.shutdown)
         else:    
-            default_backup_routine_for_volume(volume_name, containers)
+            default_backup_routine_for_volume(volume_name, containers, args.shutdown)
 
     print('Finished volume backups.')
 
