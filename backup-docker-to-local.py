@@ -142,7 +142,7 @@ def get_last_backup_dir(volume_name, current_backup_dir):
     return None
 
 def getStoragePath(volume_name):
-    return execute_shell_command(f"docker volume inspect {volume_name} | jq -r '.[0].Mountpoint'")
+    return execute_shell_command(f"docker volume inspect --format '{{{{ .Mountpoint }}}}' {volume_name}")
 
 def backup_volume(volume_name, volume_dir):
     """Backup files of a volume with incremental backups."""
@@ -159,7 +159,7 @@ def backup_volume(volume_name, volume_dir):
     print(f"Backup routine for volume: {volume_name} completed.")
 
 def get_image_info(container):
-    return execute_shell_command(f"docker inspect {container} | jq -r '.[].Config.Image'")
+    return execute_shell_command(f"docker inspect --format '{{{{.Config.Image}}}}' {container}")
 
 def has_image(container,image):
     """Check if the container is using the image"""
