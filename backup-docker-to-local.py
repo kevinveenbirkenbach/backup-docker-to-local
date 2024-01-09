@@ -165,18 +165,18 @@ def has_image(container,image):
     """Check if the container is using the image"""
     image_info = get_image_info(container)
     return image in image_info[0]
-
+        
 def stop_containers(containers):
     """Stop a list of containers."""
-    for container in containers:
-        print(f"Stopping container {container}...")
-        execute_shell_command(f"docker stop {container}")
-
+    container_list = ' '.join(containers)
+    print(f"Stopping containers {container_list}...")
+    execute_shell_command(f"docker stop {container_list}")
+    
 def start_containers(containers):
-    """Start a list of stopped containers."""
-    for container in containers:
-        print(f"Starting container {container}...")
-        execute_shell_command(f"docker start {container}")
+    """Start a list of containers."""
+    container_list = ' '.join(containers)
+    print(f"Start containers {container_list}...")
+    execute_shell_command(f"docker start {container_list}")
 
 def get_container_with_image(containers,image):
     for container in containers:
