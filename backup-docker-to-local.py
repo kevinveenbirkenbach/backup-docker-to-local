@@ -142,7 +142,7 @@ def get_last_backup_dir(volume_name, current_backup_dir):
     return None
 
 def getStoragePath(volume_name):
-    return execute_shell_command(f"docker volume inspect --format '{{{{ .Mountpoint }}}}' {volume_name}")
+    return execute_shell_command(f"docker volume inspect --format '{{{{ .Mountpoint }}}}' {volume_name}")[0]
 
 def backup_volume(volume_name, volume_dir):
     """Backup files of a volume with incremental backups."""
