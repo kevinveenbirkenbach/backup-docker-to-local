@@ -22,9 +22,7 @@ backup_folder="Backups/$backup_hash/backup-docker-to-local/$version/$volume_name
 backup_files="/$backup_folder/files"
 backup_sql="/$backup_folder/sql/$database_name.backup.sql"
 
-echo "Inspect volume $volume_name"
-docker volume inspect "$volume_name"
-exit_status_volume_inspect=$?
+# DATABASE RECOVERY
 
 if [ -f "$backup_sql" ]; then
   if [ -n "$database_container" ] && [ -n "$database_password" ] && [ -n "$database_name" ]; then
@@ -39,6 +37,12 @@ if [ -f "$backup_sql" ]; then
   echo "A database backup exists, but a parameter is missing."
   exit 1
 fi 
+
+# FILE RECOVERY
+
+echo "Inspect volume $volume_name"
+docker volume inspect "$volume_name"
+exit_status_volume_inspect=$?
 
 if [ $exit_status_volume_inspect -eq 0 ]; then
     echo "Volume $volume_name already exists"
