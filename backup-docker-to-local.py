@@ -71,11 +71,10 @@ def get_instance(container):
 
     # This line uses regular expressions to split the 'container' string.
     # 're.split' is a method that divides a string into a list, based on the occurrences of a pattern.
-    instance_name_elements = re.split("(_|-)(database|db|postgres)", container)
-    if instance_name_elements[0] == 'central':
-        instance_name = f"{instance_name_elements[0]}-{instance_name_elements[1]}"
+    if container in ['central-mariadb', 'central-postgres']:
+        instance_name = container
     else:
-        instance_name = instance_name_elements[0]
+        instance_name = re.split("(_|-)(database|db|postgres)", container)[0]
             
     # The pattern "(_|-)(database|db|postgres)" is explained as follows:
     #    - "(_|-)": Matches an underscore '_' or a hyphen '-'.
