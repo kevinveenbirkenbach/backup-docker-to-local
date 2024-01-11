@@ -93,10 +93,6 @@ def backup_database(container, volume_dir, db_type):
     # Filter the DataFrame for the given instance_name
     database_entries = DATABASES.loc[DATABASES['instance'] == instance_name]
 
-    # Check if there are more than one entries
-    if len(database_entries) > 1:
-        raise BackupException(f"More than one entry found for instance '{instance_name}'")
-
     # Check if there is no entry
     if database_entries.empty:
         raise BackupException(f"No entry found for instance '{instance_name}'")
