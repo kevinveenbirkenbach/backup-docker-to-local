@@ -142,12 +142,17 @@ def get_last_backup_dir(volume_name, current_backup_dir):
     return None
 
 def getStoragePath(volume_name):
-    return execute_shell_command(f"docker volume inspect --format '{{{{ .Mountpoint }}}}' {volume_name}")[0]
+    path = execute_shell_command(f"docker volume inspect --format '{{{{ .Mountpoint }}}}' {volume_name}")[0] 
+    return f"{path}/"
+
+def getFileRsyncDestinationPath(volume_dir):
+    path = os.path.join(volume_dir, "files")
+    return f"{path}/"
 
 def backup_volume(volume_name, volume_dir):
     """Backup files of a volume with incremental backups."""
     print(f"Starting backup routine for volume: {volume_name}")
-    files_rsync_destination_path = os.path.join(volume_dir, "files")
+    files_rsync_destination_path = getFileRsyncDestinationPath(volume_dir)
     pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
 
     last_backup_dir = get_last_backup_dir(volume_name, files_rsync_destination_path)
