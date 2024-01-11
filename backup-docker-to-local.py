@@ -133,7 +133,7 @@ def get_last_backup_dir(volume_name, current_backup_dir):
     """Get the most recent backup directory for the specified volume."""
     versions = sorted(os.listdir(VERSIONS_DIR), reverse=True)
     for version in versions:
-        backup_dir = os.path.join(VERSIONS_DIR, version, volume_name, "files")
+        backup_dir = os.path.join(VERSIONS_DIR, version, volume_name, "files", "")
         # Ignore current backup dir
         if backup_dir != current_backup_dir:
             if os.path.isdir(backup_dir):
@@ -153,9 +153,10 @@ def backup_volume(volume_name, volume_dir):
     """Backup files of a volume with incremental backups."""
     print(f"Starting backup routine for volume: {volume_name}")
     files_rsync_destination_path = getFileRsyncDestinationPath(volume_dir)
+    pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
+
     last_backup_dir = get_last_backup_dir(volume_name, files_rsync_destination_path)
     link_dest_option = f"--link-dest='{last_backup_dir}'" if last_backup_dir else ""
-    pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
 
     source_dir = getStoragePath(volume_name)
     rsync_command = f"rsync -abP --delete --delete-excluded {link_dest_option} {source_dir} {files_rsync_destination_path}"
