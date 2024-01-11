@@ -8,7 +8,7 @@ fi
 
 volume_name="$1"                # Volume-Name
 backup_hash="$2"                # Hashed Machine ID
-version="$3"                    # version to backup
+version="$3"                    # version to recover
 
 # DATABASE PARAMETERS
 database_type="$4"              # Valid values; mariadb, postgress
@@ -26,17 +26,6 @@ echo "Inspect volume $volume_name"
 docker volume inspect "$volume_name"
 exit_status_volume_inspect=$?
 
-if [ $exit_status_volume_inspect -eq 0 ]; then
-    echo "Volume $volume_name already exists"
-else
-    echo "Create volume $volume_name"
-    docker volume create "$volume_name"
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Failed to create volume $volume_name"
-        exit 1
-    fi
-fi
-
 if [ -f "$backup_sql" ]; then
   if [ -n "$database_container" ] && [ -n "$database_password" ] && [ -n "$database_name" ]; then
     echo "recover mysql dump"
@@ -50,6 +39,17 @@ if [ -f "$backup_sql" ]; then
   echo "A database backup exists, but a parameter is missing."
   exit 1
 fi 
+
+if [ $exit_status_volume_inspect -eq 0 ]; then
+    echo "Volume $volume_name already exists"
+else
+    echo "Create volume $volume_name"
+    docker volume create "$volume_name"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to create volume $volume_name"
+        exit 1
+    fi
+fi
 
 if [ -d "$backup_files" ]; then    
   echo "recover files"
