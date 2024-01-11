@@ -6,15 +6,21 @@ if [ $# -lt 3 ]; then
   exit 1
 fi
 
-volume_name="$1"          # Volume-Name
-backup_hash="$2"          # Hashed Machine ID
-version="$3"              # version to backup
-container="${4:-}"        # optional
-mysql_root_password="${5:-}"  # optional
-database="${6:-}"         # optional
+volume_name="$1"                # Volume-Name
+backup_hash="$2"                # Hashed Machine ID
+version="$3"                    # version to backup
+
+# DATABASE PARAMETERS
+database_type="$4"              # Valid values; mariadb, postgress
+database_container="$5"         # optional
+database_password="$6"          # optional
+database_name="$7"              # optional
+database_user="$database_name"  
+
+
 backup_folder="Backups/$backup_hash/backup-docker-to-local/$version/$volume_name"
 backup_files="/$backup_folder/files"
-backup_sql="/$backup_folder/sql/backup.sql"
+backup_sql="/$backup_folder/sql/$database_name.backup.sql"
 
 echo "Inspect volume $volume_name"
 docker volume inspect "$volume_name"
@@ -32,16 +38,17 @@ else
 fi
 
 if [ -f "$backup_sql" ]; then
-  if [ -n "$container" ] && [ -n "$mysql_root_password" ] && [ -n "$database" ]; then
+  if [ -n "$database_container" ] && [ -n "$database_password" ] && [ -n "$database_name" ]; then
     echo "recover mysql dump"
-    cat "$backup_sql" | docker exec -i "$container" mariadb -u root --password="$mysql_root_password" "$database"
+    cat "$backup_sql" | docker exec -i "$database_container" mariadb -u "$database_user" --password="$database_password" "$database_name"
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to recover mysql dump"
         exit 1
     fi
     exit 0
   fi
-  echo "A database backup exists, but a parameter is missing. Files will be recovered instead."
+  echo "A database backup exists, but a parameter is missing."
+  exit 1
 fi 
 
 if [ -d "$backup_files" ]; then    
