@@ -217,7 +217,10 @@ def is_image_ignored(container):
     return False
 
 def backup_with_containers_paused(volume_name, volume_dir, containers, shutdown):
-    stop_containers(containers)
+    if containers:
+        stop_containers(containers)
+    else:
+        print(f"{volume_name} has no containers to stop. Skipped.")
     backup_volume(volume_name, volume_dir)
     
     # Just restart containers if shutdown is false
