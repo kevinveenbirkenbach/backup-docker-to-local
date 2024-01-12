@@ -24,7 +24,7 @@ backup_sql="/$backup_folder/sql/$database_name.backup.sql"
 
 # DATABASE RECOVERY
 
-if [ -f "$backup_sql" ]; then
+if [ ! -z "$database_type" ]; then
   if [ "$database_type" = "postgres" ]; then
     if [ -n "$database_container" ] && [ -n "$database_password" ] && [ -n "$database_name" ]; then
       echo "Recover PostgreSQL dump"
