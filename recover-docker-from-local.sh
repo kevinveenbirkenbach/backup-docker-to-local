@@ -29,7 +29,7 @@ if [ ! -z "$database_type" ]; then
     if [ -n "$database_container" ] && [ -n "$database_password" ] && [ -n "$database_name" ]; then
       echo "Recover PostgreSQL dump"
       export PGPASSWORD="$database_password"
-      cat "$backup_sql" | docker exec -i "$database_container" psql -U "$database_user" -d "$database_name"
+      cat "$backup_sql" | docker exec -i "$database_container" psql -v ON_ERROR_STOP=1 -U "$database_user" -d "$database_name"
       if [ $? -ne 0 ]; then
           echo "ERROR: Failed to recover PostgreSQL dump"
           exit 1
