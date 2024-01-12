@@ -281,9 +281,6 @@ def main():
     for volume_name in volume_names:
         print(f'Start backup routine for volume: {volume_name}')
         containers = execute_shell_command(f"docker ps --filter volume=\"{volume_name}\" --format '{{{{.Names}}}}'")
-        if not containers:
-            print('Skipped due to no running containers using this volume.')
-            continue
         if args.everything:
             backup_everything(volume_name, containers, args.shutdown)
         else:    
