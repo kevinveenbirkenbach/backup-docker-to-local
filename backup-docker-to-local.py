@@ -150,17 +150,23 @@ def getFileRsyncDestinationPath(volume_dir):
     return f"{path}/"
 
 def backup_volume(volume_name, volume_dir):
-    """Backup files of a volume with incremental backups."""
-    print(f"Starting backup routine for volume: {volume_name}")
-    files_rsync_destination_path = getFileRsyncDestinationPath(volume_dir)
-    pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
+    try:
+        """Backup files of a volume with incremental backups."""
+        print(f"Starting backup routine for volume: {volume_name}")
+        files_rsync_destination_path = getFileRsyncDestinationPath(volume_dir)
+        pathlib.Path(files_rsync_destination_path).mkdir(parents=True, exist_ok=True)
 
-    last_backup_dir = get_last_backup_dir(volume_name, files_rsync_destination_path)
-    link_dest_option = f"--link-dest='{last_backup_dir}'" if last_backup_dir else ""
+        last_backup_dir = get_last_backup_dir(volume_name, files_rsync_destination_path)
+        link_dest_option = f"--link-dest='{last_backup_dir}'" if last_backup_dir else ""
 
-    source_dir = getStoragePath(volume_name)
-    rsync_command = f"rsync -abP --delete --delete-excluded {link_dest_option} {source_dir} {files_rsync_destination_path}"
-    execute_shell_command(rsync_command)
+        source_dir = getStoragePath(volume_name)
+        rsync_command = f"rsync -abP --delete --delete-excluded {link_dest_option} {source_dir} {files_rsync_destination_path}"
+        execute_shell_command(rsync_command)
+    except BackupException as e:
+        if "file has vanished" in e.args[0]:
+            print("Warning: Some files vanished before transfer. Continuing.")
+        else:
+            raise
     print(f"Backup routine for volume: {volume_name} completed.")
 
 def get_image_info(container):
