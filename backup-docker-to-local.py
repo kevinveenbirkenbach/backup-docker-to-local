@@ -170,18 +170,15 @@ def has_image(container,image):
     """Check if the container is using the image"""
     image_info = get_image_info(container)
     return image in image_info[0]
-        
-def stop_containers(containers):
+
+def change_containers_status(containers,status):
     """Stop a list of containers."""
-    container_list = ' '.join(containers)
-    print(f"Stopping containers {container_list}...")
-    execute_shell_command(f"docker stop {container_list}")
-    
-def start_containers(containers):
-    """Start a list of containers."""
-    container_list = ' '.join(containers)
-    print(f"Start containers {container_list}...")
-    execute_shell_command(f"docker start {container_list}")
+    if containers:
+        container_list = ' '.join(containers)
+        print(f"{status} containers {container_list}...")
+        execute_shell_command(f"docker {status} {container_list}")
+    else:
+        print(f"No containers to {status}.")    
 
 def get_container_with_image(containers,image):
     for container in containers:
@@ -217,15 +214,12 @@ def is_image_ignored(container):
     return False
 
 def backup_with_containers_paused(volume_name, volume_dir, containers, shutdown):
-    if containers:
-        stop_containers(containers)
-    else:
-        print(f"{volume_name} has no containers to stop. Skipped.")
+    change_containers_status(containers,'stop')
     backup_volume(volume_name, volume_dir)
     
     # Just restart containers if shutdown is false
     if not shutdown:
-        start_containers(containers)
+        change_containers_status(containers,'start')
 
 def backup_mariadb_or_postgres(container, volume_dir):
     '''Performs database image specific backup procedures'''
