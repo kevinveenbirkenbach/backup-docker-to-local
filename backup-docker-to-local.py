@@ -89,6 +89,16 @@ def get_instance(container):
     print(f"Extracted instance name: {instance_name}")
     return instance_name
 
+def stamp_directory():
+    """Stamp a directory using directory-validator."""
+    stamp_command = f"python ../directory-validator/directory-validator.py --stamp {VERSION_DIR}"
+    try:
+        execute_shell_command(stamp_command)
+        print(f"Successfully stamped directory: {VERSION_DIR}")
+    except BackupException as e:
+        print(f"Error stamping directory {VERSION_DIR}: {e}")
+        exit(1)
+
 def backup_database(container, volume_dir, db_type):
     """Backup database (MariaDB or PostgreSQL) if applicable."""
     print(f"Starting database backup for {container} using {db_type}...")
@@ -288,7 +298,7 @@ def main():
             backup_everything(volume_name, containers, args.shutdown)
         else:    
             default_backup_routine_for_volume(volume_name, containers, args.shutdown)
-
+    stamp_directory()
     print('Finished volume backups.')
 
 if __name__ == "__main__":

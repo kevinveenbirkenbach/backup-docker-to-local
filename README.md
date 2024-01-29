@@ -59,7 +59,7 @@ This project is licensed under the GNU Affero General Public License v3.0. The f
 - https://blog.ssdnodes.com/blog/docker-backup-volumes/
 - https://www.baculasystems.com/blog/docker-backup-containers/
 - https://gist.github.com/spalladino/6d981f7b33f6e0afe6bb
-- https://stackoverflow.com/questions/26331651/how-can-i-backup-a-docker-container-with-its-data-volumes
+- https://stackoverflow.com/questions/26331651/how-can-i-backup-a-docker/container/with-its-data-volumes
 - https://netfuture.ch/2013/08/simple-versioned-timemachine-like-backup-using-rsync/
 - https://zwischenzugs.com/2016/08/29/bash-to-python-converter/
 - https://en.wikipedia.org/wiki/Incremental_backup#Incremental
