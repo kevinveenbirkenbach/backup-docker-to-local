@@ -55,16 +55,16 @@ IMAGES_NO_BACKUP_REQUIRED = [
     'memcached'
     ]
 
-DIRNAME = os.path.dirname(__file__)
-
-DATABASES = pandas.read_csv(os.path.join(DIRNAME, "databases.csv"), sep=";")
-REPOSITORY_NAME = os.path.basename(DIRNAME)
-MACHINE_ID = get_machine_id()
-BACKUPS_DIR = '/Backups/'
-VERSIONS_DIR = os.path.join(BACKUPS_DIR, MACHINE_ID, REPOSITORY_NAME)
-BACKUP_TIME = datetime.now().strftime("%Y%m%d%H%M%S")
-VERSION_DIR = create_version_directory()
-SCRIPTS_DIRECTORY = pathlib.Path(os.path.realpath(__file__)).parent.parent
+# DEFINE CONSTANTS
+DIRNAME             = os.path.dirname(__file__)
+SCRIPTS_DIRECTORY   = pathlib.Path(os.path.realpath(__file__)).parent.parent
+DATABASES           = pandas.read_csv(os.path.join(DIRNAME, "databases.csv"), sep=";")
+REPOSITORY_NAME     = os.path.basename(DIRNAME)
+MACHINE_ID          = get_machine_id()
+BACKUPS_DIR         = '/Backups/'
+VERSIONS_DIR        = os.path.join(BACKUPS_DIR, MACHINE_ID, REPOSITORY_NAME)
+BACKUP_TIME         = datetime.now().strftime("%Y%m%d%H%M%S")
+VERSION_DIR         = create_version_directory()
 
 def get_instance(container):
     # The function is defined to take one parameter, 'container', 
