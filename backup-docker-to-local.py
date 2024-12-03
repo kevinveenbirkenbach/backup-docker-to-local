@@ -34,6 +34,8 @@ def get_machine_id():
 
 ### GLOBAL CONFIGURATION ###
 
+DOCKER_COMPOSE_HARD_RESTART_REQUIRED = ['mailu']
+
 IMAGES_NO_STOP_REQUIRED = [
     'akaunting',
     'baserow',
@@ -279,6 +281,37 @@ def backup_everything(volume_name, containers, shutdown):
     # Execute file backups
     backup_volume(volume_name, volume_dir)
     backup_with_containers_paused(volume_name, volume_dir, containers, shutdown)
+    
+def hard_restart_docker_services(dir_path):
+    """Perform a hard restart of docker-compose services in the given directory."""
+    try:
+        print(f"Performing hard restart for docker-compose services in: {dir_path}")
+        subprocess.run(["docker-compose", "down"], cwd=dir_path, check=True)
+        subprocess.run(["docker-compose", "up", "-d"], cwd=dir_path, check=True)
+        print(f"Hard restart completed successfully in: {dir_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during hard restart in {dir_path}: {e}")
+        exit(2)
+
+def handle_docker_compose_services(parent_directory):
+    """Iterate through directories and restart or hard restart services as needed."""
+    for dir_entry in os.scandir(parent_directory):
+        if dir_entry.is_dir():
+            dir_path = dir_entry.path
+            dir_name = os.path.basename(dir_path)
+            print(f"Checking directory: {dir_path}")
+            
+            docker_compose_file = os.path.join(dir_path, "docker-compose.yml")
+            
+            if os.path.isfile(docker_compose_file):
+                print(f"Found docker-compose.yml in {dir_path}.")
+                if dir_name in DOCKER_COMPOSE_HARD_RESTART_REQUIRED:
+                    print(f"Directory {dir_name} detected. Performing hard restart...")
+                    hard_restart_docker_services(dir_path)
+                else:
+                    print(f"No restart required for services in {dir_path}...")
+            else:
+                print(f"No docker-compose.yml found in {dir_path}. Skipping.")
 
 def main():
     parser = argparse.ArgumentParser(description='Backup Docker volumes.')
@@ -286,6 +319,7 @@ def main():
                         help='Force file backup for all volumes and additional execute database dumps')
     parser.add_argument('--shutdown', action='store_true',
                         help='Doesn\'t restart containers after backup')
+    parser.add_argument('--compose-dir', type=str, required=True, help='Path to the parent directory containing docker-compose setups')
     args = parser.parse_args()
 
     print('Start volume backups...')
@@ -300,6 +334,10 @@ def main():
             default_backup_routine_for_volume(volume_name, containers, args.shutdown)
     stamp_directory()
     print('Finished volume backups.')
+    
+    # Handle Docker Compose services
+    print('Handling Docker Compose services...')
+    handle_docker_compose_services(args.compose_dir)
 
 if __name__ == "__main__":
     main()
