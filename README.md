@@ -1,6 +1,6 @@
-# Backup Docker Volumes to Local (dobaulo) 📦🔄
+# Backup Docker Volumes to Local (baudolo) 📦🔄
 
-**Backup Docker Volumes to Local** is a set of Python and shell scripts that enable you to perform incremental backups of all your Docker volumes using rsync. It is designed to integrate seamlessly with [Kevin's Package Manager](https://github.com/kevinveenbirkenbach/package-manager) under the alias **dobaulo**, making it easy to install and manage. The tool supports both file and database recoveries with a clear, automated backup scheme.
+**Backup Docker Volumes to Local** is a set of Python and shell scripts that enable you to perform incremental backups of all your Docker volumes using rsync. It is designed to integrate seamlessly with [Kevin's Package Manager](https://github.com/kevinveenbirkenbach/package-manager) under the alias **baudolo**, making it easy to install and manage. The tool supports both file and database recoveries with a clear, automated backup scheme.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0) [![Docker Version](https://img.shields.io/badge/Docker-Yes-blue.svg)](https://www.docker.com) [![Python Version](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org) [![GitHub stars](https://img.shields.io/github/stars/kevinveenbirkenbach/backup-docker-to-local.svg?style=social)](https://github.com/kevinveenbirkenbach/backup-docker-to-local/stargazers)
 
@@ -26,10 +26,10 @@ This project automates the backup of Docker volumes using incremental backups (r
 
 ## 📥 Installation
 
-You can install **Backup Docker Volumes to Local** easily via [Kevin's Package Manager](https://github.com/kevinveenbirkenbach/package-manager) using the alias **dobaulo**:
+You can install **Backup Docker Volumes to Local** easily via [Kevin's Package Manager](https://github.com/kevinveenbirkenbach/package-manager) using the alias **baudolo**:
 
 ```bash
-pkgman install dobaulo
+pkgman install baudolo
 ```
 
 Alternatively, clone the repository directly:
