@@ -1,4 +1,6 @@
 # Backup Docker Volumes to Local (baudolo) 📦🔄
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-blue?logo=github)](https://github.com/sponsors/kevinveenbirkenbach) [![Patreon](https://img.shields.io/badge/Support-Patreon-orange?logo=patreon)](https://www.patreon.com/c/kevinveenbirkenbach) [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20Coffee-Funding-yellow?logo=buymeacoffee)](https://buymeacoffee.com/kevinveenbirkenbach) [![PayPal](https://img.shields.io/badge/Donate-PayPal-blue?logo=paypal)](https://s.veen.world/paypaldonate)
+
 
 **Backup Docker Volumes to Local** is a set of Python and shell scripts that enable you to perform incremental backups of all your Docker volumes using rsync. It is designed to integrate seamlessly with [Kevin's Package Manager](https://github.com/kevinveenbirkenbach/package-manager) under the alias **baudolo**, making it easy to install and manage. The tool supports both file and database recoveries with a clear, automated backup scheme.
 
