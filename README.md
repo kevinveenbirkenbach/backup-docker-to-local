@@ -80,16 +80,6 @@ docker run -it --entrypoint /bin/sh --rm --volumes-from {{container_name}} -v /B
 The backup mechanism uses incremental backups with rsync and stamps directories with a unique hash. For more details on the backup scheme, check out [this blog post](https://blog.veen.world/blog/2020/12/26/how-i-backup-dedicated-root-servers/).  
 ![Backup Scheme](https://blog.veen.world/wp-content/uploads/2020/12/server-backup-1024x755.jpg)
 
-## 🧑‍💻 Setup & Dependencies
-
-Make sure you have **pandas** installed:
-
-```bash
-pip install pandas
-```
-
-Also, ensure your system meets all the requirements listed above.
-
 ## 👨‍💻 Author
 
 **Kevin Veen-Birkenbach**  
