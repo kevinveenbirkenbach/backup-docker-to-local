@@ -124,22 +124,32 @@ def backup_database(container, volume_dir, db_type):
         backup_destination_file = os.path.join(backup_destination_dir, f"{database_name}.backup.sql")
         if db_type == 'mariadb':
             backup_command = f"docker exec {container} /usr/bin/mariadb-dump -u {database_username} -p{database_password} {database_name} > {backup_destination_file}"
-        elif db_type == 'postgres':
-            if database_password:
-                # Include PGPASSWORD in the command when a password is provided
-                backup_command = (
-                    f"PGPASSWORD={database_password} docker exec -i {container} "
-                    f"pg_dump -U {database_username} -d {database_name} "
-                    f"-h localhost > {backup_destination_file}"
-                )
-            else:
-                # Exclude PGPASSWORD and use --no-password when the password is empty
-                backup_command = (
-                    f"docker exec -i {container} pg_dump -U {database_username} "
-                    f"-d {database_name} -h localhost --no-password "
-                    f"> {backup_destination_file}"
-                )
-        execute_shell_command(backup_command)
+            execute_shell_command(backup_command)
+        if db_type == 'postgres':
+            cluster_file = os.path.join(backup_destination_dir, f"{instance_name}.cluster.backup.sql")
+
+            if not database_name:
+                fallback_pg_dumpall(container, database_username, database_password, cluster_file)
+                return
+
+            try:
+                if database_password:
+                    backup_command = (
+                        f"PGPASSWORD={database_password} docker exec -i {container} "
+                        f"pg_dump -U {database_username} -d {database_name} "
+                        f"-h localhost > {backup_destination_file}"
+                    )
+                else:
+                    backup_command = (
+                        f"docker exec -i {container} pg_dump -U {database_username} "
+                        f"-d {database_name} -h localhost --no-password "
+                        f"> {backup_destination_file}"
+                    )
+                execute_shell_command(backup_command)
+            except BackupException as e:
+                print(f"pg_dump failed: {e}")
+                print(f"Falling back to pg_dumpall for instance '{instance_name}'")
+                fallback_pg_dumpall(container, database_username, database_password, cluster_file)
         print(f"Database backup for database {container} completed.")
 
 def get_last_backup_dir(volume_name, current_backup_dir):
@@ -161,6 +171,15 @@ def getStoragePath(volume_name):
 def getFileRsyncDestinationPath(volume_dir):
     path = os.path.join(volume_dir, "files")
     return f"{path}/"
+
+def fallback_pg_dumpall(container, username, password, backup_destination_file):
+    """Fallback function to run pg_dumpall if pg_dump fails or no DB is defined."""
+    print(f"Running pg_dumpall for container '{container}'...")
+    command = (
+        f"PGPASSWORD={password} docker exec -i {container} "
+        f"pg_dumpall -U {username} -h localhost > {backup_destination_file}"
+    )
+    execute_shell_command(command)
 
 def backup_volume(volume_name, volume_dir):
     try:
