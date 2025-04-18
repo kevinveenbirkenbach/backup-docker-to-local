@@ -31,7 +31,7 @@ This project automates the backup of Docker volumes using incremental backups (r
 You can install **Backup Docker Volumes to Local** easily via [Kevin's Package Manager](https://github.com/kevinveenbirkenbach/package-manager) using the alias **baudolo**:
 
 ```bash
-pkgman install baudolo
+pkgmgr install baudolo
 ```
 
 Alternatively, clone the repository directly:
