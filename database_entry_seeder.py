@@ -12,7 +12,13 @@ def check_and_add_entry(file_path, instance, database, username, password):
         df = pd.DataFrame(columns=['instance', 'database', 'username', 'password'])
 
     # Check if the entry exists and remove it
-    mask = (df['instance'] == instance) & (df['database'] == database) & (df['username'] == username)
+    mask = (
+        (df['instance'] == instance) &
+        ((df['database'] == database) |
+        (((df['database'].isna()) | (df['database'] == '')) & (database == ''))) &
+        (df['username'] == username)
+    )
+
     if not df[mask].empty:
         print("Replacing existing entry.")
         df = df[~mask]
