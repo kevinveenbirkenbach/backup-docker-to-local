@@ -44,14 +44,18 @@ def main():
         sys.exit(1)
 
     for sqlfile in sql_files:
-        dbname = os.path.splitext(os.path.basename(sqlfile))[0]
+        # Extract database name by stripping the full suffix '.backup.sql'
+        filename = os.path.basename(sqlfile)
+        if not filename.endswith('.backup.sql'):
+            continue
+        dbname = filename[:-len('.backup.sql')]
         print(f"=== Processing {sqlfile} → database: {dbname} ===")
 
-        # Drop the database if it already exists
+        # Drop the database, forcing disconnect of sessions if necessary
         run_command([
             "docker", "exec", "-i", container,
             "psql", "-U", "postgres", "-c",
-            f"DROP DATABASE IF EXISTS \"{dbname}\";"
+            f"DROP DATABASE IF EXISTS \"{dbname}\" WITH (FORCE);"
         ])
 
         # Create a fresh database
