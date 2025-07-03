@@ -3,7 +3,7 @@
 Restore multiple PostgreSQL databases from .backup.sql files via a Docker container.
 
 Usage:
-  ./restore_databases.py /path/to/backup_dir [--container central-postgres]
+  ./restore_databases.py /path/to/backup_dir container_name
 """
 import argparse
 import subprocess
@@ -13,15 +13,11 @@ import glob
 
 def run_command(cmd, input_data=None):
     """
-    Run a subprocess command and exit on failure.
+    Run a subprocess command and abort immediately on any failure.
     :param cmd: list of command parts
     :param input_data: bytes to send to process stdin
     """
-    try:
-        subprocess.run(cmd, input=input_data, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error running command: {' '.join(cmd)}", file=sys.stderr)
-        sys.exit(e.returncode)
+    subprocess.run(cmd, input=input_data, check=True)
 
 
 def main():
@@ -65,7 +61,21 @@ def main():
             f"CREATE DATABASE \"{dbname}\";"
         ])
 
-        # Restore the dump into the newly created database
+        # Ensure the ownership role exists
+        print(f"Ensuring role '{dbname}' exists...")
+        run_command([
+            "docker", "exec", "-i", container,
+            "psql", "-U", "postgres", "-c",
+            (
+                "DO $$BEGIN "
+                f"IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{dbname}') THEN "
+                f"CREATE ROLE \"{dbname}\"; "
+                "END IF; "
+                "END$$;"
+            )
+        ])
+
+        # Restore the dump into the database (will abort on first error)
         print(f"Restoring dump into {dbname}…")
         with open(sqlfile, "rb") as f:
             sql_data = f.read()
