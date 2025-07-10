@@ -74,6 +74,7 @@ def get_instance(container):
 
     # This line uses regular expressions to split the 'container' string.
     # 're.split' is a method that divides a string into a list, based on the occurrences of a pattern.
+    # @todo add option to pass database names to make it more flexibel
     if container in ['central-mariadb', 'central-postgres']:
         instance_name = container
     else:
