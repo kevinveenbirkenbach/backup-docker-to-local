@@ -226,11 +226,21 @@ def is_image_whitelisted(container, images):
     return any(img in info for img in images)
 
 def is_container_stop_required(containers):
-    """Check if any of the containers are using images that are not whitelisted."""
-    return any(
-        not is_image_whitelisted(c, IMAGES_NO_STOP_REQUIRED)
-        for c in containers
-    )
+    """
+    Check if any of the containers are using images that are not whitelisted.
+    If so, print them out and return True; otherwise return False.
+    """
+    # Find all containers whose image isn’t on the whitelist
+    not_whitelisted = [
+        c for c in containers
+        if not is_image_whitelisted(c, IMAGES_NO_STOP_REQUIRED)
+    ]
+
+    if not_whitelisted:
+        print(f"Containers requiring stop because they are not whitelisted: {', '.join(not_whitelisted)}")
+        return True
+
+    return False
 
 def create_volume_directory(volume_name):
     """Create necessary directories for backup."""
