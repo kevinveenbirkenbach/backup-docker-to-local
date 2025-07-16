@@ -45,22 +45,10 @@ def get_machine_id():
 
 # Container names treated as special instances for database backups
 SPECIAL_INSTANCES = ['central-mariadb', 'central-postgres']
+
 # Images which do not require container stop for file backups
-IMAGES_NO_STOP_REQUIRED = [
-    'akaunting',
-    'baserow',
-    'discourse',
-    'element',
-    'gitea',
-    'listmonk',
-    'mastodon',
-    'matomo',
-    'nextcloud',
-    'openproject',
-    'peertube',
-    'pixelfed',
-    'wordpress'
-]
+IMAGES_NO_STOP_REQUIRED = []
+
 # Images to skip entirely
 IMAGES_NO_BACKUP_REQUIRED = [
     'redis',
@@ -236,7 +224,7 @@ def change_containers_status(containers, status):
         print(f"No containers to {status}.")
 
 def is_image_whitelisted(container, images):
-    info = get_image_info(container)[0]
+    info =  (container)[0]
     return any(img in info for img in images)
 
 def is_container_stop_required(containers):
@@ -340,7 +328,6 @@ def main():
     parser.add_argument(
         '--images-no-stop-required',
         nargs='+',
-        default=IMAGES_NO_STOP_REQUIRED,
         help='List of image names for which containers should not be stopped during file backup'
     )
     args = parser.parse_args()
