@@ -50,10 +50,8 @@ SPECIAL_INSTANCES = ['central-mariadb', 'central-postgres']
 IMAGES_NO_STOP_REQUIRED = []
 
 # Images to skip entirely
-IMAGES_NO_BACKUP_REQUIRED = [
-    'redis',
-    'memcached'
-]
+IMAGES_NO_BACKUP_REQUIRED = []
+
 # Compose dirs requiring hard restart
 DOCKER_COMPOSE_HARD_RESTART_REQUIRED = ['mailu']
 
@@ -322,17 +320,26 @@ def main():
     parser.add_argument(
         '--special-instances',
         nargs='+',
-        default=SPECIAL_INSTANCES,
+        required=True,
         help='List of container names treated as special instances for database backups'
     )
     parser.add_argument(
         '--images-no-stop-required',
         nargs='+',
+        required=True,
         help='List of image names for which containers should not be stopped during file backup'
+    )
+    parser.add_argument(
+        '--images-no-backup-required',
+        nargs='+',
+        help='List of image names for which no backup should be performed (optional)'
     )
     args = parser.parse_args()
     SPECIAL_INSTANCES = args.special_instances
     IMAGES_NO_STOP_REQUIRED = args.images_no_stop_required
+    if args.images_no_backup_required is not None:
+        global IMAGES_NO_BACKUP_REQUIRED
+        IMAGES_NO_BACKUP_REQUIRED = args.images_no_backup_required
 
     print('Start volume backups...')
     volume_names = execute_shell_command("docker volume ls --format '{{.Name}}'")
