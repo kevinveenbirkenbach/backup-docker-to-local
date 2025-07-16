@@ -222,8 +222,20 @@ def change_containers_status(containers, status):
         print(f"No containers to {status}.")
 
 def is_image_whitelisted(container, images):
+    """
+    Return True if the container's image matches any of the whitelist patterns.
+    Also prints out the image name and the match result.
+    """
+    # fetch the image (e.g. "nextcloud:23-fpm-alpine")
     info = get_image_info(container)[0]
-    return any(img in info for img in images)
+
+    # check against each pattern
+    whitelisted = any(pattern in info for pattern in images)
+
+    # log the result
+    print(f"Container {container!r} → image {info!r} → whitelisted? {whitelisted}")
+
+    return whitelisted
 
 def is_container_stop_required(containers):
     """
