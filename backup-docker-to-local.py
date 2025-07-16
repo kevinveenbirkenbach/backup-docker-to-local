@@ -222,7 +222,7 @@ def change_containers_status(containers, status):
         print(f"No containers to {status}.")
 
 def is_image_whitelisted(container, images):
-    info =  (container)[0]
+    info = get_image_info(container)[0]
     return any(img in info for img in images)
 
 def is_container_stop_required(containers):
