@@ -335,7 +335,7 @@ def main():
         help='List of image names for which no backup should be performed (optional)'
     )
     args = parser.parse_args()
-    DATABASE_CONTAINERS = args.DATABASE_CONTAINERS
+    DATABASE_CONTAINERS = args.database_containers
     IMAGES_NO_STOP_REQUIRED = args.images_no_stop_required
     if args.images_no_backup_required is not None:
         global IMAGES_NO_BACKUP_REQUIRED
