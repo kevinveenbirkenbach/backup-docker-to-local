@@ -233,7 +233,7 @@ def is_image_whitelisted(container, images):
     whitelisted = any(pattern in info for pattern in images)
 
     # log the result
-    print(f"Container {container!r} → image {info!r} → whitelisted? {whitelisted}")
+    print(f"Container {container!r} → image {info!r} → whitelisted? {whitelisted}", flush=True)
 
     return whitelisted
 
