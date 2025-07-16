@@ -44,7 +44,7 @@ def get_machine_id():
 ### GLOBAL CONFIGURATION ###
 
 # Container names treated as special instances for database backups
-SPECIAL_INSTANCES = ['central-mariadb', 'central-postgres']
+DATABASE_CONTAINERS = ['central-mariadb', 'central-postgres']
 
 # Images which do not require container stop for file backups
 IMAGES_NO_STOP_REQUIRED = []
@@ -68,7 +68,7 @@ VERSION_DIR         = create_version_directory()
 
 def get_instance(container):
     """Extract the database instance name based on container name."""
-    if container in SPECIAL_INSTANCES:
+    if container in DATABASE_CONTAINERS:
         instance_name = container
     else:
         instance_name = re.split("(_|-)(database|db|postgres)", container)[0]
@@ -309,7 +309,7 @@ def handle_docker_compose_services(parent_directory):
                 print(f"No docker-compose.yml found in {dir_path}. Skipping.")
 
 def main():
-    global SPECIAL_INSTANCES, IMAGES_NO_STOP_REQUIRED
+    global DATABASE_CONTAINERS, IMAGES_NO_STOP_REQUIRED
     parser = argparse.ArgumentParser(description='Backup Docker volumes.')
     parser.add_argument('--everything', action='store_true',
                         help='Force file backup for all volumes and additional execute database dumps')
@@ -318,7 +318,7 @@ def main():
     parser.add_argument('--compose-dir', type=str, required=True,
                         help='Path to the parent directory containing docker-compose setups')
     parser.add_argument(
-        '--special-instances',
+        '--database-containers',
         nargs='+',
         required=True,
         help='List of container names treated as special instances for database backups'
@@ -335,7 +335,7 @@ def main():
         help='List of image names for which no backup should be performed (optional)'
     )
     args = parser.parse_args()
-    SPECIAL_INSTANCES = args.special_instances
+    DATABASE_CONTAINERS = args.DATABASE_CONTAINERS
     IMAGES_NO_STOP_REQUIRED = args.images_no_stop_required
     if args.images_no_backup_required is not None:
         global IMAGES_NO_BACKUP_REQUIRED
