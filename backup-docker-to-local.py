@@ -363,7 +363,7 @@ def main():
         global IMAGES_NO_BACKUP_REQUIRED
         IMAGES_NO_BACKUP_REQUIRED = args.images_no_backup_required
 
-    print('Start volume backups...')
+    print('💾 Start volume backups...', flush=True)
     volume_names = execute_shell_command("docker volume ls --format '{{.Name}}'")
     for volume_name in volume_names:
         print(f'Start backup routine for volume: {volume_name}')
