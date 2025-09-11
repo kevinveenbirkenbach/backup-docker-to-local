@@ -77,15 +77,12 @@ def get_instance(container):
 
 def stamp_directory():
     """Stamp a directory using directory-validator."""
-    stamp_command = (
-        f"python {SCRIPTS_DIRECTORY}/directory-validator/"
-        f"directory-validator.py --stamp {VERSION_DIR}"
-    )
+    stamp_command = f"dirval {VERSION_DIR} --stamp"
     try:
         execute_shell_command(stamp_command)
         print(f"Successfully stamped directory: {VERSION_DIR}")
     except BackupException as e:
-        print(f"Error stamping directory {VERSION_DIR}: {e}")
+        print(f"Error running 'dirval' for {VERSION_DIR}: {e}")
         exit(1)
 
 def backup_database(container, volume_dir, db_type):
