@@ -1,1 +1,1 @@
-database;username;password;container
+instance;database;username;password
