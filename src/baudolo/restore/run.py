@@ -13,13 +13,21 @@ def run(
     env: Optional[dict] = None,
 ) -> subprocess.CompletedProcess:
     try:
-        return subprocess.run(
-            cmd,
-            check=True,
-            stdin=stdin,
-            capture_output=capture,
-            env=env,
-        )
+        kwargs: dict = {
+            "check": True,
+            "capture_output": capture,
+            "env": env,
+        }
+
+        # If stdin is raw data (bytes/str), pass it via input=.
+        # IMPORTANT: when using input=..., do NOT pass stdin=... as well.
+        if isinstance(stdin, (bytes, str)):
+            kwargs["input"] = stdin
+        else:
+            kwargs["stdin"] = stdin
+
+        return subprocess.run(cmd, **kwargs)
+
     except subprocess.CalledProcessError as e:
         msg = f"ERROR: command failed ({e.returncode}): {' '.join(cmd)}"
         print(msg, file=sys.stderr)
