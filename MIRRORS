@@ -1,0 +1,4 @@
+git@github.com:kevinveenbirkenbach/backup-docker-to-local.git
+ssh://git@git.veen.world:2201/kevinveenbirkenbach/backup-docker-to-local.git
+ssh://git@code.infinito.nexus:2201/kevinveenbirkenbach/backup-docker-to-local.git
+https://pypi.org/project/baudolo/
