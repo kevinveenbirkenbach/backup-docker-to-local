@@ -29,6 +29,9 @@ build:
 	@echo ">> Building Docker image $(IMAGE)"
 	docker build -t $(IMAGE) .
 
+clean:
+	git clean -fdX .
+
 # ------------------------------------------------------------
 # Run E2E tests inside the container (Docker socket required)
 # ------------------------------------------------------------
@@ -37,5 +40,5 @@ build:
 # - starts a DinD daemon container on a dedicated network
 # - loads the freshly built image into DinD
 # - runs the unittest suite inside a container that talks to DinD via DOCKER_HOST
-test-e2e: build
+test-e2e: clean build
 	@bash scripts/test-e2e.sh

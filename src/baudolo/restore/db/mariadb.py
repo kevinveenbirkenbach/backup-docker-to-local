@@ -7,7 +7,10 @@ from ..run import docker_exec, docker_exec_sh
 
 
 def _pick_client(container: str) -> str:
-    # Prefer mariadb, fallback to mysql (many images provide one or both).
+    """
+    Prefer 'mariadb', fallback to 'mysql'.
+    Some MariaDB images no longer ship a 'mysql' binary, so we must not assume it exists.
+    """
     script = r"""
 set -eu
 if command -v mariadb >/dev/null 2>&1; then echo mariadb; exit 0; fi
@@ -39,16 +42,18 @@ def restore_mariadb_sql(
         raise FileNotFoundError(sql_path)
 
     if empty:
-        # Close to old behavior: list tables, drop individually, then re-enable checks.
+        # IMPORTANT:
+        # Do NOT hardcode 'mysql' here. Use the detected client.
+        # MariaDB 11 images may not contain the mysql binary at all.
         docker_exec(
             container,
-            ["mysql", "-u", user, f"--password={password}", "-e", "SET FOREIGN_KEY_CHECKS=0;"],
+            [client, "-u", user, f"--password={password}", "-e", "SET FOREIGN_KEY_CHECKS=0;"],
         )
 
         result = docker_exec(
             container,
             [
-                "mysql",
+                client,
                 "-u",
                 user,
                 f"--password={password}",
@@ -59,11 +64,12 @@ def restore_mariadb_sql(
             capture=True,
         )
         tables = result.stdout.decode().split()
+
         for tbl in tables:
             docker_exec(
                 container,
                 [
-                    "mysql",
+                    client,
                     "-u",
                     user,
                     f"--password={password}",
@@ -74,7 +80,7 @@ def restore_mariadb_sql(
 
         docker_exec(
             container,
-            ["mysql", "-u", user, f"--password={password}", "-e", "SET FOREIGN_KEY_CHECKS=1;"],
+            [client, "-u", user, f"--password={password}", "-e", "SET FOREIGN_KEY_CHECKS=1;"],
         )
 
     with open(sql_path, "rb") as f:
