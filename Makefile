@@ -1,4 +1,5 @@
-.PHONY: install build test-e2e
+.PHONY: install build \
+		test-e2e test test-unit test-integration
 
 # Default python if no venv is active
 PY_DEFAULT ?= python3
@@ -42,3 +43,15 @@ clean:
 # - runs the unittest suite inside a container that talks to DinD via DOCKER_HOST
 test-e2e: clean build
 	@bash scripts/test-e2e.sh
+
+test: test-unit test-integration test-e2e
+
+test-unit: clean build
+	@echo ">> Running unit tests"
+	@docker run --rm -t $(IMAGE) \
+	  sh -lc 'python -m unittest discover -t . -s tests/unit -p "test_*.py" -v'
+
+test-integration: clean build
+	@echo ">> Running integration tests"
+	@docker run --rm -t $(IMAGE) \
+	  sh -lc 'python -m unittest discover -t . -s tests/integration -p "test_*.py" -v'
