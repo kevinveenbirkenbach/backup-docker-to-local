@@ -1,1 +1,0 @@
-instance;database;username;password

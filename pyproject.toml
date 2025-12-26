@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "backup-docker-to-local"
+version = "0.1.0"
+description = "Backup Docker volumes to local with rsync and optional DB dumps."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "Kevin Veen-Birkenbach" }]
+
+dependencies = [
+  "pandas",
+  "dirval",
+]
+
+[project.scripts]
+baudolo = "baudolo.backup.__main__:main"
+baudolo-restore = "baudolo.restore.__main__:main"
+baudolo-configure = "baudolo.configure.__main__:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests*"]

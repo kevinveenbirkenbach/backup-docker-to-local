@@ -1,5 +1,0 @@
-pacman:
-  - lsof
-  - python-pandas
-pkgmgr:
-  - dirval

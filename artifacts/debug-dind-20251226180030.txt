@@ -1,0 +1,25 @@
+=== docker -H ps -a ===
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+=== docker -H images ===
+WARNING: This output is designed for human readability. For machine-readable output, please use --format.
+IMAGE                                             ID             DISK USAGE   CONTENT SIZE   EXTRA
+alpine:3.20                                       765942a40399       12.2MB         3.71MB        
+baudolo:local                                     0bc9b158f3e8        763MB          368MB        
+ghcr.io/kevinveenbirkenbach/alpine-rsync:latest   049c6ec3dad7       21.1MB         7.53MB        
+
+=== docker -H network ls ===
+NETWORK ID     NAME      DRIVER    SCOPE
+43f0f11bd281   bridge    bridge    local
+2390bc99b893   host      host      local
+0f26ae890b2e   none      null      local
+
+=== docker -H volume ls ===
+DRIVER    VOLUME NAME
+
+=== docker -H system df ===
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          3         0         796.2MB   10.82kB (0%)
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
