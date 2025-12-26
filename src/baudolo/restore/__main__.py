@@ -10,7 +10,7 @@ from .db.mariadb import restore_mariadb_sql
 
 
 def _add_common_backup_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("volume_name", help="Docker volume name")
+    p.add_argument("volume_name", help="Docker volume name (target volume)")
     p.add_argument("backup_hash", help="Hashed machine id")
     p.add_argument("version", help="Backup version directory name")
 
@@ -33,10 +33,28 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    # ------------------------------------------------------------------
+    # files
+    # ------------------------------------------------------------------
     p_files = sub.add_parser("files", help="Restore files into a docker volume")
     _add_common_backup_args(p_files)
-    p_files.add_argument("--rsync-image", default="ghcr.io/kevinveenbirkenbach/alpine-rsync")
+    p_files.add_argument(
+        "--rsync-image",
+        default="ghcr.io/kevinveenbirkenbach/alpine-rsync",
+    )
+    p_files.add_argument(
+        "--source-volume",
+        default=None,
+        help=(
+            "Volume name used as backup source path key. "
+            "Defaults to <volume_name> (target volume). "
+            "Use this when restoring from one volume backup into a different target volume."
+        ),
+    )
 
+    # ------------------------------------------------------------------
+    # postgres
+    # ------------------------------------------------------------------
     p_pg = sub.add_parser("postgres", help="Restore a single PostgreSQL database dump")
     _add_common_backup_args(p_pg)
     p_pg.add_argument("--container", required=True)
@@ -45,6 +63,9 @@ def main(argv: list[str] | None = None) -> int:
     p_pg.add_argument("--db-password", required=True)
     p_pg.add_argument("--empty", action="store_true")
 
+    # ------------------------------------------------------------------
+    # mariadb
+    # ------------------------------------------------------------------
     p_mdb = sub.add_parser("mariadb", help="Restore a single MariaDB/MySQL-compatible dump")
     _add_common_backup_args(p_mdb)
     p_mdb.add_argument("--container", required=True)
@@ -55,17 +76,25 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
 
-    bp = BackupPaths(
-        args.volume_name,
-        args.backup_hash,
-        args.version,
-        repo_name=args.repo_name,
-        backups_dir=args.backups_dir,
-    )
-
     try:
         if args.cmd == "files":
-            return restore_volume_files(args.volume_name, bp.files_dir(), rsync_image=args.rsync_image)
+            # target volume = args.volume_name
+            # source volume (backup key) defaults to target volume
+            source_volume = args.source_volume or args.volume_name
+
+            bp_files = BackupPaths(
+                source_volume,
+                args.backup_hash,
+                args.version,
+                repo_name=args.repo_name,
+                backups_dir=args.backups_dir,
+            )
+
+            return restore_volume_files(
+                args.volume_name,
+                bp_files.files_dir(),
+                rsync_image=args.rsync_image,
+            )
 
         if args.cmd == "postgres":
             user = args.db_user or args.db_name
@@ -74,7 +103,13 @@ def main(argv: list[str] | None = None) -> int:
                 db_name=args.db_name,
                 user=user,
                 password=args.db_password,
-                sql_path=bp.sql_file(args.db_name),
+                sql_path=BackupPaths(
+                    args.volume_name,
+                    args.backup_hash,
+                    args.version,
+                    repo_name=args.repo_name,
+                    backups_dir=args.backups_dir,
+                ).sql_file(args.db_name),
                 empty=args.empty,
             )
             return 0
@@ -86,7 +121,13 @@ def main(argv: list[str] | None = None) -> int:
                 db_name=args.db_name,
                 user=user,
                 password=args.db_password,
-                sql_path=bp.sql_file(args.db_name),
+                sql_path=BackupPaths(
+                    args.volume_name,
+                    args.backup_hash,
+                    args.version,
+                    repo_name=args.repo_name,
+                    backups_dir=args.backups_dir,
+                ).sql_file(args.db_name),
                 empty=args.empty,
             )
             return 0

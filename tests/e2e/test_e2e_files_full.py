@@ -61,16 +61,26 @@ class TestE2EFilesFull(unittest.TestCase):
         cleanup_docker(containers=cls.containers, volumes=cls.volumes)
 
     def test_files_backup_exists(self) -> None:
-        p = backup_path(self.backups_dir, self.repo_name, self.version, self.volume_src) / "files" / "hello.txt"
+        p = (
+            backup_path(
+                self.backups_dir,
+                self.repo_name,
+                self.version,
+                self.volume_src,
+            )
+            / "files"
+            / "hello.txt"
+        )
         self.assertTrue(p.is_file(), f"Expected backed up file at: {p}")
 
     def test_restore_files_into_new_volume(self) -> None:
-        # restore files into dst volume
+        # restore files from volume_src backup into volume_dst
         run([
             "baudolo-restore", "files",
             self.volume_dst, self.hash, self.version,
             "--backups-dir", self.backups_dir,
             "--repo-name", self.repo_name,
+            "--source-volume", self.volume_src,
             "--rsync-image", "ghcr.io/kevinveenbirkenbach/alpine-rsync",
         ])
 
