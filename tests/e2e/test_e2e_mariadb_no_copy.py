@@ -60,8 +60,12 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
             ]
         )
 
-        wait_for_mariadb(cls.db_container, root_password=cls.root_password, timeout_s=90)
-        wait_for_mariadb_sql(cls.db_container, user=cls.db_user, password=cls.db_password, timeout_s=90)
+        wait_for_mariadb(
+            cls.db_container, root_password=cls.root_password, timeout_s=90
+        )
+        wait_for_mariadb_sql(
+            cls.db_container, user=cls.db_user, password=cls.db_password, timeout_s=90
+        )
 
         # Create table + data (TCP)
         run(
@@ -72,13 +76,16 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
                 "sh",
                 "-lc",
                 f"mariadb -h 127.0.0.1 -u{cls.db_user} -p{cls.db_password} "
-                f"-e \"CREATE TABLE {cls.db_name}.t (id INT PRIMARY KEY, v VARCHAR(50)); "
+                f'-e "CREATE TABLE {cls.db_name}.t (id INT PRIMARY KEY, v VARCHAR(50)); '
                 f"INSERT INTO {cls.db_name}.t VALUES (1,'ok');\"",
             ]
         )
 
         cls.databases_csv = f"/tmp/{cls.prefix}/databases.csv"
-        write_databases_csv(cls.databases_csv, [(cls.db_container, cls.db_name, cls.db_user, cls.db_password)])
+        write_databases_csv(
+            cls.databases_csv,
+            [(cls.db_container, cls.db_name, cls.db_user, cls.db_password)],
+        )
 
         # dump-only => no files
         backup_run(
@@ -102,7 +109,7 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
                 "sh",
                 "-lc",
                 f"mariadb -h 127.0.0.1 -u{cls.db_user} -p{cls.db_password} "
-                f"-e \"DROP TABLE {cls.db_name}.t;\"",
+                f'-e "DROP TABLE {cls.db_name}.t;"',
             ]
         )
 
@@ -135,7 +142,10 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
         cleanup_docker(containers=cls.containers, volumes=cls.volumes)
 
     def test_files_backup_not_present(self) -> None:
-        p = backup_path(self.backups_dir, self.repo_name, self.version, self.db_volume) / "files"
+        p = (
+            backup_path(self.backups_dir, self.repo_name, self.version, self.db_volume)
+            / "files"
+        )
         self.assertFalse(p.exists(), f"Did not expect files backup dir at: {p}")
 
     def test_data_restored(self) -> None:
@@ -147,7 +157,7 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
                 "sh",
                 "-lc",
                 f"mariadb -h 127.0.0.1 -u{self.db_user} -p{self.db_password} "
-                f"-N -e \"SELECT v FROM {self.db_name}.t WHERE id=1;\"",
+                f'-N -e "SELECT v FROM {self.db_name}.t WHERE id=1;"',
             ]
         )
         self.assertEqual((p.stdout or "").strip(), "ok")

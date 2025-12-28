@@ -23,7 +23,9 @@ exit 42
             raise RuntimeError("empty client detection output")
         return out
     except Exception as e:
-        print("ERROR: neither 'mariadb' nor 'mysql' found in container.", file=sys.stderr)
+        print(
+            "ERROR: neither 'mariadb' nor 'mysql' found in container.", file=sys.stderr
+        )
         raise e
 
 
@@ -47,7 +49,14 @@ def restore_mariadb_sql(
         # MariaDB 11 images may not contain the mysql binary at all.
         docker_exec(
             container,
-            [client, "-u", user, f"--password={password}", "-e", "SET FOREIGN_KEY_CHECKS=0;"],
+            [
+                client,
+                "-u",
+                user,
+                f"--password={password}",
+                "-e",
+                "SET FOREIGN_KEY_CHECKS=0;",
+            ],
         )
 
         result = docker_exec(
@@ -80,10 +89,19 @@ def restore_mariadb_sql(
 
         docker_exec(
             container,
-            [client, "-u", user, f"--password={password}", "-e", "SET FOREIGN_KEY_CHECKS=1;"],
+            [
+                client,
+                "-u",
+                user,
+                f"--password={password}",
+                "-e",
+                "SET FOREIGN_KEY_CHECKS=1;",
+            ],
         )
 
     with open(sql_path, "rb") as f:
-        docker_exec(container, [client, "-u", user, f"--password={password}", db_name], stdin=f)
+        docker_exec(
+            container, [client, "-u", user, f"--password={password}", db_name], stdin=f
+        )
 
     print(f"MariaDB/MySQL restore complete for db '{db_name}'.")

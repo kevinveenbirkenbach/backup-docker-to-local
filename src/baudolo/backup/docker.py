@@ -37,7 +37,9 @@ def change_containers_status(containers: list[str], status: str) -> None:
 def docker_volume_exists(volume: str) -> bool:
     # Avoid throwing exceptions for exists checks.
     try:
-        execute_shell_command(f"docker volume inspect {volume} >/dev/null 2>&1 && echo OK")
+        execute_shell_command(
+            f"docker volume inspect {volume} >/dev/null 2>&1 && echo OK"
+        )
         return True
     except Exception:
         return False

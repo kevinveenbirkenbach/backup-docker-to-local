@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import os
-from pathlib import Path
+
 
 def parse_args() -> argparse.Namespace:
     dirname = os.path.dirname(__file__)
@@ -25,7 +25,7 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument(
         "--repo-name",
-        default='backup-docker-to-local',
+        default="backup-docker-to-local",
         help="Backup repo folder name under <backups-dir>/<machine-id>/ (default: git repo folder name)",
     )
     p.add_argument(

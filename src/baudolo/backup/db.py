@@ -5,8 +5,11 @@ import pathlib
 import re
 
 import pandas
+import logging
 
 from .shell import BackupException, execute_shell_command
+
+log = logging.getLogger(__name__)
 
 
 def get_instance(container: str, database_containers: list[str]) -> str:
@@ -15,7 +18,9 @@ def get_instance(container: str, database_containers: list[str]) -> str:
     return re.split(r"(_|-)(database|db|postgres)", container)[0]
 
 
-def fallback_pg_dumpall(container: str, username: str, password: str, out_file: str) -> None:
+def fallback_pg_dumpall(
+    container: str, username: str, password: str, out_file: str
+) -> None:
     cmd = (
         f"PGPASSWORD={password} docker exec -i {container} "
         f"pg_dumpall -U {username} -h localhost > {out_file}"
@@ -34,7 +39,8 @@ def backup_database(
     instance_name = get_instance(container, database_containers)
     entries = databases_df.loc[databases_df["instance"] == instance_name]
     if entries.empty:
-        raise BackupException(f"No entry found for instance '{instance_name}'")
+        log.warning("No entry found for instance '%s'", instance_name)
+        return
 
     out_dir = os.path.join(volume_dir, "sql")
     pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
@@ -68,6 +74,9 @@ def backup_database(
                 execute_shell_command(cmd)
             except BackupException as e:
                 print(f"pg_dump failed: {e}", flush=True)
-                print(f"Falling back to pg_dumpall for instance '{instance_name}'", flush=True)
+                print(
+                    f"Falling back to pg_dumpall for instance '{instance_name}'",
+                    flush=True,
+                )
                 fallback_pg_dumpall(container, user, password, cluster_file)
             continue

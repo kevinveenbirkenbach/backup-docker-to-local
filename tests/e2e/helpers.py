@@ -34,7 +34,9 @@ def run(
         raise
 
 
-def sh(cmd: str, *, capture: bool = True, check: bool = True) -> subprocess.CompletedProcess:
+def sh(
+    cmd: str, *, capture: bool = True, check: bool = True
+) -> subprocess.CompletedProcess:
     return run(["sh", "-lc", cmd], capture=capture, check=check)
 
 
@@ -63,24 +65,37 @@ def wait_for_log(container: str, pattern: str, timeout_s: int = 60) -> None:
     raise TimeoutError(f"Timed out waiting for log pattern '{pattern}' in {container}")
 
 
-def wait_for_postgres(container: str, *, user: str = "postgres", timeout_s: int = 90) -> None:
+def wait_for_postgres(
+    container: str, *, user: str = "postgres", timeout_s: int = 90
+) -> None:
     """
     Docker-outside-of-Docker friendly readiness: check from inside the DB container.
     """
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         p = run(
-            ["docker", "exec", container, "sh", "-lc", f"pg_isready -U {user} -h localhost"],
+            [
+                "docker",
+                "exec",
+                container,
+                "sh",
+                "-lc",
+                f"pg_isready -U {user} -h localhost",
+            ],
             capture=True,
             check=False,
         )
         if p.returncode == 0:
             return
         time.sleep(1)
-    raise TimeoutError(f"Timed out waiting for Postgres readiness in container {container}")
+    raise TimeoutError(
+        f"Timed out waiting for Postgres readiness in container {container}"
+    )
 
 
-def wait_for_mariadb(container: str, *, root_password: str, timeout_s: int = 90) -> None:
+def wait_for_mariadb(
+    container: str, *, root_password: str, timeout_s: int = 90
+) -> None:
     """
     Liveness probe for MariaDB.
 
@@ -92,17 +107,28 @@ def wait_for_mariadb(container: str, *, root_password: str, timeout_s: int = 90)
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         p = run(
-            ["docker", "exec", container, "sh", "-lc", "mariadb -uroot --protocol=socket -e \"SELECT 1;\""],
+            [
+                "docker",
+                "exec",
+                container,
+                "sh",
+                "-lc",
+                'mariadb -uroot --protocol=socket -e "SELECT 1;"',
+            ],
             capture=True,
             check=False,
         )
         if p.returncode == 0:
             return
         time.sleep(1)
-    raise TimeoutError(f"Timed out waiting for MariaDB readiness in container {container}")
+    raise TimeoutError(
+        f"Timed out waiting for MariaDB readiness in container {container}"
+    )
 
 
-def wait_for_mariadb_sql(container: str, *, user: str, password: str, timeout_s: int = 90) -> None:
+def wait_for_mariadb_sql(
+    container: str, *, user: str, password: str, timeout_s: int = 90
+) -> None:
     """
     SQL login readiness for the *dedicated test user* over TCP.
 
@@ -118,7 +144,7 @@ def wait_for_mariadb_sql(container: str, *, user: str, password: str, timeout_s:
                 container,
                 "sh",
                 "-lc",
-                f"mariadb -h 127.0.0.1 -u{user} -p{password} -e \"SELECT 1;\"",
+                f'mariadb -h 127.0.0.1 -u{user} -p{password} -e "SELECT 1;"',
             ],
             capture=True,
             check=False,
@@ -126,7 +152,9 @@ def wait_for_mariadb_sql(container: str, *, user: str, password: str, timeout_s:
         if p.returncode == 0:
             return
         time.sleep(1)
-    raise TimeoutError(f"Timed out waiting for MariaDB SQL login readiness in container {container}")
+    raise TimeoutError(
+        f"Timed out waiting for MariaDB SQL login readiness in container {container}"
+    )
 
 
 def backup_run(
@@ -142,13 +170,20 @@ def backup_run(
 ) -> None:
     cmd = [
         "baudolo",
-        "--compose-dir", compose_dir,
-        "--docker-compose-hard-restart-required", "mailu",
-        "--repo-name", repo_name,
-        "--databases-csv", databases_csv,
-        "--backups-dir", backups_dir,
-        "--database-containers", *database_containers,
-        "--images-no-stop-required", *images_no_stop_required,
+        "--compose-dir",
+        compose_dir,
+        "--docker-compose-hard-restart-required",
+        "mailu",
+        "--repo-name",
+        repo_name,
+        "--databases-csv",
+        databases_csv,
+        "--backups-dir",
+        backups_dir,
+        "--database-containers",
+        *database_containers,
+        "--images-no-stop-required",
+        *images_no_stop_required,
     ]
     if images_no_backup_required:
         cmd += ["--images-no-backup-required", *images_no_backup_required]

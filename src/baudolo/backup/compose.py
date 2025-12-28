@@ -10,7 +10,9 @@ def hard_restart_docker_services(dir_path: str) -> None:
     subprocess.run(["docker-compose", "up", "-d"], cwd=dir_path, check=True)
 
 
-def handle_docker_compose_services(parent_directory: str, hard_restart_required: list[str]) -> None:
+def handle_docker_compose_services(
+    parent_directory: str, hard_restart_required: list[str]
+) -> None:
     for entry in os.scandir(parent_directory):
         if not entry.is_dir():
             continue

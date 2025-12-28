@@ -66,7 +66,9 @@ def main(argv: list[str] | None = None) -> int:
     # ------------------------------------------------------------------
     # mariadb
     # ------------------------------------------------------------------
-    p_mdb = sub.add_parser("mariadb", help="Restore a single MariaDB/MySQL-compatible dump")
+    p_mdb = sub.add_parser(
+        "mariadb", help="Restore a single MariaDB/MySQL-compatible dump"
+    )
     _add_common_backup_args(p_mdb)
     p_mdb.add_argument("--container", required=True)
     p_mdb.add_argument("--db-name", required=True)

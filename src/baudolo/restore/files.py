@@ -6,7 +6,9 @@ import sys
 from .run import run, docker_volume_exists
 
 
-def restore_volume_files(volume_name: str, backup_files_dir: str, *, rsync_image: str) -> int:
+def restore_volume_files(
+    volume_name: str, backup_files_dir: str, *, rsync_image: str
+) -> int:
     if not os.path.isdir(backup_files_dir):
         print(f"ERROR: backup files dir not found: {backup_files_dir}", file=sys.stderr)
         return 2

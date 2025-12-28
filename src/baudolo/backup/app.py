@@ -51,7 +51,9 @@ def is_image_ignored(container: str, images_no_backup_required: list[str]) -> bo
     return any(pat in img for pat in images_no_backup_required)
 
 
-def volume_is_fully_ignored(containers: list[str], images_no_backup_required: list[str]) -> bool:
+def volume_is_fully_ignored(
+    containers: list[str], images_no_backup_required: list[str]
+) -> bool:
     """
     Skip file backup only if all containers linked to the volume are ignored.
     """
@@ -178,6 +180,8 @@ def main() -> int:
     print("Finished volume backups.", flush=True)
 
     print("Handling Docker Compose services...", flush=True)
-    handle_docker_compose_services(args.compose_dir, args.docker_compose_hard_restart_required)
+    handle_docker_compose_services(
+        args.compose_dir, args.docker_compose_hard_restart_required
+    )
 
     return 0

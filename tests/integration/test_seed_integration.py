@@ -6,7 +6,9 @@ import unittest
 from pathlib import Path
 
 
-def run_seed(csv_path: Path, instance: str, database: str, username: str, password: str = "") -> subprocess.CompletedProcess:
+def run_seed(
+    csv_path: Path, instance: str, database: str, username: str, password: str = ""
+) -> subprocess.CompletedProcess:
     # Run the real CLI module (integration-style).
     return subprocess.run(
         [

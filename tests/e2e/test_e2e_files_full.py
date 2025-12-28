@@ -1,5 +1,4 @@
 import unittest
-from pathlib import Path
 
 from .helpers import (
     backup_run,
@@ -33,12 +32,19 @@ class TestE2EFilesFull(unittest.TestCase):
 
         # create source volume with a file
         run(["docker", "volume", "create", cls.volume_src])
-        run([
-            "docker", "run", "--rm",
-            "-v", f"{cls.volume_src}:/data",
-            "alpine:3.20",
-            "sh", "-lc", "mkdir -p /data && echo 'hello' > /data/hello.txt",
-        ])
+        run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "-v",
+                f"{cls.volume_src}:/data",
+                "alpine:3.20",
+                "sh",
+                "-lc",
+                "mkdir -p /data && echo 'hello' > /data/hello.txt",
+            ]
+        )
 
         # databases.csv (unused, but required by CLI)
         cls.databases_csv = f"/tmp/{cls.prefix}/databases.csv"
@@ -75,20 +81,36 @@ class TestE2EFilesFull(unittest.TestCase):
 
     def test_restore_files_into_new_volume(self) -> None:
         # restore files from volume_src backup into volume_dst
-        run([
-            "baudolo-restore", "files",
-            self.volume_dst, self.hash, self.version,
-            "--backups-dir", self.backups_dir,
-            "--repo-name", self.repo_name,
-            "--source-volume", self.volume_src,
-            "--rsync-image", "ghcr.io/kevinveenbirkenbach/alpine-rsync",
-        ])
+        run(
+            [
+                "baudolo-restore",
+                "files",
+                self.volume_dst,
+                self.hash,
+                self.version,
+                "--backups-dir",
+                self.backups_dir,
+                "--repo-name",
+                self.repo_name,
+                "--source-volume",
+                self.volume_src,
+                "--rsync-image",
+                "ghcr.io/kevinveenbirkenbach/alpine-rsync",
+            ]
+        )
 
         # verify restored file exists in dst volume
-        p = run([
-            "docker", "run", "--rm",
-            "-v", f"{self.volume_dst}:/data",
-            "alpine:3.20",
-            "sh", "-lc", "cat /data/hello.txt",
-        ])
+        p = run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "-v",
+                f"{self.volume_dst}:/data",
+                "alpine:3.20",
+                "sh",
+                "-lc",
+                "cat /data/hello.txt",
+            ]
+        )
         self.assertEqual((p.stdout or "").strip(), "hello")

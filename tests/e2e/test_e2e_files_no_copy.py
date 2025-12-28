@@ -31,12 +31,19 @@ class TestE2EFilesNoCopy(unittest.TestCase):
         cls.volumes = [cls.volume_src, cls.volume_dst]
 
         run(["docker", "volume", "create", cls.volume_src])
-        run([
-            "docker", "run", "--rm",
-            "-v", f"{cls.volume_src}:/data",
-            "alpine:3.20",
-            "sh", "-lc", "echo 'hello' > /data/hello.txt",
-        ])
+        run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "-v",
+                f"{cls.volume_src}:/data",
+                "alpine:3.20",
+                "sh",
+                "-lc",
+                "echo 'hello' > /data/hello.txt",
+            ]
+        )
 
         cls.databases_csv = f"/tmp/{cls.prefix}/databases.csv"
         write_databases_csv(cls.databases_csv, [])
@@ -59,14 +66,29 @@ class TestE2EFilesNoCopy(unittest.TestCase):
         cleanup_docker(containers=cls.containers, volumes=cls.volumes)
 
     def test_files_backup_not_present(self) -> None:
-        p = backup_path(self.backups_dir, self.repo_name, self.version, self.volume_src) / "files"
+        p = (
+            backup_path(self.backups_dir, self.repo_name, self.version, self.volume_src)
+            / "files"
+        )
         self.assertFalse(p.exists(), f"Did not expect files backup dir at: {p}")
 
     def test_restore_files_fails_expected(self) -> None:
-        p = run([
-            "baudolo-restore", "files",
-            self.volume_dst, self.hash, self.version,
-            "--backups-dir", self.backups_dir,
-            "--repo-name", self.repo_name,
-        ], check=False)
-        self.assertEqual(p.returncode, 2, f"Expected exitcode 2, got {p.returncode}\nSTDOUT={p.stdout}\nSTDERR={p.stderr}")
+        p = run(
+            [
+                "baudolo-restore",
+                "files",
+                self.volume_dst,
+                self.hash,
+                self.version,
+                "--backups-dir",
+                self.backups_dir,
+                "--repo-name",
+                self.repo_name,
+            ],
+            check=False,
+        )
+        self.assertEqual(
+            p.returncode,
+            2,
+            f"Expected exitcode 2, got {p.returncode}\nSTDOUT={p.stdout}\nSTDERR={p.stderr}",
+        )
