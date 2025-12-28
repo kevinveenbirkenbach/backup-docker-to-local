@@ -72,28 +72,27 @@ def requires_stop(containers: list[str], images_no_stop_required: list[str]) -> 
             return True
     return False
 
-
 def backup_mariadb_or_postgres(
     *,
     container: str,
     volume_dir: str,
     databases_df: "pandas.DataFrame",
     database_containers: list[str],
-) -> bool:
+) -> tuple[bool, bool]:
     """
-    Returns True if the container is a DB container we handled.
+    Returns (is_db_container, dumped_any)
     """
     for img in ["mariadb", "postgres"]:
         if has_image(container, img):
-            backup_database(
+            dumped = backup_database(
                 container=container,
                 volume_dir=volume_dir,
                 db_type=img,
                 databases_df=databases_df,
                 database_containers=database_containers,
             )
-            return True
-    return False
+            return True, dumped
+    return False, False
 
 
 def _backup_dumps_for_volume(
@@ -102,21 +101,26 @@ def _backup_dumps_for_volume(
     vol_dir: str,
     databases_df: "pandas.DataFrame",
     database_containers: list[str],
-) -> bool:
+) -> tuple[bool, bool]:
     """
-    Create DB dumps for any mariadb/postgres containers attached to this volume.
-    Returns True if at least one dump was produced.
+    Returns (found_db_container, dumped_any)
     """
+    found_db = False
     dumped_any = False
+
     for c in containers:
-        if backup_mariadb_or_postgres(
+        is_db, dumped = backup_mariadb_or_postgres(
             container=c,
             volume_dir=vol_dir,
             databases_df=databases_df,
             database_containers=database_containers,
-        ):
+        )
+        if is_db:
+            found_db = True
+        if dumped:
             dumped_any = True
-    return dumped_any
+
+    return found_db, dumped_any
 
 
 def main() -> int:
@@ -137,18 +141,26 @@ def main() -> int:
         containers = containers_using_volume(volume_name)
 
         vol_dir = create_volume_directory(version_dir, volume_name)
-
-        # Old behavior: DB dumps are additional to file backups.
-        _backup_dumps_for_volume(
+            
+        found_db, dumped_any = _backup_dumps_for_volume(
             containers=containers,
             vol_dir=vol_dir,
             databases_df=databases_df,
             database_containers=args.database_containers,
         )
 
-        # dump-only: skip ALL file rsync backups
+        # dump-only logic:
         if args.dump_only:
-            continue
+            if found_db and not dumped_any:
+                print(
+                    f"WARNING: dump-only requested but no DB dump was produced for DB volume '{volume_name}'. Falling back to file backup.",
+                    flush=True,
+                )
+                # continue to file backup below
+            else:
+                # keep old behavior: skip file backups
+                continue
+
 
         # skip file backup if all linked containers are ignored
         if volume_is_fully_ignored(containers, args.images_no_backup_required):
