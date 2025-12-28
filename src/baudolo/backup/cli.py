@@ -4,22 +4,6 @@ import argparse
 import os
 from pathlib import Path
 
-
-def _default_repo_name() -> str:
-    """
-    Derive the repository name from the folder that contains `src/`.
-
-    Expected layout:
-      <repo-root>/src/baudolo/backup/cli.py
-
-    => parents[0]=backup, [1]=baudolo, [2]=src, [3]=repo-root
-    """
-    try:
-        return Path(__file__).resolve().parents[3].name
-    except Exception:
-        return "backup-docker-to-local"
-
-
 def parse_args() -> argparse.Namespace:
     dirname = os.path.dirname(__file__)
     default_databases_csv = os.path.join(dirname, "databases.csv")
@@ -41,7 +25,7 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument(
         "--repo-name",
-        default=_default_repo_name(),
+        default='backup-docker-to-local',
         help="Backup repo folder name under <backups-dir>/<machine-id>/ (default: git repo folder name)",
     )
     p.add_argument(
@@ -51,8 +35,8 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--backups-dir",
-        default="/Backups",
-        help="Backup root directory (default: /Backups)",
+        default="/var/lib/backup/",
+        help="Backup root directory (default: /var/lib/backup/)",
     )
 
     p.add_argument(
