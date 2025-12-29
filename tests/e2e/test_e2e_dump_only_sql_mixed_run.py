@@ -145,7 +145,7 @@ class TestE2EDumpOnlySqlMixedRun(unittest.TestCase):
     def test_db_volume_has_dump_and_no_files_dir(self) -> None:
         base = backup_path(self.backups_dir, self.repo_name, self.version, self.db_volume)
 
-        dumps = base / "dumps"
+        dumps = base / "sql"
         files = base / "files"
 
         self.assertTrue(dumps.exists(), f"Expected dumps dir for DB volume at: {dumps}")

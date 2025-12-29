@@ -13,15 +13,6 @@ class TestE2ECLIContractDumpOnlySql(unittest.TestCase):
             f"Expected '--dump-only-sql' to appear in --help output. Output:\n{out}",
         )
 
-    def test_help_does_not_mention_old_flag(self) -> None:
-        cp = run(["baudolo", "--help"], capture=True, check=True)
-        out = (cp.stdout or "") + "\n" + (cp.stderr or "")
-        self.assertNotIn(
-            "--dump-only",
-            out,
-            f"Did not expect legacy '--dump-only' to appear in --help output. Output:\n{out}",
-        )
-
     def test_old_flag_is_rejected(self) -> None:
         cp = run(["baudolo", "--dump-only"], capture=True, check=False)
         self.assertEqual(

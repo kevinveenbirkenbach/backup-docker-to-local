@@ -4,6 +4,8 @@ import os
 import pathlib
 import re
 import logging
+from typing import Optional
+
 import pandas
 
 from .shell import BackupException, execute_shell_command
@@ -12,17 +14,53 @@ log = logging.getLogger(__name__)
 
 
 def get_instance(container: str, database_containers: list[str]) -> str:
+    """
+    Derive a stable instance name from the container name.
+    """
     if container in database_containers:
         return container
     return re.split(r"(_|-)(database|db|postgres)", container)[0]
 
 
+def _validate_database_value(value: Optional[str], *, instance: str) -> str:
+    """
+    Enforce explicit database semantics:
+
+    - "*"       => dump ALL databases (cluster dump for Postgres)
+    - "<name>"  => dump exactly this database
+    - ""        => invalid configuration (would previously result in NaN / nan.backup.sql)
+    """
+    v = (value or "").strip()
+    if v == "":
+        raise ValueError(
+            f"Invalid databases.csv entry for instance '{instance}': "
+            "column 'database' must be '*' or a concrete database name (not empty)."
+        )
+    return v
+
+
+def _atomic_write_cmd(cmd: str, out_file: str) -> None:
+    """
+    Write dump output atomically:
+    - write to <file>.tmp
+    - rename to <file> only on success
+
+    This prevents empty or partial dump files from being treated as valid backups.
+    """
+    tmp = f"{out_file}.tmp"
+    execute_shell_command(f"{cmd} > {tmp}")
+    execute_shell_command(f"mv {tmp} {out_file}")
+
+
 def fallback_pg_dumpall(container: str, username: str, password: str, out_file: str) -> None:
+    """
+    Perform a full Postgres cluster dump using pg_dumpall.
+    """
     cmd = (
         f"PGPASSWORD={password} docker exec -i {container} "
-        f"pg_dumpall -U {username} -h localhost > {out_file}"
+        f"pg_dumpall -U {username} -h localhost"
     )
-    execute_shell_command(cmd)
+    _atomic_write_cmd(cmd, out_file)
 
 
 def backup_database(
@@ -34,12 +72,15 @@ def backup_database(
     database_containers: list[str],
 ) -> bool:
     """
-    Returns True if at least one dump file was produced, else False.
+    Backup databases for a given DB container.
+
+    Returns True if at least one dump was produced.
     """
     instance_name = get_instance(container, database_containers)
-    entries = databases_df.loc[databases_df["instance"] == instance_name]
+
+    entries = databases_df[databases_df["instance"] == instance_name]
     if entries.empty:
-        log.warning("No entry found for instance '%s' (skipping DB dump)", instance_name)
+        log.debug("No database entries for instance '%s'", instance_name)
         return False
 
     out_dir = os.path.join(volume_dir, "sql")
@@ -48,43 +89,56 @@ def backup_database(
     produced = False
 
     for row in entries.itertuples(index=False):
-        db_name = row.database
-        user = row.username
-        password = row.password
+        raw_db = getattr(row, "database", "")
+        user = (getattr(row, "username", "") or "").strip()
+        password = (getattr(row, "password", "") or "").strip()
 
+        db_value = _validate_database_value(raw_db, instance=instance_name)
+
+        # Explicit: dump ALL databases
+        if db_value == "*":
+            if db_type != "postgres":
+                raise ValueError(
+                    f"databases.csv entry for instance '{instance_name}': "
+                    "'*' is currently only supported for Postgres."
+                )
+
+            cluster_file = os.path.join(
+                out_dir, f"{instance_name}.cluster.backup.sql"
+            )
+            fallback_pg_dumpall(container, user, password, cluster_file)
+            produced = True
+            continue
+
+        # Concrete database dump
+        db_name = db_value
         dump_file = os.path.join(out_dir, f"{db_name}.backup.sql")
 
         if db_type == "mariadb":
             cmd = (
                 f"docker exec {container} /usr/bin/mariadb-dump "
-                f"-u {user} -p{password} {db_name} > {dump_file}"
+                f"-u {user} -p{password} {db_name}"
             )
-            execute_shell_command(cmd)
+            _atomic_write_cmd(cmd, dump_file)
             produced = True
             continue
 
         if db_type == "postgres":
-            cluster_file = os.path.join(out_dir, f"{instance_name}.cluster.backup.sql")
-
-            if not db_name:
-                fallback_pg_dumpall(container, user, password, cluster_file)
-                return True
-
             try:
                 cmd = (
                     f"PGPASSWORD={password} docker exec -i {container} "
-                    f"pg_dump -U {user} -d {db_name} -h localhost > {dump_file}"
+                    f"pg_dump -U {user} -d {db_name} -h localhost"
                 )
-                execute_shell_command(cmd)
+                _atomic_write_cmd(cmd, dump_file)
                 produced = True
             except BackupException as e:
-                print(f"pg_dump failed: {e}", flush=True)
-                print(
-                    f"Falling back to pg_dumpall for instance '{instance_name}'",
-                    flush=True,
+                # Explicit DB dump failed -> hard error
+                raise BackupException(
+                    f"Postgres dump failed for instance '{instance_name}', "
+                    f"database '{db_name}'. This database was explicitly configured "
+                    "and therefore must succeed.\n"
+                    f"{e}"
                 )
-                fallback_pg_dumpall(container, user, password, cluster_file)
-                produced = True
             continue
 
     return produced

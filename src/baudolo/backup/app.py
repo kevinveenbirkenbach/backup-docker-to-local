@@ -132,7 +132,12 @@ def main() -> int:
     versions_dir = os.path.join(args.backups_dir, machine_id, args.repo_name)
     version_dir = create_version_directory(versions_dir, backup_time)
 
-    databases_df = pandas.read_csv(args.databases_csv, sep=";")
+    # IMPORTANT:
+    # - keep_default_na=False prevents empty fields from turning into NaN
+    # - dtype=str keeps all columns stable for comparisons/validation
+    databases_df = pandas.read_csv(
+        args.databases_csv, sep=";", keep_default_na=False, dtype=str
+    )
 
     print("💾 Start volume backups...", flush=True)
 
@@ -140,8 +145,16 @@ def main() -> int:
         print(f"Start backup routine for volume: {volume_name}", flush=True)
         containers = containers_using_volume(volume_name)
 
+        # EARLY SKIP: if all linked containers are ignored, do not create any dirs
+        if volume_is_fully_ignored(containers, args.images_no_backup_required):
+            print(
+                f"Skipping volume '{volume_name}' entirely (all linked containers are ignored).",
+                flush=True,
+            )
+            continue
+
         vol_dir = create_volume_directory(version_dir, volume_name)
-            
+
         found_db, dumped_any = _backup_dumps_for_volume(
             containers=containers,
             vol_dir=vol_dir,
@@ -162,16 +175,6 @@ def main() -> int:
                     # DB volume successfully dumped -> skip file backup
                     continue
             # Non-DB volume -> always do file backup (fall through)
-
-
-
-        # skip file backup if all linked containers are ignored
-        if volume_is_fully_ignored(containers, args.images_no_backup_required):
-            print(
-                f"Skipping file backup for volume '{volume_name}' (all linked containers are ignored).",
-                flush=True,
-            )
-            continue
 
         if args.everything:
             # "everything": always do pre-rsync, then stop + rsync again
