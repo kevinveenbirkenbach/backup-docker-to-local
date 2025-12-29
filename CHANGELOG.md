@@ -1,3 +1,13 @@
+## [1.2.0] - 2025-12-29
+
+* * Introduced **`--dump-only-sql`** mode for reliable, SQL-only database backups (replaces `--dump-only`).
+* Database configuration in `databases.csv` is now **strict and explicit** (`*` or concrete database name only).
+* **PostgreSQL cluster backups** are supported via `*`.
+* SQL dumps are written **atomically** to avoid corrupted or empty files.
+* Backups are **smarter and faster**: ignored volumes are skipped early, file backups run only when needed.
+* Improved reliability through expanded end-to-end tests and safer defaults.
+
+
 ## [1.1.1] - 2025-12-28
 
 * * **Backup:** In ***--dump-only-sql*** mode, fall back to file backups with a warning when no database dump can be produced (e.g. missing `databases.csv` entry).
