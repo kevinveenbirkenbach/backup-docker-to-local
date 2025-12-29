@@ -68,10 +68,15 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Do not restart containers after backup",
     )
+    
     p.add_argument(
-        "--dump-only",
+        "--dump-only-sql",
         action="store_true",
-        help="Only create DB dumps (skip ALL file rsync backups)",
+        help=(
+            "Create database dumps only for DB volumes. "
+            "File backups are skipped for DB volumes if a dump succeeds, "
+            "but non-DB volumes are still backed up. "
+            "If a DB dump cannot be produced, baudolo falls back to a file backup."
+        ),
     )
-
     return p.parse_args()

@@ -166,7 +166,7 @@ def backup_run(
     database_containers: list[str],
     images_no_stop_required: list[str],
     images_no_backup_required: list[str] | None = None,
-    dump_only: bool = False,
+    dump_only_sql: bool = False,
 ) -> None:
     cmd = [
         "baudolo",
@@ -187,8 +187,8 @@ def backup_run(
     ]
     if images_no_backup_required:
         cmd += ["--images-no-backup-required", *images_no_backup_required]
-    if dump_only:
-        cmd += ["--dump-only"]
+    if dump_only_sql:
+        cmd += ["--dump-only-sql"]
 
     try:
         run(cmd, capture=True, check=True)

@@ -149,17 +149,20 @@ def main() -> int:
             database_containers=args.database_containers,
         )
 
-        # dump-only logic:
-        if args.dump_only:
-            if found_db and not dumped_any:
-                print(
-                    f"WARNING: dump-only requested but no DB dump was produced for DB volume '{volume_name}'. Falling back to file backup.",
-                    flush=True,
-                )
-                # continue to file backup below
-            else:
-                # keep old behavior: skip file backups
-                continue
+        # dump-only-sql logic:
+        if args.dump_only_sql:
+            if found_db:
+                if not dumped_any:
+                    print(
+                        f"WARNING: dump-only-sql requested but no DB dump was produced for DB volume '{volume_name}'. Falling back to file backup.",
+                        flush=True,
+                    )
+                    # fall through to file backup below
+                else:
+                    # DB volume successfully dumped -> skip file backup
+                    continue
+            # Non-DB volume -> always do file backup (fall through)
+
 
 
         # skip file backup if all linked containers are ignored

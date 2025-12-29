@@ -26,10 +26,10 @@ class TestE2EFilesNoCopy(unittest.TestCase):
         cls.repo_name = cls.prefix
 
         cls.volume_src = f"{cls.prefix}-vol-src"
-        cls.volume_dst = f"{cls.prefix}-vol-dst"
-        cls.containers = []
-        cls.volumes = [cls.volume_src, cls.volume_dst]
+        cls.containers: list[str] = []
+        cls.volumes = [cls.volume_src]
 
+        # Create source volume and write a marker file
         run(["docker", "volume", "create", cls.volume_src])
         run(
             [
@@ -48,7 +48,7 @@ class TestE2EFilesNoCopy(unittest.TestCase):
         cls.databases_csv = f"/tmp/{cls.prefix}/databases.csv"
         write_databases_csv(cls.databases_csv, [])
 
-        # dump-only => NO file rsync backups
+        # dump-only-sql => non-DB volumes are STILL backed up as files
         backup_run(
             backups_dir=cls.backups_dir,
             repo_name=cls.repo_name,
@@ -56,28 +56,32 @@ class TestE2EFilesNoCopy(unittest.TestCase):
             databases_csv=cls.databases_csv,
             database_containers=["dummy-db"],
             images_no_stop_required=["alpine", "postgres", "mariadb", "mysql"],
-            dump_only=True,
+            dump_only_sql=True,
         )
 
         cls.hash, cls.version = latest_version_dir(cls.backups_dir, cls.repo_name)
+
+        # Wipe the volume to ensure restore actually restores something
+        run(["docker", "volume", "rm", "-f", cls.volume_src])
+        run(["docker", "volume", "create", cls.volume_src])
 
     @classmethod
     def tearDownClass(cls) -> None:
         cleanup_docker(containers=cls.containers, volumes=cls.volumes)
 
-    def test_files_backup_not_present(self) -> None:
+    def test_files_backup_present_for_non_db_volume(self) -> None:
         p = (
             backup_path(self.backups_dir, self.repo_name, self.version, self.volume_src)
             / "files"
         )
-        self.assertFalse(p.exists(), f"Did not expect files backup dir at: {p}")
+        self.assertTrue(p.exists(), f"Expected files backup dir at: {p}")
 
-    def test_restore_files_fails_expected(self) -> None:
+    def test_restore_files_succeeds_and_restores_content(self) -> None:
         p = run(
             [
                 "baudolo-restore",
                 "files",
-                self.volume_dst,
+                self.volume_src,
                 self.hash,
                 self.version,
                 "--backups-dir",
@@ -89,6 +93,27 @@ class TestE2EFilesNoCopy(unittest.TestCase):
         )
         self.assertEqual(
             p.returncode,
-            2,
-            f"Expected exitcode 2, got {p.returncode}\nSTDOUT={p.stdout}\nSTDERR={p.stderr}",
+            0,
+            f"Expected exitcode 0, got {p.returncode}\nSTDOUT={p.stdout}\nSTDERR={p.stderr}",
+        )
+
+        cp = run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "-v",
+                f"{self.volume_src}:/data",
+                "alpine:3.20",
+                "sh",
+                "-lc",
+                "cat /data/hello.txt",
+            ],
+            capture=True,
+            check=True,
+        )
+        self.assertEqual(
+            cp.stdout.strip(),
+            "hello",
+            f"Unexpected restored content. STDOUT={cp.stdout}\nSTDERR={cp.stderr}",
         )

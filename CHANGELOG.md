@@ -1,6 +1,6 @@
 ## [1.1.1] - 2025-12-28
 
-* * **Backup:** In ***--dump-only*** mode, fall back to file backups with a warning when no database dump can be produced (e.g. missing `databases.csv` entry).
+* * **Backup:** In ***--dump-only-sql*** mode, fall back to file backups with a warning when no database dump can be produced (e.g. missing `databases.csv` entry).
 
 
 ## [1.1.0] - 2025-12-28

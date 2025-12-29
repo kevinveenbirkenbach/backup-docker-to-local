@@ -134,7 +134,7 @@ baudolo \
 | Flag            | Description                                 |
 | --------------- | ------------------------------------------- |
 | `--everything`  | Always stop containers and re-run rsync     |
-| `--dump-only`   | Only create SQL dumps, skip file backups    |
+| `--dump-only-sql`| Skip file backups only for DB volumes when dumps succeed; non-DB volumes are still backed up; fallback to files if no dump.    |
 | `--shutdown`    | Do not restart containers after backup      |
 | `--backups-dir` | Backup root directory (default: `/Backups`) |
 | `--repo-name`   | Backup namespace under machine hash         |

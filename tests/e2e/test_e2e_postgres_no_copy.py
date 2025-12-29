@@ -75,7 +75,7 @@ class TestE2EPostgresNoCopy(unittest.TestCase):
             databases_csv=cls.databases_csv,
             database_containers=[cls.pg_container],
             images_no_stop_required=["postgres", "mariadb", "mysql", "alpine"],
-            dump_only=True,
+            dump_only_sql=True,
         )
 
         cls.hash, cls.version = latest_version_dir(cls.backups_dir, cls.repo_name)
