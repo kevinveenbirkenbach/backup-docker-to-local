@@ -96,10 +96,10 @@ class TestE2EDumpOnlySqlMixedRun(unittest.TestCase):
                 "sh",
                 "-lc",
                 (
-                    f'psql -U postgres -d {cls.pg_db} -c '
+                    f"psql -U postgres -d {cls.pg_db} -c "
                     '"CREATE TABLE IF NOT EXISTS t (id INT PRIMARY KEY, v TEXT);'
                     "INSERT INTO t(id,v) VALUES (1,'hello-db') "
-                    "ON CONFLICT (id) DO UPDATE SET v=EXCLUDED.v;\""
+                    'ON CONFLICT (id) DO UPDATE SET v=EXCLUDED.v;"'
                 ),
             ],
             check=True,
@@ -143,7 +143,9 @@ class TestE2EDumpOnlySqlMixedRun(unittest.TestCase):
         cleanup_docker(containers=cls.containers, volumes=cls.volumes)
 
     def test_db_volume_has_dump_and_no_files_dir(self) -> None:
-        base = backup_path(self.backups_dir, self.repo_name, self.version, self.db_volume)
+        base = backup_path(
+            self.backups_dir, self.repo_name, self.version, self.db_volume
+        )
 
         dumps = base / "sql"
         files = base / "files"

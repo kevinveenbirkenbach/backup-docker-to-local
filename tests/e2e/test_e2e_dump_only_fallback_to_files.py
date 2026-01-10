@@ -133,22 +133,28 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
         )
 
     def test_files_backup_exists_due_to_fallback(self) -> None:
-        p = backup_path(
-            self.backups_dir,
-            self.repo_name,
-            self.version,
-            self.pg_volume,
-        ) / "files"
+        p = (
+            backup_path(
+                self.backups_dir,
+                self.repo_name,
+                self.version,
+                self.pg_volume,
+            )
+            / "files"
+        )
         self.assertTrue(p.is_dir(), f"Expected files backup dir at: {p}")
 
     def test_sql_dump_not_present(self) -> None:
         # There should be no sql dumps because databases.csv had no matching entry.
-        sql_dir = backup_path(
-            self.backups_dir,
-            self.repo_name,
-            self.version,
-            self.pg_volume,
-        ) / "sql"
+        sql_dir = (
+            backup_path(
+                self.backups_dir,
+                self.repo_name,
+                self.version,
+                self.pg_volume,
+            )
+            / "sql"
+        )
         # Could exist (dir created) in some edge cases, but should contain no *.sql dumps.
         if sql_dir.exists():
             dumps = list(sql_dir.glob("*.sql"))

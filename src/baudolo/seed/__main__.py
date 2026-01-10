@@ -7,9 +7,10 @@ import re
 import sys
 import pandas as pd
 from typing import Optional
-
+from pandas.errors import EmptyDataError
 
 DB_NAME_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_-]*$")
+
 
 def _validate_database_value(value: Optional[str], *, instance: str) -> str:
     v = (value or "").strip()
@@ -31,6 +32,11 @@ def _validate_database_value(value: Optional[str], *, instance: str) -> str:
         )
     return v
 
+
+def _empty_df() -> pd.DataFrame:
+    return pd.DataFrame(columns=["instance", "database", "username", "password"])
+
+
 def check_and_add_entry(
     file_path: str,
     instance: str,
@@ -48,17 +54,21 @@ def check_and_add_entry(
     database = _validate_database_value(database, instance=instance)
 
     if os.path.exists(file_path):
-        df = pd.read_csv(
-            file_path,
-            sep=";",
-            dtype=str,
-            keep_default_na=False,
-        )
+        try:
+            df = pd.read_csv(
+                file_path,
+                sep=";",
+                dtype=str,
+                keep_default_na=False,
+            )
+        except EmptyDataError:
+            print(
+                f"WARNING: databases.csv exists but is empty: {file_path}. Creating header columns.",
+                file=sys.stderr,
+            )
+            df = _empty_df()
     else:
-        df = pd.DataFrame(
-            columns=["instance", "database", "username", "password"]
-        )
-
+        df = _empty_df()
     mask = (df["instance"] == instance) & (df["database"] == database)
 
     if mask.any():

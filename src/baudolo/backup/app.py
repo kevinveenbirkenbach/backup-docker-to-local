@@ -72,6 +72,7 @@ def requires_stop(containers: list[str], images_no_stop_required: list[str]) -> 
             return True
     return False
 
+
 def backup_mariadb_or_postgres(
     *,
     container: str,

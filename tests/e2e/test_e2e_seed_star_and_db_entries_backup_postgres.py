@@ -99,10 +99,10 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
                 "sh",
                 "-lc",
                 (
-                    f'psql -U {cls.pg_user} -d {cls.pg_db1} -c '
+                    f"psql -U {cls.pg_user} -d {cls.pg_db1} -c "
                     '"CREATE TABLE IF NOT EXISTS t (id INT PRIMARY KEY, v TEXT);'
                     "INSERT INTO t(id,v) VALUES (1,'hello-db1') "
-                    "ON CONFLICT (id) DO UPDATE SET v=EXCLUDED.v;\""
+                    'ON CONFLICT (id) DO UPDATE SET v=EXCLUDED.v;"'
                 ),
             ],
             check=True,
@@ -115,10 +115,10 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
                 "sh",
                 "-lc",
                 (
-                    f'psql -U {cls.pg_user} -d {cls.pg_db2} -c '
+                    f"psql -U {cls.pg_user} -d {cls.pg_db2} -c "
                     '"CREATE TABLE IF NOT EXISTS t (id INT PRIMARY KEY, v TEXT);'
                     "INSERT INTO t(id,v) VALUES (1,'hello-db2') "
-                    "ON CONFLICT (id) DO UPDATE SET v=EXCLUDED.v;\""
+                    'ON CONFLICT (id) DO UPDATE SET v=EXCLUDED.v;"'
                 ),
             ],
             check=True,
@@ -132,7 +132,16 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
         instance = cls.pg_container
 
         # Seed star entry (pg_dumpall)
-        run(["baudolo-seed", cls.databases_csv, instance, "*", cls.pg_user, cls.pg_password])
+        run(
+            [
+                "baudolo-seed",
+                cls.databases_csv,
+                instance,
+                "*",
+                cls.pg_user,
+                cls.pg_password,
+            ]
+        )
 
         # Seed concrete DB entry (pg_dump)
         run(
@@ -177,7 +186,9 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
         cleanup_docker(containers=cls.containers, volumes=cls.volumes)
 
     def test_db_volume_has_cluster_dump_and_concrete_db_dump_and_no_files(self) -> None:
-        base = backup_path(self.backups_dir, self.repo_name, self.version, self.db_volume)
+        base = backup_path(
+            self.backups_dir, self.repo_name, self.version, self.db_volume
+        )
         sql_dir = base / "sql"
         files_dir = base / "files"
 
@@ -204,10 +215,14 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
         )
 
     def test_non_db_volume_still_has_files_backup(self) -> None:
-        base = backup_path(self.backups_dir, self.repo_name, self.version, self.files_volume)
+        base = backup_path(
+            self.backups_dir, self.repo_name, self.version, self.files_volume
+        )
         files_dir = base / "files"
 
-        self.assertTrue(files_dir.exists(), f"Expected files dir for non-DB volume at: {files_dir}")
+        self.assertTrue(
+            files_dir.exists(), f"Expected files dir for non-DB volume at: {files_dir}"
+        )
 
         marker = files_dir / "hello.txt"
         self.assertTrue(marker.is_file(), f"Expected marker file at: {marker}")

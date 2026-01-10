@@ -52,7 +52,9 @@ def _atomic_write_cmd(cmd: str, out_file: str) -> None:
     execute_shell_command(f"mv {tmp} {out_file}")
 
 
-def fallback_pg_dumpall(container: str, username: str, password: str, out_file: str) -> None:
+def fallback_pg_dumpall(
+    container: str, username: str, password: str, out_file: str
+) -> None:
     """
     Perform a full Postgres cluster dump using pg_dumpall.
     """
@@ -103,9 +105,7 @@ def backup_database(
                     "'*' is currently only supported for Postgres."
                 )
 
-            cluster_file = os.path.join(
-                out_dir, f"{instance_name}.cluster.backup.sql"
-            )
+            cluster_file = os.path.join(out_dir, f"{instance_name}.cluster.backup.sql")
             fallback_pg_dumpall(container, user, password, cluster_file)
             produced = True
             continue

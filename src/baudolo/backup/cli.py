@@ -68,7 +68,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Do not restart containers after backup",
     )
-    
+
     p.add_argument(
         "--dump-only-sql",
         action="store_true",
