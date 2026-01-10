@@ -1,3 +1,8 @@
+## [1.3.0] - 2026-01-10
+
+* Empty databases.csv no longer causes baudolo-seed to fail
+
+
 ## [1.2.0] - 2025-12-29
 
 * * Introduced **`--dump-only-sql`** mode for reliable, SQL-only database backups (replaces `--dump-only`).
