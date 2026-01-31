@@ -84,7 +84,9 @@ class TestSeedMain(unittest.TestCase):
         read_csv.assert_not_called()
         empty_df.assert_called_once()
         concat.assert_called_once()
-        df_out.to_csv.assert_called_once_with("/tmp/databases.csv", sep=";", index=False)
+        df_out.to_csv.assert_called_once_with(
+            "/tmp/databases.csv", sep=";", index=False
+        )
 
     @patch("baudolo.seed.__main__.os.path.exists", return_value=True)
     @patch("baudolo.seed.__main__.pd.read_csv", side_effect=EmptyDataError("empty"))
@@ -116,16 +118,26 @@ class TestSeedMain(unittest.TestCase):
         exists.assert_called_once_with("/tmp/databases.csv")
         read_csv.assert_called_once()
         empty_df.assert_called_once()
-
-        # warning printed to stderr
-        self.assertTrue(print_.called)
-        args, kwargs = print_.call_args
-        self.assertIn("WARNING: databases.csv exists but is empty", args[0])
-        self.assertEqual(kwargs.get("file"), seed_main.sys.stderr)
-
         concat.assert_called_once()
-        df_out.toF.to_csv.assert_not_called()  # keep lint happy if you use it
-        df_out.to_csv.assert_called_once_with("/tmp/databases.csv", sep=";", index=False)
+
+        # Assert: at least one print call contains the WARNING and prints to stderr
+        warning_calls = []
+        for call in print_.call_args_list:
+            args, kwargs = call
+            if args and "WARNING: databases.csv exists but is empty" in str(args[0]):
+                warning_calls.append((args, kwargs))
+
+        self.assertTrue(
+            warning_calls,
+            "Expected a WARNING print when databases.csv is empty, but none was found.",
+        )
+        # Ensure the warning goes to stderr
+        _, warn_kwargs = warning_calls[0]
+        self.assertEqual(warn_kwargs.get("file"), seed_main.sys.stderr)
+
+        df_out.to_csv.assert_called_once_with(
+            "/tmp/databases.csv", sep=";", index=False
+        )
 
     @patch("baudolo.seed.__main__.os.path.exists", return_value=True)
     @patch("baudolo.seed.__main__.pd.read_csv")
@@ -172,7 +184,9 @@ class TestSeedMain(unittest.TestCase):
 
     @patch("baudolo.seed.__main__.sys.exit")
     @patch("baudolo.seed.__main__.print")
-    @patch("baudolo.seed.__main__.check_and_add_entry", side_effect=RuntimeError("boom"))
+    @patch(
+        "baudolo.seed.__main__.check_and_add_entry", side_effect=RuntimeError("boom")
+    )
     @patch("baudolo.seed.__main__.argparse.ArgumentParser.parse_args")
     def test_main_exits_nonzero_on_error(
         self,

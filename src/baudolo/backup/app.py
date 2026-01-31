@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import os
 import pathlib
+import sys
 from datetime import datetime
 
 import pandas
 from dirval import create_stamp_file
+from pandas.errors import EmptyDataError
 
 from .cli import parse_args
 from .compose import handle_docker_compose_services
@@ -96,6 +98,42 @@ def backup_mariadb_or_postgres(
     return False, False
 
 
+def _empty_databases_df() -> "pandas.DataFrame":
+    """
+    Create an empty DataFrame with the expected schema for databases.csv.
+
+    This allows the backup to continue without DB dumps when the CSV is missing
+    or empty (pandas EmptyDataError).
+    """
+    return pandas.DataFrame(columns=["instance", "database", "username", "password"])
+
+
+def _load_databases_df(csv_path: str) -> "pandas.DataFrame":
+    """
+    Load databases.csv robustly.
+
+    - Missing file     -> warn, continue with empty df
+    - Empty file       -> warn, continue with empty df
+    - Valid CSV        -> return dataframe
+    """
+    try:
+        return pandas.read_csv(csv_path, sep=";", keep_default_na=False, dtype=str)
+    except FileNotFoundError:
+        print(
+            f"WARNING: databases.csv not found: {csv_path}. Continuing without database dumps.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return _empty_databases_df()
+    except EmptyDataError:
+        print(
+            f"WARNING: databases.csv exists but is empty: {csv_path}. Continuing without database dumps.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return _empty_databases_df()
+
+
 def _backup_dumps_for_volume(
     *,
     containers: list[str],
@@ -136,9 +174,10 @@ def main() -> int:
     # IMPORTANT:
     # - keep_default_na=False prevents empty fields from turning into NaN
     # - dtype=str keeps all columns stable for comparisons/validation
-    databases_df = pandas.read_csv(
-        args.databases_csv, sep=";", keep_default_na=False, dtype=str
-    )
+    #
+    # Robust behavior:
+    # - if the file is missing or empty, we continue without DB dumps.
+    databases_df = _load_databases_df(args.databases_csv)
 
     print("💾 Start volume backups...", flush=True)
 
@@ -168,7 +207,8 @@ def main() -> int:
             if found_db:
                 if not dumped_any:
                     print(
-                        f"WARNING: dump-only-sql requested but no DB dump was produced for DB volume '{volume_name}'. Falling back to file backup.",
+                        f"WARNING: dump-only-sql requested but no DB dump was produced for DB volume '{volume_name}'. "
+                        "Falling back to file backup.",
                         flush=True,
                     )
                     # fall through to file backup below
