@@ -1,3 +1,9 @@
+## [1.5.0] - 2026-01-31
+
+* * Make `databases.csv` optional: missing or empty files now emit warnings and no longer break backups
+* Fix Docker CLI compatibility by switching to `docker-ce-cli` and required build tools
+
+
 ## [1.4.0] - 2026-01-31
 
 * Baudolo now restarts Docker Compose stacks in a wrapper-aware way (with a `docker compose` fallback), ensuring that all Compose overrides and env files are applied identically to the Infinito.Nexus workflow.
