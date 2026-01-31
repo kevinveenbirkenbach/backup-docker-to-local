@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     rsync \
     ca-certificates \
-    docker-cli \
+    docker.io \
+    bash \
   && rm -rf /var/lib/apt/lists/*
 
 # Fail fast if docker client is missing

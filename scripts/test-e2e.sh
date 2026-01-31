@@ -83,7 +83,7 @@ dump_debug() {
   docker -H "${DIND_HOST}" run --rm \
     -v "${E2E_TMP_VOL}:/tmp" \
     alpine:3.20 \
-    sh -lc 'cd /tmp && tar -czf /out.tar.gz . || true' \
+    bash -lc 'cd /tmp && tar -czf /out.tar.gz . || true' \
     >/dev/null 2>&1 || true
 
   # The above writes inside the container FS, not to host. So do it properly:
@@ -91,7 +91,7 @@ dump_debug() {
   local tmpc="baudolo-e2e-tmpdump-${TS}"
   docker -H "${DIND_HOST}" rm -f "${tmpc}" >/dev/null 2>&1 || true
   docker -H "${DIND_HOST}" create --name "${tmpc}" -v "${E2E_TMP_VOL}:/tmp" alpine:3.20 \
-    sh -lc 'cd /tmp && tar -czf /tmpdump.tar.gz . || true' >/dev/null
+    bash -lc 'cd /tmp && tar -czf /tmpdump.tar.gz . || true' >/dev/null
   docker -H "${DIND_HOST}" start -a "${tmpc}" >/dev/null 2>&1 || true
   docker -H "${DIND_HOST}" cp "${tmpc}:/tmpdump.tar.gz" "${ARTIFACTS_DIR}/e2e-tmp-${TS}.tar.gz" >/dev/null 2>&1 || true
   docker -H "${DIND_HOST}" rm -f "${tmpc}" >/dev/null 2>&1 || true
@@ -187,7 +187,7 @@ if [ "${DEBUG_SHELL}" = "1" ]; then
     -v "${DIND_VOL}:/var/lib/docker:ro" \
     -v "${E2E_TMP_VOL}:/tmp" \
     "${IMG}" \
-    sh -lc '
+    bash -lc '
       set -e
       if [ ! -f /etc/machine-id ]; then
         mkdir -p /etc
@@ -195,7 +195,7 @@ if [ "${DEBUG_SHELL}" = "1" ]; then
       fi
       echo ">> DOCKER_HOST=${DOCKER_HOST}"
       docker ps -a || true
-      exec sh
+      exec bash
     '
   rc=$?
 else
@@ -206,7 +206,7 @@ else
     -v "${DIND_VOL}:/var/lib/docker:ro" \
     -v "${E2E_TMP_VOL}:/tmp" \
     "${IMG}" \
-    sh -lc '
+    bash -lc '
     set -euo pipefail
     set -x
     export PYTHONUNBUFFERED=1

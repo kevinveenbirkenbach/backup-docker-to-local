@@ -1,4 +1,3 @@
-# tests/unit/src/baudolo/seed/test_main.py
 from __future__ import annotations
 
 import unittest
@@ -33,6 +32,30 @@ class TestSeedMain(unittest.TestCase):
         with self.assertRaises(ValueError):
             seed_main._validate_database_value("bad name", instance="x")
 
+    def _mock_df_mask_any(self, *, any_value: bool) -> MagicMock:
+        """
+        Build a DataFrame-like mock such that:
+          mask = (df["instance"] == instance) & (df["database"] == database)
+          mask.any() returns any_value
+        """
+        df = MagicMock(spec=pd.DataFrame)
+
+        left = MagicMock()
+        right = MagicMock()
+
+        mask = MagicMock()
+        mask.any.return_value = any_value
+
+        # (left & right) => mask
+        left.__and__.return_value = mask
+
+        # df["instance"] / df["database"] => return objects whose == produces left/right
+        col = MagicMock()
+        col.__eq__.side_effect = [left, right]
+        df.__getitem__.return_value = col
+
+        return df
+
     @patch("baudolo.seed.__main__.os.path.exists", return_value=False)
     @patch("baudolo.seed.__main__.pd.read_csv")
     @patch("baudolo.seed.__main__._empty_df")
@@ -44,11 +67,7 @@ class TestSeedMain(unittest.TestCase):
         read_csv: MagicMock,
         exists: MagicMock,
     ) -> None:
-        df_existing = MagicMock(spec=pd.DataFrame)
-        series_mask = MagicMock()
-        series_mask.any.return_value = False
-
-        df_existing.__getitem__.return_value = series_mask  # for df["instance"] etc.
+        df_existing = self._mock_df_mask_any(any_value=False)
         empty_df.return_value = df_existing
 
         df_out = MagicMock(spec=pd.DataFrame)
@@ -65,9 +84,7 @@ class TestSeedMain(unittest.TestCase):
         read_csv.assert_not_called()
         empty_df.assert_called_once()
         concat.assert_called_once()
-        df_out.to_csv.assert_called_once_with(
-            "/tmp/databases.csv", sep=";", index=False
-        )
+        df_out.to_csv.assert_called_once_with("/tmp/databases.csv", sep=";", index=False)
 
     @patch("baudolo.seed.__main__.os.path.exists", return_value=True)
     @patch("baudolo.seed.__main__.pd.read_csv", side_effect=EmptyDataError("empty"))
@@ -82,16 +99,7 @@ class TestSeedMain(unittest.TestCase):
         read_csv: MagicMock,
         exists: MagicMock,
     ) -> None:
-        """
-        Key regression test:
-        If file exists but is empty => warn, create header columns, then proceed.
-        """
-        df_existing = MagicMock(spec=pd.DataFrame)
-        series_mask = MagicMock()
-        series_mask.any.return_value = False
-
-        # emulate df["instance"] and df["database"] usage
-        df_existing.__getitem__.return_value = series_mask
+        df_existing = self._mock_df_mask_any(any_value=False)
         empty_df.return_value = df_existing
 
         df_out = MagicMock(spec=pd.DataFrame)
@@ -109,17 +117,15 @@ class TestSeedMain(unittest.TestCase):
         read_csv.assert_called_once()
         empty_df.assert_called_once()
 
-        # warning was printed to stderr
+        # warning printed to stderr
         self.assertTrue(print_.called)
         args, kwargs = print_.call_args
         self.assertIn("WARNING: databases.csv exists but is empty", args[0])
-        self.assertIn("file", kwargs)
-        self.assertEqual(kwargs["file"], seed_main.sys.stderr)
+        self.assertEqual(kwargs.get("file"), seed_main.sys.stderr)
 
         concat.assert_called_once()
-        df_out.to_csv.assert_called_once_with(
-            "/tmp/databases.csv", sep=";", index=False
-        )
+        df_out.toF.to_csv.assert_not_called()  # keep lint happy if you use it
+        df_out.to_csv.assert_called_once_with("/tmp/databases.csv", sep=";", index=False)
 
     @patch("baudolo.seed.__main__.os.path.exists", return_value=True)
     @patch("baudolo.seed.__main__.pd.read_csv")
@@ -128,22 +134,7 @@ class TestSeedMain(unittest.TestCase):
         read_csv: MagicMock,
         exists: MagicMock,
     ) -> None:
-        df = MagicMock(spec=pd.DataFrame)
-
-        # mask.any() => True triggers update branch
-        mask = MagicMock()
-        mask.any.return_value = True
-
-        # df["instance"] etc => return something that supports comparisons;
-        # simplest: just return an object that makes mask flow work.
-        df.__getitem__.return_value = MagicMock()
-        # Force the computed mask to be our mask
-        # by making (df["instance"] == instance) & (df["database"] == database) return `mask`
-        left = MagicMock()
-        right = MagicMock()
-        left.__and__.return_value = mask
-        df.__getitem__.return_value.__eq__.side_effect = [left, right]  # two == calls
-
+        df = self._mock_df_mask_any(any_value=True)
         read_csv.return_value = df
 
         seed_main.check_and_add_entry(
@@ -154,9 +145,6 @@ class TestSeedMain(unittest.TestCase):
             password="pass",
         )
 
-        # update branch: df.loc[mask, ["username","password"]] = ...
-        # we can't easily assert the assignment, but we can assert .loc was accessed
-        self.assertTrue(hasattr(df, "loc"))
         df.to_csv.assert_called_once_with("/tmp/databases.csv", sep=";", index=False)
 
     @patch("baudolo.seed.__main__.check_and_add_entry")
@@ -184,9 +172,7 @@ class TestSeedMain(unittest.TestCase):
 
     @patch("baudolo.seed.__main__.sys.exit")
     @patch("baudolo.seed.__main__.print")
-    @patch(
-        "baudolo.seed.__main__.check_and_add_entry", side_effect=RuntimeError("boom")
-    )
+    @patch("baudolo.seed.__main__.check_and_add_entry", side_effect=RuntimeError("boom"))
     @patch("baudolo.seed.__main__.argparse.ArgumentParser.parse_args")
     def test_main_exits_nonzero_on_error(
         self,
@@ -205,7 +191,6 @@ class TestSeedMain(unittest.TestCase):
 
         seed_main.main()
 
-        # prints error to stderr and exits with 1
         self.assertTrue(print_.called)
         _, kwargs = print_.call_args
         self.assertEqual(kwargs.get("file"), seed_main.sys.stderr)
@@ -213,4 +198,4 @@ class TestSeedMain(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
