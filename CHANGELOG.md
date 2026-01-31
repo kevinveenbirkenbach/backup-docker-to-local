@@ -1,3 +1,8 @@
+## [1.4.0] - 2026-01-31
+
+* Baudolo now restarts Docker Compose stacks in a wrapper-aware way (with a `docker compose` fallback), ensuring that all Compose overrides and env files are applied identically to the Infinito.Nexus workflow.
+
+
 ## [1.3.0] - 2026-01-10
 
 * Empty databases.csv no longer causes baudolo-seed to fail
