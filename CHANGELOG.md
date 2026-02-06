@@ -1,3 +1,8 @@
+## [1.6.0] - 2026-02-06
+
+* Compose handling is now fully delegated to the Infinito.Nexus compose wrapper or plain docker compose, removing all custom env and file detection to ensure a single, consistent source of truth.
+
+
 ## [1.5.0] - 2026-01-31
 
 * * Make `databases.csv` optional: missing or empty files now emit warnings and no longer break backups
