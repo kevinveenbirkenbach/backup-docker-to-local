@@ -97,7 +97,7 @@ dump_debug() {
   docker -H "${DIND_HOST}" rm -f "${tmpc}" >/dev/null 2>&1 || true
 
   log "DEBUG: artifacts written:"
-  ls -la "${ARTIFACTS_DIR}" | sed 's/^/   /' || true
+  find "${ARTIFACTS_DIR}" -maxdepth 1 -mindepth 1 -print | sed 's/^/   /' || true
 }
 
 cleanup() {
