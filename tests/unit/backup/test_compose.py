@@ -53,52 +53,6 @@ class TestCompose(unittest.TestCase):
 
         cls.compose_mod = mod
 
-    def test_detect_env_file_prefers_dotenv_over_legacy(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            tmp_path = Path(td)
-            d = _setup_compose_dir(tmp_path, env_layout=".env/env")
-            # Also create .env file -> should be preferred
-            _touch(d / ".env")
-
-            env_file = self.compose_mod._detect_env_file(d)
-            self.assertEqual(env_file, d / ".env")
-
-    def test_detect_env_file_uses_legacy_if_no_dotenv(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            tmp_path = Path(td)
-            d = _setup_compose_dir(tmp_path, env_layout=".env/env")
-
-            env_file = self.compose_mod._detect_env_file(d)
-            self.assertEqual(env_file, d / ".env" / "env")
-
-    def test_detect_compose_files_requires_base(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            tmp_path = Path(td)
-            d = tmp_path / "stack"
-            d.mkdir()
-
-            with self.assertRaises(FileNotFoundError):
-                self.compose_mod._detect_compose_files(d)
-
-    def test_detect_compose_files_includes_optional_overrides(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            tmp_path = Path(td)
-            d = _setup_compose_dir(
-                tmp_path,
-                with_override=True,
-                with_ca_override=True,
-            )
-
-            files = self.compose_mod._detect_compose_files(d)
-            self.assertEqual(
-                files,
-                [
-                    d / "docker-compose.yml",
-                    d / "docker-compose.override.yml",
-                    d / "docker-compose.ca.override.yml",
-                ],
-            )
-
     def test_build_cmd_uses_wrapper_when_present(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             tmp_path = Path(td)
@@ -106,9 +60,12 @@ class TestCompose(unittest.TestCase):
                 tmp_path, with_override=True, with_ca_override=True, env_layout=".env"
             )
 
-            with patch.object(
-                self.compose_mod.shutil, "which", lambda name: "/usr/local/bin/compose"
-            ):
+            def fake_which(name: str):
+                if name == "compose":
+                    return "/usr/local/bin/compose"
+                return None
+
+            with patch.object(self.compose_mod.shutil, "which", fake_which):
                 cmd = self.compose_mod._build_compose_cmd(str(d), ["up", "-d"])
 
             self.assertEqual(
@@ -123,7 +80,7 @@ class TestCompose(unittest.TestCase):
                 ],
             )
 
-    def test_build_cmd_fallback_docker_compose_with_all_files_and_env(self) -> None:
+    def test_build_cmd_fallback_uses_plain_docker_compose_chdir(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             tmp_path = Path(td)
             d = _setup_compose_dir(
@@ -133,22 +90,23 @@ class TestCompose(unittest.TestCase):
                 env_layout=".env",
             )
 
-            with patch.object(self.compose_mod.shutil, "which", lambda name: None):
+            def fake_which(name: str):
+                if name == "compose":
+                    return None
+                if name == "docker":
+                    return "/usr/bin/docker"
+                return None
+
+            with patch.object(self.compose_mod.shutil, "which", fake_which):
                 cmd = self.compose_mod._build_compose_cmd(
                     str(d), ["up", "-d", "--force-recreate"]
                 )
 
             expected: List[str] = [
-                "docker",
+                "/usr/bin/docker",
                 "compose",
-                "-f",
-                str((d / "docker-compose.yml").resolve()),
-                "-f",
-                str((d / "docker-compose.override.yml").resolve()),
-                "-f",
-                str((d / "docker-compose.ca.override.yml").resolve()),
-                "--env-file",
-                str((d / ".env").resolve()),
+                "--chdir",
+                str(d.resolve()),
                 "up",
                 "-d",
                 "--force-recreate",
@@ -160,9 +118,12 @@ class TestCompose(unittest.TestCase):
             tmp_path = Path(td)
             d = _setup_compose_dir(tmp_path, name="mailu", env_layout=".env")
 
-            with patch.object(
-                self.compose_mod.shutil, "which", lambda name: "/usr/local/bin/compose"
-            ):
+            def fake_which(name: str):
+                if name == "compose":
+                    return "/usr/local/bin/compose"
+                return None
+
+            with patch.object(self.compose_mod.shutil, "which", fake_which):
                 calls = []
 
                 def fake_run(cmd, check: bool):
@@ -210,7 +171,14 @@ class TestCompose(unittest.TestCase):
                 env_layout=".env/env",
             )
 
-            with patch.object(self.compose_mod.shutil, "which", lambda name: None):
+            def fake_which(name: str):
+                if name == "compose":
+                    return None
+                if name == "docker":
+                    return "/usr/bin/docker"
+                return None
+
+            with patch.object(self.compose_mod.shutil, "which", fake_which):
                 calls = []
 
                 def fake_run(cmd, check: bool):
@@ -220,19 +188,32 @@ class TestCompose(unittest.TestCase):
                 with patch.object(self.compose_mod.subprocess, "run", fake_run):
                     self.compose_mod.hard_restart_docker_services(str(d))
 
-            down_cmd = calls[0][0]
-            up_cmd = calls[1][0]
-
-            self.assertTrue(calls[0][1] is True)
-            self.assertTrue(calls[1][1] is True)
-
-            self.assertEqual(down_cmd[0:2], ["docker", "compose"])
-            self.assertEqual(down_cmd[-1], "down")
-            self.assertIn("--env-file", down_cmd)
-
-            self.assertEqual(up_cmd[0:2], ["docker", "compose"])
-            self.assertTrue(up_cmd[-2:] == ["up", "-d"] or up_cmd[-3:] == ["up", "-d"])
-            self.assertIn("--env-file", up_cmd)
+            self.assertEqual(
+                calls,
+                [
+                    (
+                        [
+                            "/usr/bin/docker",
+                            "compose",
+                            "--chdir",
+                            str(d.resolve()),
+                            "down",
+                        ],
+                        True,
+                    ),
+                    (
+                        [
+                            "/usr/bin/docker",
+                            "compose",
+                            "--chdir",
+                            str(d.resolve()),
+                            "up",
+                            "-d",
+                        ],
+                        True,
+                    ),
+                ],
+            )
 
 
 if __name__ == "__main__":
