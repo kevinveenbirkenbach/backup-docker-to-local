@@ -23,6 +23,7 @@ def _setup_compose_dir(
     tmp_path: Path,
     name: str = "mailu",
     *,
+    compose_name: str = "docker-compose.yml",
     with_override: bool = False,
     with_ca_override: bool = False,
     env_layout: str | None = None,  # None | ".env" | ".env/env"
@@ -30,7 +31,7 @@ def _setup_compose_dir(
     d = tmp_path / name
     d.mkdir(parents=True, exist_ok=True)
 
-    _touch(d / "docker-compose.yml")
+    _touch(d / compose_name)
 
     if with_override:
         _touch(d / "docker-compose.override.yml")
@@ -53,11 +54,45 @@ class TestCompose(unittest.TestCase):
 
         cls.compose_mod = mod
 
+    def test_find_compose_file_supports_all_valid_names_case_insensitive(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+
+            variants = [
+                "compose.yml",
+                "compose.yaml",
+                "docker-compose.yml",
+                "docker-compose.yaml",
+                "docker-compose.yAml",
+            ]
+
+            for i, name in enumerate(variants):
+                d = _setup_compose_dir(
+                    tmp_path,
+                    name=f"project{i}",
+                    compose_name=name,
+                )
+                found = self.compose_mod._find_compose_file(str(d))
+                self.assertIsNotNone(found)
+                self.assertEqual(found.name, name)
+
+    def test_find_compose_file_returns_none_when_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            d = tmp_path / "empty"
+            d.mkdir(parents=True, exist_ok=True)
+
+            found = self.compose_mod._find_compose_file(str(d))
+            self.assertIsNone(found)
+
     def test_build_cmd_uses_wrapper_when_present(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             tmp_path = Path(td)
             d = _setup_compose_dir(
-                tmp_path, with_override=True, with_ca_override=True, env_layout=".env"
+                tmp_path,
+                with_override=True,
+                with_ca_override=True,
+                env_layout=".env",
             )
 
             def fake_which(name: str):
