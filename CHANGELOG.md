@@ -1,3 +1,8 @@
+## [1.7.0] - 2026-02-07
+
+* 🚀 Backup jobs now support all valid Docker Compose file names – case-insensitive and hassle-free.
+
+
 ## [1.6.0] - 2026-02-06
 
 * Compose handling is now fully delegated to the Infinito.Nexus compose wrapper or plain docker compose, removing all custom env and file detection to ensure a single, consistent source of truth.
