@@ -25,6 +25,8 @@ RSYNC_IMG="${E2E_RSYNC_IMAGE:-ghcr.io/kevinveenbirkenbach/alpine-rsync}"
 READY_TIMEOUT_SECONDS="${E2E_READY_TIMEOUT_SECONDS:-120}"
 ARTIFACTS_DIR="${E2E_ARTIFACTS_DIR:-./artifacts}"
 
+DIND_MTU="${E2E_DIND_MTU:-1280}"
+
 KEEP_ON_FAIL="${E2E_KEEP_ON_FAIL:-0}"
 KEEP_VOLUMES="${E2E_KEEP_VOLUMES:-0}"
 DEBUG_SHELL="${E2E_DEBUG_SHELL:-0}"
@@ -124,8 +126,11 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-log "Creating network ${NET} (if missing)"
-docker network inspect "${NET}" >/dev/null 2>&1 || docker network create "${NET}" >/dev/null
+log "(Re)creating network ${NET} with MTU ${DIND_MTU}"
+docker network rm "${NET}" >/dev/null 2>&1 || true
+docker network create \
+  --opt com.docker.network.driver.mtu="${DIND_MTU}" \
+  "${NET}" >/dev/null
 
 log "Removing old ${DIND} (if any)"
 docker rm -f "${DIND}" >/dev/null 2>&1 || true
@@ -148,7 +153,8 @@ docker run -d --privileged \
   -p 2375:2375 \
   docker:dind \
   --host=tcp://0.0.0.0:2375 \
-  --tls=false >/dev/null
+  --tls=false \
+  --mtu="${DIND_MTU}" >/dev/null
 
 log "Waiting for DinD to be ready..."
 for i in $(seq 1 "${READY_TIMEOUT_SECONDS}"); do
