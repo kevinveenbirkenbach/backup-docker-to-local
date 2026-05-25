@@ -115,8 +115,10 @@ def backup_database(
         dump_file = os.path.join(out_dir, f"{db_name}.backup.sql")
 
         if db_type == "mariadb":
+            # Force TCP so auth matches '<user>'@'%' instead of socket -> 'localhost'.
             cmd = (
                 f"docker exec {container} /usr/bin/mariadb-dump "
+                f"-h 127.0.0.1 --protocol=tcp "
                 f"-u {user} -p{password} {db_name}"
             )
             _atomic_write_cmd(cmd, dump_file)
