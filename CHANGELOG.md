@@ -1,3 +1,10 @@
+## [1.7.1] - 2026-05-26
+
+* 🔌 MariaDB SQL backups now connect over TCP loopback so the dump always matches the same wildcard-host grant the application uses — no more surprise `ERROR 1045 Access denied` when a localhost-bound auth row preempts.
+* 🧪 New regression and bug-repro tests pin the TCP behaviour and prove it under the exact preemption setup that caused the production failure on MariaDB 12.
+* 🩺 E2E test infrastructure: DinD bridge and inner daemon now default to MTU 1280 so registry pulls survive host paths with broken PMTUD (override via `E2E_DIND_MTU`).
+
+
 ## [1.7.0] - 2026-02-07
 
 * 🚀 Backup jobs now support all valid Docker Compose file names – case-insensitive and hassle-free.
