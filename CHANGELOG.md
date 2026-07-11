@@ -1,3 +1,32 @@
+# Changelog
+
+## [1.8.0] - 2026-07-11
+
+Swarm-aware backups and replayable restores.
+
+- Backup: swarm task containers are never stopped or started manually
+  anymore; they are skipped visibly and backed up hot, while the sql dump
+  stays the consistent database backup.
+- Backup: a container that vanishes between listing and inspect no longer
+  aborts the run; a failing inspect on a container that still exists keeps
+  failing loudly.
+- Backup: pg_dump runs with the no-owner and no-privileges flags so dumps
+  are replayable by the owning app user.
+- Restore: the mariadb empty mode drops all tables in one client session
+  with FOREIGN_KEY_CHECKS disabled; FK-linked parent tables no longer abort
+  the replay with ERROR 1451.
+- Restore: the postgres empty mode drops only current-user-owned objects,
+  and the replay skips superuser-only dump lines without ever touching
+  COPY data blocks.
+- Restore: the replay streams the dump through a temp file instead of
+  buffering it in memory; multi-GB dumps no longer OOM the restore.
+- Tooling: the e2e runner reaches the DinD daemon via docker exec instead
+  of a host-published unencrypted API port.
+- Tooling: new end-to-end test reproducing the swarm stop flake, plus unit
+  tests for the restore filters and the swarm probes; the suite is 36 unit,
+  9 integration and 30 e2e tests.
+- Tooling: Dependabot with auto-merge for minor and patch updates.
+
 ## [1.7.1] - 2026-05-26
 
 * 🔌 MariaDB SQL backups now connect over TCP loopback so the dump always matches the same wildcard-host grant the application uses — no more surprise `ERROR 1045 Access denied` when a localhost-bound auth row preempts.
