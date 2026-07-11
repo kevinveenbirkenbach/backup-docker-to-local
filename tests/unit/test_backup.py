@@ -4,10 +4,11 @@ from unittest.mock import patch
 from baudolo.backup.app import requires_stop
 
 
+@patch("baudolo.backup.app.is_swarm_task", return_value=False)
 class TestRequiresStop(unittest.TestCase):
     @patch("baudolo.backup.app.get_image_info")
     def test_requires_stop_false_when_all_images_are_whitelisted(
-        self, mock_get_image_info
+        self, mock_get_image_info, _mock_is_swarm_task
     ):
         # All containers use images containing allowed substrings
         mock_get_image_info.side_effect = [
@@ -20,7 +21,7 @@ class TestRequiresStop(unittest.TestCase):
 
     @patch("baudolo.backup.app.get_image_info")
     def test_requires_stop_true_when_any_image_is_not_whitelisted(
-        self, mock_get_image_info
+        self, mock_get_image_info, _mock_is_swarm_task
     ):
         mock_get_image_info.side_effect = [
             "repo/mastodon:v4",
@@ -31,9 +32,22 @@ class TestRequiresStop(unittest.TestCase):
         self.assertTrue(requires_stop(containers, whitelist))
 
     @patch("baudolo.backup.app.get_image_info")
-    def test_requires_stop_true_when_whitelist_empty(self, mock_get_image_info):
+    def test_requires_stop_true_when_whitelist_empty(
+        self, mock_get_image_info, _mock_is_swarm_task
+    ):
         mock_get_image_info.return_value = "repo/anything:latest"
         self.assertTrue(requires_stop(["c1"], []))
+
+
+class TestRequiresStopSwarm(unittest.TestCase):
+    @patch("baudolo.backup.app.get_image_info")
+    @patch("baudolo.backup.app.is_swarm_task", return_value=True)
+    def test_swarm_tasks_never_require_stop(
+        self, _mock_is_swarm_task, mock_get_image_info
+    ):
+        mock_get_image_info.return_value = "repo/not-whitelisted:latest"
+        self.assertFalse(requires_stop(["c1"], []))
+        mock_get_image_info.assert_not_called()
 
 
 if __name__ == "__main__":
