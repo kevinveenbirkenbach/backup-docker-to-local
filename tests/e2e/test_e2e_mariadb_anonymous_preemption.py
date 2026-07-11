@@ -59,15 +59,24 @@ class TestE2EMariaDBAnonymousPreemption(unittest.TestCase):
         # Boot WITHOUT MARIADB_USER/MARIADB_PASSWORD/MARIADB_DATABASE so the
         # entrypoint does not auto-create '<u>'@'%'. We provision the user
         # explicitly below to mirror the SQL path used by svc-db-mariadb.
-        run([
-            "docker", "run", "-d",
-            "--name", cls.db_container,
-            "-e", f"MARIADB_ROOT_PASSWORD={cls.root_password}",
-            "-v", f"{cls.db_volume}:/var/lib/mysql",
-            "mariadb:12.2",
-        ])
+        run(
+            [
+                "docker",
+                "run",
+                "-d",
+                "--name",
+                cls.db_container,
+                "-e",
+                f"MARIADB_ROOT_PASSWORD={cls.root_password}",
+                "-v",
+                f"{cls.db_volume}:/var/lib/mysql",
+                "mariadb:12.2",
+            ]
+        )
 
-        wait_for_mariadb(cls.db_container, root_password=cls.root_password, timeout_s=120)
+        wait_for_mariadb(
+            cls.db_container, root_password=cls.root_password, timeout_s=120
+        )
 
         # Provision: '<u>'@'%' (the app/backup grant) + anonymous ''@'localhost'
         # (the preemption trigger). Mirrors the production state that produced
@@ -81,10 +90,16 @@ class TestE2EMariaDBAnonymousPreemption(unittest.TestCase):
             f"CREATE TABLE {cls.db_name}.t (id INT PRIMARY KEY, v VARCHAR(50));"
             f"INSERT INTO {cls.db_name}.t VALUES (1,'ok');"
         )
-        run([
-            "docker", "exec", cls.db_container, "sh", "-lc",
-            f'mariadb -uroot --protocol=socket -e "{bootstrap_sql}"',
-        ])
+        run(
+            [
+                "docker",
+                "exec",
+                cls.db_container,
+                "sh",
+                "-lc",
+                f'mariadb -uroot --protocol=socket -e "{bootstrap_sql}"',
+            ]
+        )
 
         # Sanity: '<u>' can log in over TCP (matches '%'). If THIS fails,
         # the precondition for the fix to even apply is broken.
@@ -104,7 +119,11 @@ class TestE2EMariaDBAnonymousPreemption(unittest.TestCase):
         # ability to discriminate "fix works" vs "bug never reproduced".
         p = run(
             [
-                "docker", "exec", self.db_container, "sh", "-lc",
+                "docker",
+                "exec",
+                self.db_container,
+                "sh",
+                "-lc",
                 f"mariadb-dump -u{self.db_user} -p{self.db_password} {self.db_name}",
             ],
             capture=True,

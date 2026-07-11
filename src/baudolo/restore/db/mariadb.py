@@ -47,18 +47,6 @@ def restore_mariadb_sql(
         # IMPORTANT:
         # Do NOT hardcode 'mysql' here. Use the detected client.
         # MariaDB 11 images may not contain the mysql binary at all.
-        docker_exec(
-            container,
-            [
-                client,
-                "-u",
-                user,
-                f"--password={password}",
-                "-e",
-                "SET FOREIGN_KEY_CHECKS=0;",
-            ],
-        )
-
         result = docker_exec(
             container,
             [
@@ -74,7 +62,16 @@ def restore_mariadb_sql(
         )
         tables = result.stdout.decode().split()
 
-        for tbl in tables:
+        if tables:
+            # SET FOREIGN_KEY_CHECKS is session-scoped, so it must share one
+            # client session with the DROPs or FK constraints still fire.
+            drop_sql = (
+                "SET FOREIGN_KEY_CHECKS=0; "
+                + " ".join(
+                    f"DROP TABLE IF EXISTS `{db_name}`.`{tbl}`;" for tbl in tables
+                )
+                + " SET FOREIGN_KEY_CHECKS=1;"
+            )
             docker_exec(
                 container,
                 [
@@ -83,21 +80,9 @@ def restore_mariadb_sql(
                     user,
                     f"--password={password}",
                     "-e",
-                    f"DROP TABLE IF EXISTS `{db_name}`.`{tbl}`;",
+                    drop_sql,
                 ],
             )
-
-        docker_exec(
-            container,
-            [
-                client,
-                "-u",
-                user,
-                f"--password={password}",
-                "-e",
-                "SET FOREIGN_KEY_CHECKS=1;",
-            ],
-        )
 
     with open(sql_path, "rb") as f:
         docker_exec(

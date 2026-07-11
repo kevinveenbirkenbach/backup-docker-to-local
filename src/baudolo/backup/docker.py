@@ -24,6 +24,31 @@ def containers_using_volume(volume_name: str) -> list[str]:
     )
 
 
+def is_swarm_task(container: str) -> bool:
+    """Swarm-managed task containers must never be stopped or started
+    manually: the orchestrator replaces the stopped task and a later
+    `docker start` fails on the detached overlay network."""
+    out = execute_shell_command(
+        "docker inspect --format "
+        f"'{{{{index .Config.Labels \"com.docker.swarm.task.id\"}}}}' {container}"
+    )
+    return bool(out and out[0].strip())
+
+
+def filter_stoppable(containers: list[str]) -> list[str]:
+    """Containers baudolo may stop/start itself (everything but swarm tasks)."""
+    stoppable = []
+    for container in containers:
+        if is_swarm_task(container):
+            print(
+                f"Skipping stop/start for swarm task container '{container}'.",
+                flush=True,
+            )
+            continue
+        stoppable.append(container)
+    return stoppable
+
+
 def change_containers_status(containers: list[str], status: str) -> None:
     """Stop or start a list of containers."""
     if not containers:

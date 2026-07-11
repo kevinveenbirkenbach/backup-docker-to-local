@@ -16,8 +16,10 @@ from .docker import (
     change_containers_status,
     containers_using_volume,
     docker_volume_names,
+    filter_stoppable,
     get_image_info,
     has_image,
+    is_swarm_task,
 )
 from .shell import execute_shell_command
 from .volume import backup_volume
@@ -66,9 +68,13 @@ def volume_is_fully_ignored(
 
 def requires_stop(containers: list[str], images_no_stop_required: list[str]) -> bool:
     """
-    Stop is required if ANY container image is NOT in the whitelist patterns.
+    Stop is required if ANY stoppable container image is NOT in the
+    whitelist patterns. Swarm task containers never count: baudolo must
+    not cycle them (see docker.is_swarm_task).
     """
     for c in containers:
+        if is_swarm_task(c):
+            continue
         img = get_image_info(c)
         if not any(pat in img for pat in images_no_stop_required):
             return True
@@ -219,20 +225,22 @@ def main() -> int:
 
         if args.everything:
             # "everything": always do pre-rsync, then stop + rsync again
+            stoppable = filter_stoppable(containers)
             backup_volume(versions_dir, volume_name, vol_dir)
-            change_containers_status(containers, "stop")
+            change_containers_status(stoppable, "stop")
             backup_volume(versions_dir, volume_name, vol_dir)
             if not args.shutdown:
-                change_containers_status(containers, "start")
+                change_containers_status(stoppable, "start")
             continue
 
         # default: rsync, and if needed stop + rsync
         backup_volume(versions_dir, volume_name, vol_dir)
         if requires_stop(containers, args.images_no_stop_required):
-            change_containers_status(containers, "stop")
+            stoppable = filter_stoppable(containers)
+            change_containers_status(stoppable, "stop")
             backup_volume(versions_dir, volume_name, vol_dir)
             if not args.shutdown:
-                change_containers_status(containers, "start")
+                change_containers_status(stoppable, "start")
 
     # Stamp the backup version directory using dirval (python lib)
     stamp_directory(version_dir)

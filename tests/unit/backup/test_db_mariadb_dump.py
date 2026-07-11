@@ -44,7 +44,9 @@ class TestMariaDBDumpUsesTCP(unittest.TestCase):
             container="mariadb",
         )
         dump_cmds = [c for c in captured if "mariadb-dump" in c]
-        self.assertEqual(len(dump_cmds), 1, f"expected one dump command, got: {captured}")
+        self.assertEqual(
+            len(dump_cmds), 1, f"expected one dump command, got: {captured}"
+        )
 
         cmd = dump_cmds[0]
         self.assertIn("-h 127.0.0.1", cmd)

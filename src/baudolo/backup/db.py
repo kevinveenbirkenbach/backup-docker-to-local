@@ -129,7 +129,8 @@ def backup_database(
             try:
                 cmd = (
                     f"PGPASSWORD={password} docker exec -i {container} "
-                    f"pg_dump -U {user} -d {db_name} -h localhost"
+                    f"pg_dump -U {user} -d {db_name} -h localhost "
+                    f"--no-owner --no-privileges"
                 )
                 _atomic_write_cmd(cmd, dump_file)
                 produced = True
