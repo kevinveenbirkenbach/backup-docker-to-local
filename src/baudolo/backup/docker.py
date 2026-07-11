@@ -29,13 +29,20 @@ def is_swarm_task(container: str) -> bool:
     manually: the orchestrator replaces the stopped task and a later
     `docker start` fails on the detached overlay network. A container that
     vanished between listing and inspect (--rm one-shots, task-history GC)
-    counts as not stoppable instead of aborting the whole backup run."""
+    counts as not stoppable instead of aborting the whole backup run; if the
+    container still exists the inspect failure re-raises, so a broken daemon
+    keeps failing the run loudly instead of silently skipping the stop."""
     try:
         out = execute_shell_command(
             "docker inspect --format "
             f"'{{{{index .Config.Labels \"com.docker.swarm.task.id\"}}}}' {container}"
         )
     except BackupException:
+        still_listed = execute_shell_command(
+            f"docker ps -a --filter name=^{container}$ --format '{{{{.Names}}}}'"
+        )
+        if still_listed and still_listed[0].strip():
+            raise
         return True
     return bool(out and out[0].strip())
 
