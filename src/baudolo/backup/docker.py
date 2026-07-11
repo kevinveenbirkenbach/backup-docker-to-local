@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .shell import execute_shell_command
+from .shell import BackupException, execute_shell_command
 
 
 def get_image_info(container: str) -> str:
@@ -27,11 +27,16 @@ def containers_using_volume(volume_name: str) -> list[str]:
 def is_swarm_task(container: str) -> bool:
     """Swarm-managed task containers must never be stopped or started
     manually: the orchestrator replaces the stopped task and a later
-    `docker start` fails on the detached overlay network."""
-    out = execute_shell_command(
-        "docker inspect --format "
-        f"'{{{{index .Config.Labels \"com.docker.swarm.task.id\"}}}}' {container}"
-    )
+    `docker start` fails on the detached overlay network. A container that
+    vanished between listing and inspect (--rm one-shots, task-history GC)
+    counts as not stoppable instead of aborting the whole backup run."""
+    try:
+        out = execute_shell_command(
+            "docker inspect --format "
+            f"'{{{{index .Config.Labels \"com.docker.swarm.task.id\"}}}}' {container}"
+        )
+    except BackupException:
+        return True
     return bool(out and out[0].strip())
 
 

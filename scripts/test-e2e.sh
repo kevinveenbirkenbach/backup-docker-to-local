@@ -16,8 +16,15 @@ DIND="${E2E_DIND_NAME:-baudolo-e2e-dind}"
 DIND_VOL="${E2E_DIND_VOL:-baudolo-e2e-dind-data}"
 E2E_TMP_VOL="${E2E_TMP_VOL:-baudolo-e2e-tmp}"
 
-DIND_HOST="${E2E_DIND_HOST:-tcp://127.0.0.1:2375}"
+# Host-side access to the DinD daemon goes through `docker exec` (dind()
+# below) instead of a host-published port: port publishing is not reachable
+# from every environment (sandboxed runners, hosts with broken loopback
+# publishing), while exec only needs the outer docker socket. The TCP
+# listener stays for the test container inside the dedicated network.
 DIND_HOST_IN_NET="${E2E_DIND_HOST_IN_NET:-tcp://${DIND}:2375}"
+
+dind() { docker exec "${DIND}" docker "$@"; }
+dind_stdin() { docker exec -i "${DIND}" docker "$@"; }
 
 IMG="${E2E_IMAGE:-baudolo:local}"
 RSYNC_IMG="${E2E_RSYNC_IMAGE:-ghcr.io/kevinveenbirkenbach/alpine-rsync}"
@@ -48,8 +55,8 @@ dump_debug() {
     echo "=== Host docker info ==="
     docker info || true
     echo
-    echo "=== DinD reachable? (docker -H ${DIND_HOST} version) ==="
-    docker -H "${DIND_HOST}" version || true
+    echo "=== DinD reachable? (docker exec ${DIND} docker version) ==="
+    dind version || true
     echo
   } > "${ARTIFACTS_DIR}/debug-host-${TS}.txt" 2>&1 || true
 
@@ -58,45 +65,31 @@ dump_debug() {
 
   # DinD state
   {
-    echo "=== docker -H ps -a ==="
-    docker -H "${DIND_HOST}" ps -a || true
+    echo "=== dind ps -a ==="
+    dind ps -a || true
     echo
-    echo "=== docker -H images ==="
-    docker -H "${DIND_HOST}" images || true
+    echo "=== dind images ==="
+    dind images || true
     echo
-    echo "=== docker -H network ls ==="
-    docker -H "${DIND_HOST}" network ls || true
+    echo "=== dind network ls ==="
+    dind network ls || true
     echo
-    echo "=== docker -H volume ls ==="
-    docker -H "${DIND_HOST}" volume ls || true
+    echo "=== dind volume ls ==="
+    dind volume ls || true
     echo
-    echo "=== docker -H system df ==="
-    docker -H "${DIND_HOST}" system df || true
+    echo "=== dind system df ==="
+    dind system df || true
   } > "${ARTIFACTS_DIR}/debug-dind-${TS}.txt" 2>&1 || true
 
   # Try to capture recent events (best effort; might be noisy)
-  docker -H "${DIND_HOST}" events --since 10m --until 0s \
+  dind events --since 10m --until 0s \
     > "${ARTIFACTS_DIR}/dind-events-${TS}.txt" 2>&1 || true
 
-  # Dump shared /tmp content from the tmp volume:
-  # We create a temporary container that mounts the volume, then tar its content.
-  # (Does not rely on host filesystem paths.)
+  # The shared tmp volume is mounted at /tmp inside the DinD container
+  # itself, so tar it there and copy it out with the outer daemon.
   log "DEBUG: archiving shared /tmp (volume ${E2E_TMP_VOL})"
-  docker -H "${DIND_HOST}" run --rm \
-    -v "${E2E_TMP_VOL}:/tmp" \
-    alpine:3.20 \
-    bash -lc 'cd /tmp && tar -czf /out.tar.gz . || true' \
-    >/dev/null 2>&1 || true
-
-  # The above writes inside the container FS, not to host. So do it properly:
-  # Use "docker cp" from a temp container.
-  local tmpc="baudolo-e2e-tmpdump-${TS}"
-  docker -H "${DIND_HOST}" rm -f "${tmpc}" >/dev/null 2>&1 || true
-  docker -H "${DIND_HOST}" create --name "${tmpc}" -v "${E2E_TMP_VOL}:/tmp" alpine:3.20 \
-    bash -lc 'cd /tmp && tar -czf /tmpdump.tar.gz . || true' >/dev/null
-  docker -H "${DIND_HOST}" start -a "${tmpc}" >/dev/null 2>&1 || true
-  docker -H "${DIND_HOST}" cp "${tmpc}:/tmpdump.tar.gz" "${ARTIFACTS_DIR}/e2e-tmp-${TS}.tar.gz" >/dev/null 2>&1 || true
-  docker -H "${DIND_HOST}" rm -f "${tmpc}" >/dev/null 2>&1 || true
+  docker exec "${DIND}" tar -czf "/tmpdump-${TS}.tar.gz" -C /tmp . >/dev/null 2>&1 || true
+  docker cp "${DIND}:/tmpdump-${TS}.tar.gz" "${ARTIFACTS_DIR}/e2e-tmp-${TS}.tar.gz" >/dev/null 2>&1 || true
 
   log "DEBUG: artifacts written:"
   find "${ARTIFACTS_DIR}" -maxdepth 1 -mindepth 1 -print | sed 's/^/   /' || true
@@ -107,9 +100,9 @@ cleanup() {
     log "KEEP_ON_FAIL=1 and failure detected -> skipping cleanup."
     log "Next steps:"
     echo "   - Inspect DinD logs: docker logs ${DIND} | less"
-    echo "   - Use DinD daemon:  docker -H ${DIND_HOST} ps -a"
-    echo "   - Shared tmp vol:   docker -H ${DIND_HOST} run --rm -v ${E2E_TMP_VOL}:/tmp alpine:3.20 ls -la /tmp"
-    echo "   - DinD docker root: docker -H ${DIND_HOST} run --rm -v ${DIND_VOL}:/var/lib/docker alpine:3.20 ls -la /var/lib/docker/volumes"
+    echo "   - Use DinD daemon:  docker exec ${DIND} docker ps -a"
+    echo "   - Shared tmp vol:   docker exec ${DIND} ls -la /tmp"
+    echo "   - DinD docker root: docker exec ${DIND} ls -la /var/lib/docker/volumes"
     return 0
   fi
 
@@ -150,7 +143,6 @@ docker run -d --privileged \
   -e DOCKER_TLS_CERTDIR="" \
   -v "${DIND_VOL}:/var/lib/docker" \
   -v "${E2E_TMP_VOL}:/tmp" \
-  -p 2375:2375 \
   docker:dind \
   --host=tcp://0.0.0.0:2375 \
   --tls=false \
@@ -158,7 +150,7 @@ docker run -d --privileged \
 
 log "Waiting for DinD to be ready..."
 for i in $(seq 1 "${READY_TIMEOUT_SECONDS}"); do
-  if docker -H "${DIND_HOST}" version >/dev/null 2>&1; then
+  if dind version >/dev/null 2>&1; then
     log "DinD is ready."
     break
   fi
@@ -174,13 +166,13 @@ done
 
 log "Pre-pulling helper images in DinD..."
 log " - Pulling: ${RSYNC_IMG}"
-docker -H "${DIND_HOST}" pull "${RSYNC_IMG}"
+dind pull "${RSYNC_IMG}"
 
 log "Ensuring alpine exists in DinD (for debug helpers)"
-docker -H "${DIND_HOST}" pull alpine:3.20 >/dev/null
+dind pull alpine:3.20 >/dev/null
 
 log "Loading ${IMG} image into DinD..."
-docker save "${IMG}" | docker -H "${DIND_HOST}" load >/dev/null
+docker save "${IMG}" | dind_stdin load >/dev/null
 
 log "Running E2E tests inside DinD"
 set +e
