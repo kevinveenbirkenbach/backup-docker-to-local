@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1] - 2026-07-12
+
+- Restore: the postgres empty mode also drops user-owned collations in
+  public; dumps containing CREATE COLLATION (e.g. OpenProject's ICU
+  collation versions_name) no longer abort the replay with 'collation
+  already exists'.
+- Maintenance: base image bumped from python 3.11-slim to 3.14-slim.
+
 ## [1.8.0] - 2026-07-11
 
 Swarm-aware backups and replayable restores.
