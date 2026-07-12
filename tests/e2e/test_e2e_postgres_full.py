@@ -2,6 +2,8 @@
 import unittest
 
 from .helpers import (
+    POSTGRES_IMAGE,
+    POSTGRES_DATA_DIR,
     backup_run,
     backup_path,
     cleanup_docker,
@@ -47,8 +49,8 @@ class TestE2EPostgresFull(unittest.TestCase):
                 "-e",
                 "POSTGRES_USER=postgres",
                 "-v",
-                f"{cls.pg_volume}:/var/lib/postgresql/data",
-                "postgres:16",
+                f"{cls.pg_volume}:{POSTGRES_DATA_DIR}",
+                POSTGRES_IMAGE,
             ]
         )
         wait_for_postgres(cls.pg_container, user="postgres", timeout_s=90)

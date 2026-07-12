@@ -2,6 +2,8 @@
 import unittest
 
 from .helpers import (
+    MARIADB_IMAGE,
+    MARIADB_DATA_DIR,
     backup_run,
     backup_path,
     cleanup_docker,
@@ -55,8 +57,8 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
                 "-e",
                 f"MARIADB_PASSWORD={cls.db_password}",
                 "-v",
-                f"{cls.db_volume}:/var/lib/mysql",
-                "mariadb:11",
+                f"{cls.db_volume}:{MARIADB_DATA_DIR}",
+                MARIADB_IMAGE,
             ]
         )
 

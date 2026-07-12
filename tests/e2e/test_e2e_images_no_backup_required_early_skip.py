@@ -76,7 +76,7 @@ class TestE2EImagesNoBackupRequiredEarlySkip(unittest.TestCase):
             "baudolo",
             "--compose-dir",
             cls.compose_dir,
-            "--docker-compose-hard-restart-required",
+            "--hard-compose-restart",
             "mailu",
             "--repo-name",
             cls.repo_name,

@@ -94,8 +94,6 @@ class TestE2EFilesFull(unittest.TestCase):
                 self.repo_name,
                 "--source-volume",
                 self.volume_src,
-                "--rsync-image",
-                "ghcr.io/kevinveenbirkenbach/alpine-rsync",
             ]
         )
 

@@ -2,6 +2,8 @@
 import unittest
 
 from .helpers import (
+    POSTGRES_IMAGE,
+    POSTGRES_DATA_DIR,
     backup_path,
     cleanup_docker,
     create_minimal_compose_dir,
@@ -50,8 +52,8 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
                 "-e",
                 "POSTGRES_USER=postgres",
                 "-v",
-                f"{cls.pg_volume}:/var/lib/postgresql/data",
-                "postgres:16",
+                f"{cls.pg_volume}:{POSTGRES_DATA_DIR}",
+                POSTGRES_IMAGE,
             ]
         )
         wait_for_postgres(cls.pg_container, user="postgres", timeout_s=90)
@@ -65,7 +67,7 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
                 cls.pg_container,
                 "sh",
                 "-lc",
-                f"echo '{cls.marker}' > /var/lib/postgresql/data/marker.txt",
+                f"echo '{cls.marker}' > {POSTGRES_DATA_DIR}/marker.txt",
             ]
         )
 
@@ -79,7 +81,7 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
             "baudolo",
             "--compose-dir",
             cls.compose_dir,
-            "--docker-compose-hard-restart-required",
+            "--hard-compose-restart",
             "mailu",
             "--repo-name",
             cls.repo_name,
@@ -116,8 +118,6 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
                 cls.repo_name,
                 "--source-volume",
                 cls.pg_volume,
-                "--rsync-image",
-                "ghcr.io/kevinveenbirkenbach/alpine-rsync",
             ]
         )
 

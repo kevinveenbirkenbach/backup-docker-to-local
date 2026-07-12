@@ -7,6 +7,14 @@ import time
 import uuid
 from pathlib import Path
 
+# SPOT for the database images and their in-container data dirs the e2e
+# suite runs against. postgres:alpine tracks latest (18+), which mounts at
+# /var/lib/postgresql (not /var/lib/postgresql/data); bump here only.
+POSTGRES_IMAGE = "postgres:alpine"
+POSTGRES_DATA_DIR = "/var/lib/postgresql"
+MARIADB_IMAGE = "mariadb:latest"
+MARIADB_DATA_DIR = "/var/lib/mysql"
+
 
 def run(
     cmd: list[str],
@@ -172,7 +180,7 @@ def backup_run(
         "baudolo",
         "--compose-dir",
         compose_dir,
-        "--docker-compose-hard-restart-required",
+        "--hard-compose-restart",
         "mailu",
         "--repo-name",
         repo_name,
