@@ -88,6 +88,11 @@ BEGIN
             OR (t.typtype = 'c' AND EXISTS (
                   SELECT 1 FROM pg_class c2
                    WHERE c2.oid = t.typrelid AND c2.relkind = 'c')))
+    UNION ALL
+    SELECT col.collname AS name, 'COLLATION' AS type
+      FROM pg_collation col JOIN pg_namespace n ON n.oid = col.collnamespace
+     WHERE n.nspname = 'public'
+       AND pg_get_userbyid(col.collowner) = current_user
   ) LOOP
     EXECUTE format('DROP %s IF EXISTS public.%I CASCADE', r.type, r.name);
   END LOOP;
