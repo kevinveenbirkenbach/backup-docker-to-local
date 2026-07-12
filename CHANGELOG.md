@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.0] - 2026-07-12
+
+- Backup: renamed *--docker-compose-hard-restart-required* to
+  *--hard-compose-restart* and changed its default from *["mailu"]* to *[]*
+  (nargs="*"). The compose down/up is now opt-in: compose hosts pass
+  *mailu* explicitly, while swarm hosts pass nothing, since there the dir is
+  a stack whose overlay network collides with *compose up*. **Breaking:** the
+  old flag name is removed and the implicit mailu default is gone.
+- Backup: *--backups-dir* is now required (no */var/lib/backup/* default) so
+  a run can never silently target the wrong backup root. **Breaking.**
+- Restore: volume files are rsynced directly into the target volume's
+  mountpoint (resolved via *docker volume inspect*), mirroring the backup
+  path; the *alpine-rsync* helper image and the *--rsync-image* flag are
+  gone. The caller needs write access to the docker volume root (root on the
+  host, baudolo's normal privilege). **Breaking:** the restore *files*
+  subcommand no longer accepts *--rsync-image*.
+- Tests: the e2e suite tracks *postgres:alpine* (18+, mounted at
+  */var/lib/postgresql*) and *mariadb:latest* from a single source of truth.
+
 ## [1.8.1] - 2026-07-12
 
 - Restore: the postgres empty mode also drops user-owned collations in
