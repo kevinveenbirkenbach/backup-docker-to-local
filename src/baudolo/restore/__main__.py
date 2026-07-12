@@ -39,10 +39,6 @@ def main(argv: list[str] | None = None) -> int:
     p_files = sub.add_parser("files", help="Restore files into a docker volume")
     _add_common_backup_args(p_files)
     p_files.add_argument(
-        "--rsync-image",
-        default="ghcr.io/kevinveenbirkenbach/alpine-rsync",
-    )
-    p_files.add_argument(
         "--source-volume",
         default=None,
         help=(
@@ -95,7 +91,6 @@ def main(argv: list[str] | None = None) -> int:
             return restore_volume_files(
                 args.volume_name,
                 bp_files.files_dir(),
-                rsync_image=args.rsync_image,
             )
 
         if args.cmd == "postgres":
