@@ -17,7 +17,7 @@ def parse_args() -> argparse.Namespace:
         help="Path to the parent directory containing docker-compose setups",
     )
     p.add_argument(
-        "--hard-compose-restart",
+        "--hard-restart-projects",
         nargs="*",
         default=[],
         help="Compose dir names that require 'docker-compose down && up -d' (default: none; pass e.g. 'mailu' under compose where the DB cannot be backed up hot)",
@@ -49,13 +49,13 @@ def parse_args() -> argparse.Namespace:
         "--images-no-stop-required",
         nargs="+",
         required=True,
-        help="Image name patterns for which containers should not be stopped during file backup",
+        help="Exact image references (repo:tag, incl. any registry prefix) whose containers must not be stopped during file backup",
     )
     p.add_argument(
         "--images-no-backup-required",
         nargs="+",
         default=[],
-        help="Image name patterns for which no backup should be performed",
+        help="Exact image references (repo:tag, incl. any registry prefix) for which no backup should be performed",
     )
 
     p.add_argument(

@@ -10,13 +10,12 @@ class TestRequiresStop(unittest.TestCase):
     def test_requires_stop_false_when_all_images_are_whitelisted(
         self, mock_get_image_info, _mock_is_swarm_task
     ):
-        # All containers use images containing allowed substrings
         mock_get_image_info.side_effect = [
             "repo/mastodon:v4",
             "repo/wordpress:latest",
         ]
         containers = ["c1", "c2"]
-        whitelist = ["mastodon", "wordpress"]
+        whitelist = ["repo/mastodon:v4", "repo/wordpress:latest"]
         self.assertFalse(requires_stop(containers, whitelist))
 
     @patch("baudolo.backup.app.get_image_info")
@@ -28,8 +27,16 @@ class TestRequiresStop(unittest.TestCase):
             "repo/nginx:latest",
         ]
         containers = ["c1", "c2"]
-        whitelist = ["mastodon", "wordpress"]
+        whitelist = ["repo/mastodon:v4", "repo/wordpress:latest"]
         self.assertTrue(requires_stop(containers, whitelist))
+
+    @patch("baudolo.backup.app.get_image_info")
+    def test_requires_stop_true_on_substring_only_match(
+        self, mock_get_image_info, _mock_is_swarm_task
+    ):
+        mock_get_image_info.return_value = "reg:5000/repo/mastodon:v4"
+        self.assertTrue(requires_stop(["c1"], ["mastodon"]))
+        self.assertTrue(requires_stop(["c1"], ["repo/mastodon:v4"]))
 
     @patch("baudolo.backup.app.get_image_info")
     def test_requires_stop_true_when_whitelist_empty(

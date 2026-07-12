@@ -30,6 +30,8 @@ import pandas
 from baudolo.backup import db as db_mod
 
 from .helpers import (
+    MARIADB_IMAGE,
+    MARIADB_DATA_DIR,
     cleanup_docker,
     require_docker,
     run,
@@ -69,8 +71,8 @@ class TestE2EMariaDBAnonymousPreemption(unittest.TestCase):
                 "-e",
                 f"MARIADB_ROOT_PASSWORD={cls.root_password}",
                 "-v",
-                f"{cls.db_volume}:/var/lib/mysql",
-                "mariadb:12.2",
+                f"{cls.db_volume}:{MARIADB_DATA_DIR}",
+                MARIADB_IMAGE,
             ]
         )
 

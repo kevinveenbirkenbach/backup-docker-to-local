@@ -76,7 +76,7 @@ class TestE2EImagesNoBackupRequiredEarlySkip(unittest.TestCase):
             "baudolo",
             "--compose-dir",
             cls.compose_dir,
-            "--docker-compose-hard-restart-required",
+            "--hard-restart-projects",
             "mailu",
             "--repo-name",
             cls.repo_name,
@@ -87,13 +87,9 @@ class TestE2EImagesNoBackupRequiredEarlySkip(unittest.TestCase):
             "--database-containers",
             "dummy-db",
             "--images-no-stop-required",
-            "alpine",
-            "redis",
-            "postgres",
-            "mariadb",
-            "mysql",
+            "redis:alpine",
             "--images-no-backup-required",
-            "redis",
+            "redis:alpine",
         ]
         cp = run(cmd, capture=True, check=True)
         cls.stdout = cp.stdout or ""

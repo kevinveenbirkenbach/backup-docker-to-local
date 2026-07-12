@@ -57,7 +57,7 @@ class TestE2EFilesFull(unittest.TestCase):
             compose_dir=cls.compose_dir,
             databases_csv=cls.databases_csv,
             database_containers=["dummy-db"],
-            images_no_stop_required=["alpine", "postgres", "mariadb", "mysql"],
+            images_no_stop_required=["alpine:3.20"],
         )
 
         cls.hash, cls.version = latest_version_dir(cls.backups_dir, cls.repo_name)
@@ -94,8 +94,6 @@ class TestE2EFilesFull(unittest.TestCase):
                 self.repo_name,
                 "--source-volume",
                 self.volume_src,
-                "--rsync-image",
-                "ghcr.io/kevinveenbirkenbach/alpine-rsync",
             ]
         )
 

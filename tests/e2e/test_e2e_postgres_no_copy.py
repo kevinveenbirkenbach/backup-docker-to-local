@@ -2,6 +2,8 @@
 import unittest
 
 from .helpers import (
+    POSTGRES_IMAGE,
+    POSTGRES_DATA_DIR,
     backup_run,
     backup_path,
     cleanup_docker,
@@ -46,8 +48,8 @@ class TestE2EPostgresNoCopy(unittest.TestCase):
                 "-e",
                 "POSTGRES_USER=postgres",
                 "-v",
-                f"{cls.pg_volume}:/var/lib/postgresql/data",
-                "postgres:16",
+                f"{cls.pg_volume}:{POSTGRES_DATA_DIR}",
+                POSTGRES_IMAGE,
             ]
         )
         wait_for_postgres(cls.pg_container, user="postgres", timeout_s=90)
@@ -74,7 +76,7 @@ class TestE2EPostgresNoCopy(unittest.TestCase):
             compose_dir=cls.compose_dir,
             databases_csv=cls.databases_csv,
             database_containers=[cls.pg_container],
-            images_no_stop_required=["postgres", "mariadb", "mysql", "alpine"],
+            images_no_stop_required=[POSTGRES_IMAGE],
             dump_only_sql=True,
         )
 

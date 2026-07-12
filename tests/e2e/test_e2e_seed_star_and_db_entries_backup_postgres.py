@@ -1,6 +1,8 @@
 import unittest
 
 from .helpers import (
+    POSTGRES_IMAGE,
+    POSTGRES_DATA_DIR,
     backup_path,
     cleanup_docker,
     create_minimal_compose_dir,
@@ -66,8 +68,8 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
                 "-e",
                 f"POSTGRES_PASSWORD={cls.pg_password}",
                 "-v",
-                f"{cls.db_volume}:/var/lib/postgresql/data",
-                "postgres:16-alpine",
+                f"{cls.db_volume}:{POSTGRES_DATA_DIR}",
+                POSTGRES_IMAGE,
             ]
         )
         wait_for_postgres(cls.pg_container, user="postgres", timeout_s=90)
@@ -165,10 +167,7 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
             "--database-containers",
             cls.pg_container,
             "--images-no-stop-required",
-            "alpine",
-            "postgres",
-            "mariadb",
-            "mysql",
+            POSTGRES_IMAGE,
             "--dump-only-sql",
             "--backups-dir",
             cls.backups_dir,
