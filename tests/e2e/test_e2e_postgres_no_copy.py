@@ -76,7 +76,7 @@ class TestE2EPostgresNoCopy(unittest.TestCase):
             compose_dir=cls.compose_dir,
             databases_csv=cls.databases_csv,
             database_containers=[cls.pg_container],
-            images_no_stop_required=["postgres", "mariadb", "mysql", "alpine"],
+            images_no_stop_required=[POSTGRES_IMAGE],
             dump_only_sql=True,
         )
 

@@ -81,7 +81,7 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
             "baudolo",
             "--compose-dir",
             cls.compose_dir,
-            "--hard-compose-restart",
+            "--hard-restart-projects",
             "mailu",
             "--repo-name",
             cls.repo_name,
@@ -92,10 +92,7 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
             "--database-containers",
             cls.pg_container,
             "--images-no-stop-required",
-            "postgres",
-            "mariadb",
-            "mysql",
-            "alpine",
+            POSTGRES_IMAGE,
             "--dump-only-sql",
         ]
         cp = run(cmd, capture=True, check=True)

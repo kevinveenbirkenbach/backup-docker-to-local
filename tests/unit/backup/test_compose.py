@@ -279,15 +279,15 @@ class HardRestartArgTests(unittest.TestCase):
 
     def test_default_is_empty(self) -> None:
         args = self._parse([])
-        self.assertEqual(args.hard_compose_restart, [])
+        self.assertEqual(args.hard_restart_projects, [])
 
     def test_empty_flag_stays_empty(self) -> None:
-        args = self._parse(["--hard-compose-restart"])
-        self.assertEqual(args.hard_compose_restart, [])
+        args = self._parse(["--hard-restart-projects"])
+        self.assertEqual(args.hard_restart_projects, [])
 
     def test_explicit_names_preserved(self) -> None:
-        args = self._parse(["--hard-compose-restart", "mailu", "foo"])
-        self.assertEqual(args.hard_compose_restart, ["mailu", "foo"])
+        args = self._parse(["--hard-restart-projects", "mailu", "foo"])
+        self.assertEqual(args.hard_restart_projects, ["mailu", "foo"])
 
     def test_backups_dir_is_required(self) -> None:
         import sys

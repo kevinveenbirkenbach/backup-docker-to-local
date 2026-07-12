@@ -52,7 +52,7 @@ def is_image_ignored(container: str, images_no_backup_required: list[str]) -> bo
     if not images_no_backup_required:
         return False
     img = get_image_info(container)
-    return any(pat in img for pat in images_no_backup_required)
+    return img in images_no_backup_required
 
 
 def volume_is_fully_ignored(
@@ -68,15 +68,15 @@ def volume_is_fully_ignored(
 
 def requires_stop(containers: list[str], images_no_stop_required: list[str]) -> bool:
     """
-    Stop is required if ANY stoppable container image is NOT in the
-    whitelist patterns. Swarm task containers never count: baudolo must
+    Stop is required if ANY stoppable container image is NOT in the exact
+    image whitelist. Swarm task containers never count: baudolo must
     not cycle them (see docker.is_swarm_task).
     """
     for c in containers:
         if is_swarm_task(c):
             continue
         img = get_image_info(c)
-        if not any(pat in img for pat in images_no_stop_required):
+        if img not in images_no_stop_required:
             return True
     return False
 
@@ -247,6 +247,6 @@ def main() -> int:
     print("Finished volume backups.", flush=True)
 
     print("Handling Docker Compose services...", flush=True)
-    handle_docker_compose_services(args.compose_dir, args.hard_compose_restart)
+    handle_docker_compose_services(args.compose_dir, args.hard_restart_projects)
 
     return 0

@@ -78,7 +78,7 @@ class TestE2EPostgresFull(unittest.TestCase):
             compose_dir=cls.compose_dir,
             databases_csv=cls.databases_csv,
             database_containers=[cls.pg_container],
-            images_no_stop_required=["postgres", "mariadb", "mysql", "alpine"],
+            images_no_stop_required=[POSTGRES_IMAGE],
         )
 
         cls.hash, cls.version = latest_version_dir(cls.backups_dir, cls.repo_name)

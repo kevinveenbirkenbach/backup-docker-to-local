@@ -55,7 +55,7 @@ class TestE2EFilesNoCopy(unittest.TestCase):
             compose_dir=cls.compose_dir,
             databases_csv=cls.databases_csv,
             database_containers=["dummy-db"],
-            images_no_stop_required=["alpine", "postgres", "mariadb", "mysql"],
+            images_no_stop_required=["alpine:3.20"],
             dump_only_sql=True,
         )
 

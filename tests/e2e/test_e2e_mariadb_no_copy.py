@@ -96,7 +96,7 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
             compose_dir=cls.compose_dir,
             databases_csv=cls.databases_csv,
             database_containers=[cls.db_container],
-            images_no_stop_required=["mariadb", "mysql", "alpine", "postgres"],
+            images_no_stop_required=[MARIADB_IMAGE],
             dump_only_sql=True,
         )
 

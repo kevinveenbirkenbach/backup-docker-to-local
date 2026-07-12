@@ -180,7 +180,7 @@ def backup_run(
         "baudolo",
         "--compose-dir",
         compose_dir,
-        "--hard-compose-restart",
+        "--hard-restart-projects",
         "mailu",
         "--repo-name",
         repo_name,
