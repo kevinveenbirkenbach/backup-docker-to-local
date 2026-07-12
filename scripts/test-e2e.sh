@@ -27,7 +27,6 @@ dind() { docker exec "${DIND}" docker "$@"; }
 dind_stdin() { docker exec -i "${DIND}" docker "$@"; }
 
 IMG="${E2E_IMAGE:-baudolo:local}"
-RSYNC_IMG="${E2E_RSYNC_IMAGE:-ghcr.io/kevinveenbirkenbach/alpine-rsync}"
 
 READY_TIMEOUT_SECONDS="${E2E_READY_TIMEOUT_SECONDS:-120}"
 ARTIFACTS_DIR="${E2E_ARTIFACTS_DIR:-./artifacts}"
@@ -164,10 +163,6 @@ for i in $(seq 1 "${READY_TIMEOUT_SECONDS}"); do
   fi
 done
 
-log "Pre-pulling helper images in DinD..."
-log " - Pulling: ${RSYNC_IMG}"
-dind pull "${RSYNC_IMG}"
-
 log "Ensuring alpine exists in DinD (for debug helpers)"
 dind pull alpine:3.20 >/dev/null
 
@@ -181,8 +176,7 @@ if [ "${DEBUG_SHELL}" = "1" ]; then
   docker run --rm -it \
     --network "${NET}" \
     -e DOCKER_HOST="${DIND_HOST_IN_NET}" \
-    -e E2E_RSYNC_IMAGE="${RSYNC_IMG}" \
-    -v "${DIND_VOL}:/var/lib/docker:ro" \
+    -v "${DIND_VOL}:/var/lib/docker" \
     -v "${E2E_TMP_VOL}:/tmp" \
     "${IMG}" \
     bash -lc '
@@ -200,8 +194,7 @@ else
   docker run --rm \
     --network "${NET}" \
     -e DOCKER_HOST="${DIND_HOST_IN_NET}" \
-    -e E2E_RSYNC_IMAGE="${RSYNC_IMG}" \
-    -v "${DIND_VOL}:/var/lib/docker:ro" \
+    -v "${DIND_VOL}:/var/lib/docker" \
     -v "${E2E_TMP_VOL}:/tmp" \
     "${IMG}" \
     bash -lc '
