@@ -247,8 +247,6 @@ def main() -> int:
     print("Finished volume backups.", flush=True)
 
     print("Handling Docker Compose services...", flush=True)
-    handle_docker_compose_services(
-        args.compose_dir, args.docker_compose_hard_restart_required
-    )
+    handle_docker_compose_services(args.compose_dir, args.hard_compose_restart)
 
     return 0

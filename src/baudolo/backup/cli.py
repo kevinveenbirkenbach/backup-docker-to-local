@@ -17,10 +17,10 @@ def parse_args() -> argparse.Namespace:
         help="Path to the parent directory containing docker-compose setups",
     )
     p.add_argument(
-        "--docker-compose-hard-restart-required",
-        nargs="+",
-        default=["mailu"],
-        help="Compose dir names that require 'docker-compose down && up -d' (default: mailu)",
+        "--hard-compose-restart",
+        nargs="*",
+        default=[],
+        help="Compose dir names that require 'docker-compose down && up -d' (default: none; pass e.g. 'mailu' under compose where the DB cannot be backed up hot)",
     )
 
     p.add_argument(
@@ -35,8 +35,8 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--backups-dir",
-        default="/var/lib/backup/",
-        help="Backup root directory (default: /var/lib/backup/)",
+        required=True,
+        help="Backup root directory (e.g. /var/lib/backup/)",
     )
 
     p.add_argument(
