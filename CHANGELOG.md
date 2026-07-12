@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0] - 2026-07-12
+
+- Backup: *--images-no-stop-required* and *--images-no-backup-required* now
+  match a container's exact *.Config.Image* (full *repo:tag*, registry
+  prefix included) instead of a substring, so a near-miss image name no
+  longer flips the stop/skip decision. Callers must pass exact image
+  references. **Breaking.**
+- Backup: renamed *--hard-compose-restart* to *--hard-restart-projects*
+  (its value stays a list of compose project dir names). **Breaking:** the
+  old flag name is removed.
+
 ## [2.0.0] - 2026-07-12
 
 - Backup: renamed *--docker-compose-hard-restart-required* to
