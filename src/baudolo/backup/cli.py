@@ -42,13 +42,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--database-containers",
         nargs="+",
-        required=True,
+        default=[],
         help="Container names treated as special instances for database backups",
     )
     p.add_argument(
         "--images-no-stop-required",
         nargs="+",
-        required=True,
+        default=[],
         help="Exact image references (repo:tag, incl. any registry prefix) whose containers must not be stopped during file backup",
     )
     p.add_argument(
