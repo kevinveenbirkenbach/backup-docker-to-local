@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.1.0] - 2026-07-15
+
+- Restore: the postgres *--empty* pre-clean emits one DROP per object and
+  runs them via *\gexec* instead of a single DO-block, so large schemas
+  (e.g. gitlab) no longer exhaust *max_locks_per_transaction* in one
+  transaction. It also drops user-owned non-public schemas, so dumps that
+  CREATE SCHEMA (e.g. discourse's *discourse_functions*) no longer abort
+  on the already-existing schema under ON_ERROR_STOP.
+- Backup: *--database-containers* and *--images-no-stop-required* are now
+  optional and default to an empty list, so a pure file backup needs no
+  dummy arguments; an empty stop whitelist keeps the conservative
+  stop-all behavior.
+- Tests: new e2e test restores *--empty* against a fully populated
+  database containing a non-public schema and every dropped object class.
+  *make test* runs the three suites concurrently after a single
+  clean+build; *E2E_TEST_PATTERN* runs an e2e subset.
+
 ## [3.0.0] - 2026-07-12
 
 - Backup: *--images-no-stop-required* and *--images-no-backup-required* now
