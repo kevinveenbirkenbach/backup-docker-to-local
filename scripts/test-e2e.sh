@@ -37,6 +37,9 @@ KEEP_ON_FAIL="${E2E_KEEP_ON_FAIL:-0}"
 KEEP_VOLUMES="${E2E_KEEP_VOLUMES:-0}"
 DEBUG_SHELL="${E2E_DEBUG_SHELL:-0}"
 
+# Override to run a subset, e.g. E2E_TEST_PATTERN=test_e2e_postgres_empty_drop_hard.py
+TEST_PATTERN="${E2E_TEST_PATTERN:-test_*.py}"
+
 FAILED=0
 TS="$(date +%Y%m%d%H%M%S)"
 
@@ -194,6 +197,7 @@ else
   docker run --rm \
     --network "${NET}" \
     -e DOCKER_HOST="${DIND_HOST_IN_NET}" \
+    -e E2E_TEST_PATTERN="${TEST_PATTERN}" \
     -v "${DIND_VOL}:/var/lib/docker" \
     -v "${E2E_TMP_VOL}:/tmp" \
     "${IMG}" \
@@ -209,7 +213,7 @@ else
         cat /proc/sys/kernel/random/uuid > /etc/machine-id
     fi
 
-    python -m unittest discover -t . -s tests/e2e -p "test_*.py" -v -f
+    python -m unittest discover -t . -s tests/e2e -p "${E2E_TEST_PATTERN}" -v -f
     '
   rc=$?
 fi

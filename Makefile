@@ -1,5 +1,6 @@
-.PHONY: install build \
-		test-e2e test test-unit test-integration
+.PHONY: install build clean \
+		test test-unit test-integration test-e2e \
+		test-unit-run test-integration-run test-e2e-run
 
 # Default python if no venv is active
 PY_DEFAULT ?= python3
@@ -33,25 +34,32 @@ build:
 clean:
 	git clean -fdX .
 
-# ------------------------------------------------------------
-# Run E2E tests inside the container (Docker socket required)
-# ------------------------------------------------------------
-# E2E via isolated Docker-in-Docker (DinD)
-# - depends on local image build
-# - starts a DinD daemon container on a dedicated network
-# - loads the freshly built image into DinD
-# - runs the unittest suite inside a container that talks to DinD via DOCKER_HOST
-test-e2e: clean build
-	@bash scripts/test-e2e.sh
+# clean + build run once and in order, then the three suites run concurrently
+# via -j3; the *-run targets carry no clean/build prereq so the sub-make cannot
+# race a second clean against build.
+test:
+	@$(MAKE) clean
+	@$(MAKE) build
+	@$(MAKE) -j3 test-unit-run test-integration-run test-e2e-run
 
-test: test-unit test-integration test-e2e
+test-unit: clean build test-unit-run
 
-test-unit: clean build
+test-integration: clean build test-integration-run
+
+test-e2e: clean build test-e2e-run
+
+test-unit-run:
 	@echo ">> Running unit tests"
 	@docker run --rm -t $(IMAGE) \
 	  bash -lc 'python -m unittest discover -t . -s tests/unit -p "test_*.py" -v'
 
-test-integration: clean build
+test-integration-run:
 	@echo ">> Running integration tests"
 	@docker run --rm -t $(IMAGE) \
 	  bash -lc 'python -m unittest discover -t . -s tests/integration -p "test_*.py" -v'
+
+# E2E via isolated Docker-in-Docker (DinD): starts a DinD daemon on a dedicated
+# network, loads the freshly built image into it, and runs tests/e2e inside a
+# container that talks to DinD via DOCKER_HOST.
+test-e2e-run:
+	@bash scripts/test-e2e.sh
