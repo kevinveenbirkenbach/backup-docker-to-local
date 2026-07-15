@@ -53,11 +53,15 @@ def restore_postgres_sql(
     docker_env = {"PGPASSWORD": password}
 
     if empty:
-        # Owner-filtered: extension members (pg_trgm's set_limit) are superuser-owned; IF EXISTS absorbs CASCADE fallout.
+        # Owner-filtered pre-clean emitted as one DROP per row and run via \gexec so each
+        # executes as its own top-level statement: a single DO-block runs every DROP in one
+        # transaction and exhausts max_locks_per_transaction on large schemas (e.g. gitlab).
+        # Also drop user-owned non-public schemas so a dump that CREATE SCHEMAs (e.g.
+        # discourse's discourse_functions) does not fail on an already-existing schema.
+        # Extension members (pg_trgm's set_limit) are superuser-owned; IF EXISTS absorbs CASCADE fallout.
         drop_sql = r"""
-DO $$ DECLARE r RECORD;
-BEGIN
-  FOR r IN (
+SELECT format('DROP %s IF EXISTS public.%I CASCADE', obj.type, obj.name)
+  FROM (
     SELECT c.relname AS name,
            CASE c.relkind
              WHEN 'v' THEN 'VIEW'
@@ -93,10 +97,14 @@ BEGIN
       FROM pg_collation col JOIN pg_namespace n ON n.oid = col.collnamespace
      WHERE n.nspname = 'public'
        AND pg_get_userbyid(col.collowner) = current_user
-  ) LOOP
-    EXECUTE format('DROP %s IF EXISTS public.%I CASCADE', r.type, r.name);
-  END LOOP;
-END $$;
+  ) obj
+UNION ALL
+SELECT format('DROP SCHEMA IF EXISTS %I CASCADE', n.nspname)
+  FROM pg_namespace n
+ WHERE NOT starts_with(n.nspname, 'pg_')
+   AND n.nspname NOT IN ('public', 'information_schema')
+   AND pg_get_userbyid(n.nspowner) = current_user
+\gexec
 """
         docker_exec(
             container,
