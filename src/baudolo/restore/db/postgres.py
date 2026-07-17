@@ -99,6 +99,16 @@ SELECT format('DROP %s IF EXISTS public.%s CASCADE', obj.type, obj.name)
       FROM pg_collation col JOIN pg_namespace n ON n.oid = col.collnamespace
      WHERE n.nspname = 'public'
        AND pg_get_userbyid(col.collowner) = current_user
+    UNION ALL
+    SELECT format('%I', ts.cfgname) AS name, 'TEXT SEARCH CONFIGURATION' AS type
+      FROM pg_ts_config ts JOIN pg_namespace n ON n.oid = ts.cfgnamespace
+     WHERE n.nspname = 'public'
+       AND pg_get_userbyid(ts.cfgowner) = current_user
+    UNION ALL
+    SELECT format('%I', d.dictname) AS name, 'TEXT SEARCH DICTIONARY' AS type
+      FROM pg_ts_dict d JOIN pg_namespace n ON n.oid = d.dictnamespace
+     WHERE n.nspname = 'public'
+       AND pg_get_userbyid(d.dictowner) = current_user
   ) obj
 UNION ALL
 SELECT format('DROP SCHEMA IF EXISTS %I CASCADE', n.nspname)

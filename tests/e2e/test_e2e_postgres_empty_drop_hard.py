@@ -21,6 +21,9 @@ from .helpers import (
 # --empty runs against the still-populated DB (no wipe), so the pre-clean must
 # drop discourse_functions too or the dump's CREATE SCHEMA aborts the replay
 # under ON_ERROR_STOP; the old public-only DROP left it and broke discourse.
+# The f()/f(int) pair reproduces discourse's overload abort ("function name
+# is not unique") and english_stem_nostop reproduces taiga's text search
+# dictionary abort (duplicate pg_ts_dict_dictname_index).
 SCENARIO_SQL = (
     "CREATE SCHEMA discourse_functions;"
     "CREATE TABLE discourse_functions.helper (id int);"
@@ -31,7 +34,13 @@ SCENARIO_SQL = (
     "CREATE SEQUENCE public.s;"
     "CREATE TYPE public.mood AS ENUM ('ok', 'bad');"
     "CREATE FUNCTION public.f() RETURNS int LANGUAGE sql AS 'SELECT 1';"
+    "CREATE FUNCTION public.f(i int) RETURNS int LANGUAGE sql AS 'SELECT i';"
     "CREATE COLLATION public.c (locale = 'C');"
+    "CREATE TEXT SEARCH DICTIONARY public.english_stem_nostop"
+    " (Template = snowball, Language = english);"
+    "CREATE TEXT SEARCH CONFIGURATION public.english_nostop (COPY = english);"
+    "ALTER TEXT SEARCH CONFIGURATION public.english_nostop"
+    " ALTER MAPPING FOR asciiword WITH public.english_stem_nostop;"
 )
 
 
@@ -148,6 +157,26 @@ class TestE2EPostgresEmptyDropHard(unittest.TestCase):
         self.assertEqual(
             self._scalar(
                 "SELECT count(*) FROM pg_namespace WHERE nspname='discourse_functions';"
+            ),
+            "1",
+        )
+
+    def test_overloaded_functions_restored_once_each(self) -> None:
+        self.assertEqual(
+            self._scalar("SELECT count(*) FROM pg_proc WHERE proname='f';"), "2"
+        )
+        self.assertEqual(self._scalar("SELECT public.f(41) + public.f();"), "42")
+
+    def test_text_search_dictionary_restored_once(self) -> None:
+        self.assertEqual(
+            self._scalar(
+                "SELECT count(*) FROM pg_ts_dict WHERE dictname='english_stem_nostop';"
+            ),
+            "1",
+        )
+        self.assertEqual(
+            self._scalar(
+                "SELECT count(*) FROM pg_ts_config WHERE cfgname='english_nostop';"
             ),
             "1",
         )
