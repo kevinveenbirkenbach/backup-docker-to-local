@@ -60,9 +60,9 @@ def restore_postgres_sql(
         # discourse's discourse_functions) does not fail on an already-existing schema.
         # Extension members (pg_trgm's set_limit) are superuser-owned; IF EXISTS absorbs CASCADE fallout.
         drop_sql = r"""
-SELECT format('DROP %s IF EXISTS public.%I CASCADE', obj.type, obj.name)
+SELECT format('DROP %s IF EXISTS public.%s CASCADE', obj.type, obj.name)
   FROM (
-    SELECT c.relname AS name,
+    SELECT format('%I', c.relname) AS name,
            CASE c.relkind
              WHEN 'v' THEN 'VIEW'
              WHEN 'm' THEN 'MATERIALIZED VIEW'
@@ -73,18 +73,20 @@ SELECT format('DROP %s IF EXISTS public.%I CASCADE', obj.type, obj.name)
      WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
        AND pg_get_userbyid(c.relowner) = current_user
     UNION ALL
-    SELECT p.proname AS name,
+    -- Overloaded functions share a proname; DROP needs the identity
+    -- signature or psql aborts with "function name is not unique".
+    SELECT format('%I(%s)', p.proname, pg_get_function_identity_arguments(p.oid)) AS name,
            CASE p.prokind WHEN 'p' THEN 'PROCEDURE' ELSE 'FUNCTION' END AS type
       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
      WHERE n.nspname = 'public' AND p.prokind IN ('f', 'p', 'w')
        AND pg_get_userbyid(p.proowner) = current_user
     UNION ALL
-    SELECT c.relname AS name, 'SEQUENCE' AS type
+    SELECT format('%I', c.relname) AS name, 'SEQUENCE' AS type
       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
      WHERE n.nspname = 'public' AND c.relkind = 'S'
        AND pg_get_userbyid(c.relowner) = current_user
     UNION ALL
-    SELECT t.typname AS name, 'TYPE' AS type
+    SELECT format('%I', t.typname) AS name, 'TYPE' AS type
       FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
      WHERE n.nspname = 'public'
        AND pg_get_userbyid(t.typowner) = current_user
@@ -93,7 +95,7 @@ SELECT format('DROP %s IF EXISTS public.%I CASCADE', obj.type, obj.name)
                   SELECT 1 FROM pg_class c2
                    WHERE c2.oid = t.typrelid AND c2.relkind = 'c')))
     UNION ALL
-    SELECT col.collname AS name, 'COLLATION' AS type
+    SELECT format('%I', col.collname) AS name, 'COLLATION' AS type
       FROM pg_collation col JOIN pg_namespace n ON n.oid = col.collnamespace
      WHERE n.nspname = 'public'
        AND pg_get_userbyid(col.collowner) = current_user

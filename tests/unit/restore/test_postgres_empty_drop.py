@@ -36,7 +36,21 @@ class TestPostgresEmptyDrop(unittest.TestCase):
         sql = self._drop_sql()
         for marker in ("pg_class", "pg_proc", "'SEQUENCE' AS type", "'TYPE' AS type"):
             self.assertIn(marker, sql)
-        self.assertIn("DROP %s IF EXISTS public.%I CASCADE", sql)
+        self.assertIn("DROP %s IF EXISTS public.%s CASCADE", sql)
+
+    def test_functions_drop_with_identity_signature(self) -> None:
+        """Overloaded functions share a proname; a signature-less DROP aborts
+        with "function name is not unique", so the function branch must emit
+        name(identity args) while every other branch stays %I-quoted."""
+        sql = self._drop_sql()
+        self.assertIn("pg_get_function_identity_arguments(p.oid)", sql)
+        self.assertIn("format('%I(%s)', p.proname", sql)
+        for branch in (
+            "format('%I', c.relname)",
+            "format('%I', t.typname)",
+            "format('%I', col.collname)",
+        ):
+            self.assertIn(branch, sql)
 
 
 if __name__ == "__main__":
