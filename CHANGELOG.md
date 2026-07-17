@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.1.2] - 2026-07-18
+
+- Restore: the postgres *--empty* pre-clean also drops user-owned text
+  search configurations and dictionaries (*pg_ts_config*, *pg_ts_dict*),
+  so a schema shipping a custom dictionary (e.g. taiga's
+  *english_stem_nostop*) no longer aborts the replay with "duplicate key
+  value violates unique constraint pg_ts_dict_dictname_index" under
+  ON_ERROR_STOP.
+- Tests: the string-assertion unit test for the pre-clean SQL is replaced
+  by real scenario data in the e2e: the seeded schema contains an
+  overloaded *f()/f(int)* pair and the nostop dictionary plus
+  configuration, and the restored database is queried to prove each
+  survives the backup, pre-clean and replay cycle exactly once.
+
 ## [3.1.1] - 2026-07-17
 
 - Restore: the postgres *--empty* pre-clean drops functions and procedures
