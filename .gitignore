@@ -3,3 +3,4 @@ artifacts/
 *.egg-info
 dist/
 build/
+.mcp.json
