@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.1.1] - 2026-07-17
+
+- Restore: the postgres *--empty* pre-clean drops functions and procedures
+  by their identity signature (*pg_get_function_identity_arguments*), so a
+  schema that overloads a function name (e.g. discourse) no longer aborts
+  the replay with "function name is not unique" under ON_ERROR_STOP.
+  Identifier quoting moves from the outer DROP format into each object
+  branch, since the *name(args)* compound must not be quoted as a whole; a
+  unit test pins the per-branch *%I* quoting so future branches cannot
+  regress unquoted.
+
 ## [3.1.0] - 2026-07-15
 
 - Restore: the postgres *--empty* pre-clean emits one DROP per object and
