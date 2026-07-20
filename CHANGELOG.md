@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.1.3] - 2026-07-20
+
+- Restore: the postgres dump replay now runs under *--single-transaction*,
+  so a concurrent writer on a live database can no longer interleave a row
+  between the replay's table re-create and its *COPY* and trip a "duplicate
+  key value violates unique constraint" abort under ON_ERROR_STOP. This is
+  the discourse restore-drill race (*mini_scheduler* upserting
+  *scheduler_stats(id=1)* mid-restore) that failed the whole restore. The
+  *--empty* pre-clean stays multi-statement (*\gexec*, one DROP per
+  statement) because a single DROP transaction exhausts
+  *max_locks_per_transaction* on large schemas (e.g. gitlab).
+- Refactor: the *--empty* pre-clean SQL moves out of the inline Python
+  string into *src/baudolo/restore/db/empty_preclean.sql* (loaded via
+  *dirname(__file__)*, declared as package-data so it ships in the wheel).
+- Tests: a unit test guards the single-transaction / multi-statement split
+  (replay carries *--single-transaction*, pre-clean does not); a new e2e
+  reproduces the live-writer race and asserts the restore survives it.
+
 ## [3.1.2] - 2026-07-18
 
 - Restore: the postgres *--empty* pre-clean also drops user-owned text
