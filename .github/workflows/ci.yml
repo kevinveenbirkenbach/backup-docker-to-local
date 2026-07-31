@@ -29,7 +29,16 @@ jobs:
           docker version
           docker info
 
+      - name: Provide zfs so the snapshot suite covers every filesystem
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends zfsutils-linux
+          sudo modprobe zfs
+          zpool version
+
       - name: Run all tests via Makefile
+        env:
+          E2E_REQUIRE_FILESYSTEMS: "btrfs ext4 zfs"
         run: |
           make test
 

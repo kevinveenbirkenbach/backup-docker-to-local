@@ -198,6 +198,7 @@ else
     --network "${NET}" \
     -e DOCKER_HOST="${DIND_HOST_IN_NET}" \
     -e E2E_TEST_PATTERN="${TEST_PATTERN}" \
+    -e E2E_REQUIRE_FILESYSTEMS="${E2E_REQUIRE_FILESYSTEMS:-}" \
     -v "${DIND_VOL}:/var/lib/docker" \
     -v "${E2E_TMP_VOL}:/tmp" \
     "${IMG}" \

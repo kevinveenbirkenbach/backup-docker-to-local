@@ -40,6 +40,16 @@ def parse_args() -> argparse.Namespace:
     )
 
     p.add_argument(
+        "--snapshot",
+        choices=["btrfs", "zfs"],
+        help="Capture every volume from one atomic filesystem snapshot instead of copying the live tree. Containers are not stopped, and the copy is a single pass. Requires --snapshot-subject. Omit to keep the live two-pass copy.",
+    )
+    p.add_argument(
+        "--snapshot-subject",
+        help="Btrfs subvolume or zfs dataset mountpoint holding the docker volumes, e.g. /var/lib/docker. Required with --snapshot.",
+    )
+
+    p.add_argument(
         "--database-containers",
         nargs="+",
         default=[],
@@ -79,4 +89,9 @@ def parse_args() -> argparse.Namespace:
             "If a DB dump cannot be produced, baudolo falls back to a file backup."
         ),
     )
-    return p.parse_args()
+    args = p.parse_args()
+    if bool(args.snapshot) != bool(args.snapshot_subject):
+        p.error("--snapshot and --snapshot-subject must be given together")
+    if args.snapshot and args.shutdown:
+        p.error("--shutdown is meaningless with --snapshot: containers are never stopped")
+    return args

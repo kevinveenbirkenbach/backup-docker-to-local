@@ -1,50 +1,12 @@
 from __future__ import annotations
 
-import shutil
 import tempfile
 import unittest
 from pathlib import Path
 from typing import List
 from unittest.mock import patch
 
-
-def _touch(p: Path) -> None:
-    p.parent.mkdir(parents=True, exist_ok=True)
-
-    # If the path already exists as a directory (e.g. ".env" created by ".env/env"),
-    # remove it so we can create a file with the same name.
-    if p.exists() and p.is_dir():
-        shutil.rmtree(p)
-
-    p.write_text("x", encoding="utf-8")
-
-
-def _setup_compose_dir(
-    tmp_path: Path,
-    name: str = "mailu",
-    *,
-    compose_name: str = "docker-compose.yml",
-    with_override: bool = False,
-    with_ca_override: bool = False,
-    env_layout: str | None = None,  # None | ".env" | ".env/env"
-) -> Path:
-    d = tmp_path / name
-    d.mkdir(parents=True, exist_ok=True)
-
-    _touch(d / compose_name)
-
-    if with_override:
-        _touch(d / "docker-compose.override.yml")
-
-    if with_ca_override:
-        _touch(d / "docker-compose.ca.override.yml")
-
-    if env_layout == ".env":
-        _touch(d / ".env")
-    elif env_layout == ".env/env":
-        _touch(d / ".env" / "env")
-
-    return d
+from .compose_fixture import setup_compose_dir as _setup_compose_dir
 
 
 class TestCompose(unittest.TestCase):
@@ -249,63 +211,3 @@ class TestCompose(unittest.TestCase):
                     ),
                 ],
             )
-
-
-class HardRestartArgTests(unittest.TestCase):
-    """The hard-restart list defaults to empty (no compose down/up); callers
-    opt in per dir, e.g. compose hosts pass 'mailu' while swarm hosts, where
-    the dir is a stack whose overlay network collides with compose up, pass
-    nothing."""
-
-    def _parse(self, extra: List[str]):
-        import sys
-
-        from baudolo.backup import cli
-
-        argv = [
-            "baudolo",
-            "--compose-dir",
-            "/tmp",
-            "--backups-dir",
-            "/tmp/backup",
-            "--database-containers",
-            "postgres",
-            "--images-no-stop-required",
-            "redis",
-            *extra,
-        ]
-        with patch.object(sys, "argv", argv):
-            return cli.parse_args()
-
-    def test_default_is_empty(self) -> None:
-        args = self._parse([])
-        self.assertEqual(args.hard_restart_projects, [])
-
-    def test_empty_flag_stays_empty(self) -> None:
-        args = self._parse(["--hard-restart-projects"])
-        self.assertEqual(args.hard_restart_projects, [])
-
-    def test_explicit_names_preserved(self) -> None:
-        args = self._parse(["--hard-restart-projects", "mailu", "foo"])
-        self.assertEqual(args.hard_restart_projects, ["mailu", "foo"])
-
-    def test_backups_dir_is_required(self) -> None:
-        import sys
-
-        from baudolo.backup import cli
-
-        argv = [
-            "baudolo",
-            "--compose-dir",
-            "/tmp",
-            "--database-containers",
-            "postgres",
-            "--images-no-stop-required",
-            "redis",
-        ]
-        with patch.object(sys, "argv", argv), self.assertRaises(SystemExit):
-            cli.parse_args()
-
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)

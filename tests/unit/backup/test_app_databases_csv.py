@@ -7,7 +7,7 @@ from contextlib import redirect_stderr
 import pandas as pd
 
 # Adjust if your package name/import path differs.
-from baudolo.backup.app import _load_databases_df
+from baudolo.backup.dumps import load_databases_df
 
 
 EXPECTED_COLUMNS = ["instance", "database", "username", "password"]
@@ -20,7 +20,7 @@ class TestLoadDatabasesDf(unittest.TestCase):
 
             buf = io.StringIO()
             with redirect_stderr(buf):
-                df = _load_databases_df(missing_path)
+                df = load_databases_df(missing_path)
 
             stderr = buf.getvalue()
             self.assertIn("WARNING:", stderr)
@@ -39,7 +39,7 @@ class TestLoadDatabasesDf(unittest.TestCase):
 
             buf = io.StringIO()
             with redirect_stderr(buf):
-                df = _load_databases_df(empty_path)
+                df = load_databases_df(empty_path)
 
             stderr = buf.getvalue()
             self.assertIn("WARNING:", stderr)
@@ -59,7 +59,7 @@ class TestLoadDatabasesDf(unittest.TestCase):
 
             buf = io.StringIO()
             with redirect_stderr(buf):
-                df = _load_databases_df(csv_path)
+                df = load_databases_df(csv_path)
 
             stderr = buf.getvalue()
             self.assertEqual(stderr, "")  # no warning expected
