@@ -1,5 +1,35 @@
 # Changelog
 
+## [3.1.4] - 2026-07-31
+
+- Backup: the post-stop volume pass now compares by content (*--checksum*), so
+  it can no longer skip a file the hot pass had copied from a live source. Each
+  volume is rsynced twice into the same destination — once with the container
+  running, once after it is stopped — and the second pass used rsync's quick
+  check (size plus whole-second mtime). A pre-allocated 16 MiB WAL segment never
+  changes size, so when its last pre-stop write and postgres' shutdown
+  checkpoint fell in the same whole second, the cold pass skipped it while still
+  replacing *global/pg_control*, whose previous write was seconds earlier. The
+  generation then paired a post-shutdown *pg_control* with a WAL segment still
+  zeroed at the recorded checkpoint LSN, and restoring it crash-looped postgres
+  with "invalid record length … expected at least 24, got 0" followed by "PANIC:
+  could not locate a valid checkpoint record". *backup_volume* takes
+  *authoritative* as a required keyword rather than an optional flag, so each of
+  the four call sites states which pass it is; the hot passes keep the quick
+  check. *--ignore-times* was rejected because it destroys the *--link-dest*
+  hardlink dedup (measured 20/20 to 0/20, generation size doubled), and
+  *--modify-window=-1* because it makes correctness depend on the destination
+  filesystem preserving sub-second mtimes, which degrades silently on NFS or
+  ext3.
+- Cost: the quick check scales with file count, *--checksum* with bytes read on
+  both sides, and it runs while the container is stopped. The extra stop time
+  stays under a minute up to roughly 4 GB on spinning disk, 15 GB on a SATA SSD
+  and 60 GB on NVMe; at 1 TB it is 17 minutes on NVMe and over three hours on
+  spinning disk. No size threshold is built in, since a guessed one would drop
+  the guarantee exactly where an unrestorable backup costs most — volumes at
+  that scale want filesystem snapshots or *pg_basebackup* rather than two rsync
+  passes over a live tree.
+
 ## [3.1.3] - 2026-07-20
 
 - Restore: the postgres dump replay now runs under *--single-transaction*,
