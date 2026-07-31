@@ -1,5 +1,33 @@
 # Changelog
 
+## [3.2.1] - 2026-07-31
+
+- Backup: the snapshot resolver keeps the trailing separator *get_storage_path*
+  puts on a volume path — *os.path.abspath* stripped it. rsync reads *dir* as
+  "copy the directory" where *dir/* means "copy its contents", so every snapshot
+  generation landed at *<volume>/files/_data/...* while the live path lands at
+  *<volume>/files/...*. Restores read the live layout, and *--link-dest* had
+  nothing to match against the previous generation.
+- Backup: snapshot teardown no longer fails a completed run. A busy
+  *btrfs subvolume delete* raised out of the *finally*, skipping the generation
+  stamp and the compose handling on a run whose data was already copied, and
+  masking whatever the body had raised. The leftover is reported instead.
+- Backup: a volume created after the snapshot was taken is copied live with a
+  warning instead of aborting the run. Nothing is stopped in snapshot mode, so
+  the host keeps creating volumes for the whole copy.
+- Backup: the snapshot pass compares by content (*--checksum*) again. 3.2.0
+  dropped it because a snapshot source cannot move, which is true, but the
+  comparison that matters is against *--link-dest*: a file that changed while
+  keeping its size and whole-second mtime was hard-linked stale out of the
+  previous generation, and the single pass had no authoritative pass to repair
+  it. Still one pass where the live path takes two.
+- Backup: *--hard-restart-projects* is refused alongside *--snapshot*, like
+  *--shutdown* already is. It exists for stacks whose database cannot be backed
+  up hot, which is what a snapshot removes.
+- Tests: the trailing separator, both teardown behaviours, the new refusal, and
+  *app.main* driving the snapshot branch — the caller that runs in production,
+  which no test had exercised, which is why the layout defect shipped.
+
 ## [3.2.0] - 2026-07-31
 
 - Backup: *--snapshot {btrfs,zfs}* with *--snapshot-subject* captures every
