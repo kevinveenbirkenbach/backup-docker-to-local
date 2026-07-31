@@ -34,8 +34,8 @@ with volume_snapshot("btrfs", SUBJECT, "dbtest", run=shell) as resolve:
         VERSIONS,
         VOLUME,
         f"{GENERATION}/{VOLUME}",
-        authoritative=False,
-        source=resolve(DATADIR) + "/",
+        authoritative=True,
+        source=resolve(f"{DATADIR}/"),
     )
 
 print("SNAPSHOT COPY DONE", flush=True)

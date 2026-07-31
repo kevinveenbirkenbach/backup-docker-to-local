@@ -94,4 +94,9 @@ def parse_args() -> argparse.Namespace:
         p.error("--snapshot and --snapshot-subject must be given together")
     if args.snapshot and args.shutdown:
         p.error("--shutdown is meaningless with --snapshot: containers are never stopped")
+    if args.snapshot and args.hard_restart_projects:
+        p.error(
+            "--hard-restart-projects is meaningless with --snapshot: the flag exists "
+            "for stacks whose database cannot be backed up hot, which a snapshot solves"
+        )
     return args

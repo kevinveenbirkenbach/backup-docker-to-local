@@ -48,6 +48,22 @@ class TestSnapshotFlags(unittest.TestCase):
     def test_shutdown_stays_available_without_a_snapshot(self) -> None:
         self.assertTrue(parse("--shutdown").shutdown)
 
+    def test_hard_restart_is_rejected_because_nothing_is_stopped(self) -> None:
+        with self.assertRaises(SystemExit):
+            parse(
+                "--snapshot",
+                "btrfs",
+                "--snapshot-subject",
+                "/d",
+                "--hard-restart-projects",
+                "mailu",
+            )
+
+    def test_hard_restart_stays_available_without_a_snapshot(self) -> None:
+        self.assertEqual(
+            parse("--hard-restart-projects", "mailu").hard_restart_projects, ["mailu"]
+        )
+
 
 class TestRequiredFlags(unittest.TestCase):
     def test_backups_dir_is_required(self) -> None:

@@ -17,10 +17,9 @@ import os
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 
-from .shell import execute_shell_command
+from .shell import BackupException, execute_shell_command
 
 KINDS = ("btrfs", "zfs")
-
 
 
 class SnapshotError(RuntimeError):
@@ -32,7 +31,11 @@ def _resolver(subject: str, root: str) -> Callable[[str], str]:
         relative = os.path.relpath(os.path.abspath(path), os.path.abspath(subject))
         if relative.startswith(".."):
             raise SnapshotError(f"{path} lies outside the snapshot subject {subject}")
-        return os.path.join(root, relative) if relative != "." else root
+        resolved = root if relative == "." else os.path.join(root, relative)
+
+        # abspath drops a trailing separator, and rsync reads "dir/" as its
+        # contents where "dir" means the directory itself.
+        return resolved + os.sep if path.endswith(os.sep) else resolved
 
     return resolve
 
@@ -74,6 +77,8 @@ def volume_snapshot(
 
     Raises:
         SnapshotError: the kind is unknown, or the snapshot cannot be created.
+            Removal failure is reported, not raised: a leftover snapshot is a
+            cleanup problem and must not discard a generation that is complete.
     """
     create = _CREATE.get(kind)
     if create is None:
@@ -83,4 +88,8 @@ def volume_snapshot(
     try:
         yield _resolver(subject, root)
     finally:
-        run(remove)
+        try:
+            run(remove)
+        except BackupException as error:
+            # Raising here would also mask whatever the body raised.
+            print(f"WARNING: {root} could not be removed: {error}", flush=True)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import unittest
 
+from baudolo.backup.shell import BackupException
 from baudolo.backup.snapshot import SnapshotError, volume_snapshot
 
 
@@ -42,6 +43,14 @@ class TestBtrfs(unittest.TestCase):
             self.assertEqual(
                 resolve("/var/lib/docker/volumes/postgres_data/_data"),
                 "/var/lib/.baudolo-20260731/volumes/postgres_data/_data",
+            )
+
+    def test_it_keeps_the_trailing_slash_rsync_reads_as_contents(self) -> None:
+        run = Runner()
+        with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run) as resolve:
+            self.assertEqual(
+                resolve("/var/lib/docker/volumes/postgres_data/_data/"),
+                "/var/lib/.baudolo-20260731/volumes/postgres_data/_data/",
             )
 
     def test_it_removes_the_snapshot_even_when_the_body_raises(self) -> None:
@@ -101,6 +110,24 @@ class TestRejections(unittest.TestCase):
         run = Runner()
         with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run) as resolve:
             self.assertEqual(resolve("/var/lib/docker"), "/var/lib/.baudolo-20260731")
+
+
+class Busy(Runner):
+    def __call__(self, command: str) -> list[str]:
+        if command.startswith("btrfs subvolume delete"):
+            raise BackupException("target is busy")
+        return super().__call__(command)
+
+
+class TestRemovalFailure(unittest.TestCase):
+    def test_a_failed_removal_does_not_fail_a_completed_run(self) -> None:
+        with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=Busy()):
+            pass
+
+    def test_a_failed_removal_does_not_mask_the_body(self) -> None:
+        with self.assertRaises(ZeroDivisionError):
+            with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=Busy()):
+                raise ZeroDivisionError
 
 
 if __name__ == "__main__":

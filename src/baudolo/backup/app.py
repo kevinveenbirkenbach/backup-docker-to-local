@@ -95,7 +95,16 @@ def main() -> int:
                 )
 
             if resolve_source is not None:
-                copy(authoritative=False, source=resolve_source(live_source))
+                snapshot_source = resolve_source(live_source)
+                if os.path.isdir(snapshot_source):
+                    copy(authoritative=True, source=snapshot_source)
+                else:
+                    print(
+                        f"WARNING: volume '{volume_name}' is not in the snapshot "
+                        "(created after it was taken); copying it live instead.",
+                        flush=True,
+                    )
+                    copy(authoritative=False)
                 continue
 
             if args.everything:
