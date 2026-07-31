@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.2.0] - 2026-07-31
+
+- Backup: *--snapshot {btrfs,zfs}* with *--snapshot-subject* captures every
+  volume from one atomic filesystem snapshot. The subject — the btrfs subvolume
+  or zfs dataset holding the docker volumes, e.g. */var/lib/docker* — is frozen
+  once per run, so a generation shares a single point in time and no container
+  is stopped. Restoring such a copy is an ordinary crash recovery, which every
+  supported engine performs at startup. This is the mode 3.1.4 pointed to for
+  volumes where two rsync passes over a live tree stop being affordable.
+- Backup: snapshot passes copy once and drop *--checksum*. Verification exists
+  because a hot pass writes its destination from a moving source; a snapshot
+  source cannot move, so size and mtime cannot race and the second full read is
+  pure cost.
+- Backup: an unsupported filesystem or unknown kind fails with *SnapshotError*.
+  The kind is stated, not probed — an inconclusive probe would fall back to a
+  live copy and hand out the torn backup the mode prevents. *--shutdown* is
+  rejected alongside *--snapshot* rather than ignored, since nothing is stopped.
+- Refactor: *backup/app.py* splits into *layout.py*, *policy.py* and *dumps.py*
+  along the lines it already had; 276 lines down to 124.
+- Tests: unit coverage for snapshot, layout, policy, volume and CLI validation.
+  E2E cases drive real btrfs, zfs and ext4 on loop devices, one proving the
+  loud refusal; another writes a MariaDB across the snapshot and requires the
+  restored server to recover on its own with every committed row and none of
+  the later ones. CI installs zfs and sets *E2E_REQUIRE_FILESYSTEMS*, so a
+  missing kernel module fails the build instead of skipping a filesystem.
+
 ## [3.1.4] - 2026-07-31
 
 - Backup: the post-stop volume pass now compares by content (*--checksum*), so
