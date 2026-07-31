@@ -64,7 +64,7 @@ class TestSnapshotBranch(unittest.TestCase):
 
     def test_it_reads_from_the_snapshot_and_not_from_the_live_tree(self) -> None:
         source = drive(present=True)[0]["source"]
-        self.assertTrue(source.startswith("/var/lib/.baudolo-"), source)
+        self.assertTrue(source.startswith("/var/lib/docker/.baudolo-"), source)
 
     def test_it_compares_by_content_against_the_previous_generation(self) -> None:
         self.assertTrue(drive(present=True)[0]["authoritative"])

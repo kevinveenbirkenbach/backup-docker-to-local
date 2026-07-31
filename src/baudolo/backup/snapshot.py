@@ -41,7 +41,10 @@ def _resolver(subject: str, root: str) -> Callable[[str], str]:
 
 
 def _btrfs(subject: str, name: str, run: Callable[[str], list[str]]) -> tuple[str, str]:
-    target = os.path.join(os.path.dirname(os.path.abspath(subject)), f".{name}")
+    # The snapshot goes inside the subject, never beside it: the kernel rejects
+    # a snapshot whose destination is on another filesystem, which is exactly
+    # what the parent directory is when the subject is a mountpoint of its own.
+    target = os.path.join(os.path.abspath(subject), f".{name}")
     run(f"btrfs subvolume snapshot -r {subject} {target}")
     return target, f"btrfs subvolume delete {target}"
 
