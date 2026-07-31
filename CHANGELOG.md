@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.2.2] - 2026-07-31
+
+- Backup: the btrfs snapshot is carved inside its subject, as
+  *<data root>/.baudolo-<tag>*, not beside it. The kernel refuses a snapshot
+  whose destination is on another filesystem, which is exactly what the parent
+  directory is when the data root is a mountpoint of its own — a dedicated disk
+  mounted onto */var/lib/docker* failed every run with EXDEV. Placing it inside
+  makes source and destination the same filesystem by construction, and aligns
+  btrfs with the zfs path, which already resolves its snapshot inside the
+  subject at *<subject>/.zfs/snapshot/<tag>*. A leftover from an interrupted run
+  appears in the next snapshot as an empty directory rather than recursing,
+  since btrfs does not include nested subvolumes.
+
 ## [3.2.1] - 2026-07-31
 
 - Backup: the snapshot resolver keeps the trailing separator *get_storage_path*
