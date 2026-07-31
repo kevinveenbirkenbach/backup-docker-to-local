@@ -24,16 +24,26 @@ def get_last_backup_dir(
     return None
 
 
-def backup_volume(versions_dir: str, volume_name: str, volume_dir: str) -> None:
-    """Perform incremental file backup of a Docker volume."""
+def backup_volume(
+    versions_dir: str, volume_name: str, volume_dir: str, *, authoritative: bool
+) -> None:
+    """Perform incremental file backup of a Docker volume.
+
+    Args:
+        authoritative: compare source and destination by content instead of by
+            size and whole-second mtime. Required on a pass whose destination was
+            already written from a live source, where a file can differ while
+            both attributes still agree.
+    """
     dest = os.path.join(volume_dir, "files") + "/"
     pathlib.Path(dest).mkdir(parents=True, exist_ok=True)
 
     last = get_last_backup_dir(versions_dir, volume_name, dest)
     link_dest = f"--link-dest='{last}'" if last else ""
     source = get_storage_path(volume_name)
+    verify = "--checksum " if authoritative else ""
 
-    cmd = f"rsync -abP --delete --delete-excluded {link_dest} {source} {dest}"
+    cmd = f"rsync -abP --delete --delete-excluded {verify}{link_dest} {source} {dest}"
 
     try:
         execute_shell_command(cmd)

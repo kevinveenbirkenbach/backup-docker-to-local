@@ -226,19 +226,19 @@ def main() -> int:
         if args.everything:
             # "everything": always do pre-rsync, then stop + rsync again
             stoppable = filter_stoppable(containers)
-            backup_volume(versions_dir, volume_name, vol_dir)
+            backup_volume(versions_dir, volume_name, vol_dir, authoritative=False)
             change_containers_status(stoppable, "stop")
-            backup_volume(versions_dir, volume_name, vol_dir)
+            backup_volume(versions_dir, volume_name, vol_dir, authoritative=True)
             if not args.shutdown:
                 change_containers_status(stoppable, "start")
             continue
 
         # default: rsync, and if needed stop + rsync
-        backup_volume(versions_dir, volume_name, vol_dir)
+        backup_volume(versions_dir, volume_name, vol_dir, authoritative=False)
         if requires_stop(containers, args.images_no_stop_required):
             stoppable = filter_stoppable(containers)
             change_containers_status(stoppable, "stop")
-            backup_volume(versions_dir, volume_name, vol_dir)
+            backup_volume(versions_dir, volume_name, vol_dir, authoritative=True)
             if not args.shutdown:
                 change_containers_status(stoppable, "start")
 
