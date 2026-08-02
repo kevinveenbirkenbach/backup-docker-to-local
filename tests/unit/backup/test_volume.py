@@ -43,6 +43,9 @@ class TestBackupVolume(unittest.TestCase):
     def test_it_always_deletes_what_the_source_no_longer_has(self) -> None:
         self.assertIn("--delete", self.copy())
 
+    def test_it_carries_no_kernel_objects_into_a_generation(self) -> None:
+        self.assertIn("--no-D", self.copy())
+
     def test_it_creates_the_destination(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             dest = Path(tmp) / "gen" / "demo"

@@ -49,7 +49,10 @@ def backup_volume(
     link_dest = f"--link-dest='{last}'" if last else ""
     verify = "--checksum " if authoritative else ""
 
-    cmd = f"rsync -abP --delete --delete-excluded {verify}{link_dest} {source} {dest}"
+    cmd = (
+        f"rsync -abP --no-D --delete --delete-excluded "
+        f"{verify}{link_dest} {source} {dest}"
+    )
 
     try:
         execute_shell_command(cmd)
