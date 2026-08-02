@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.3.0] - 2026-08-02
+
+- Backup: *--volumes-no-backup-required* excludes a volume by name.
+  *--images-no-backup-required* resolves through *volume_is_fully_ignored*,
+  which skips a volume only when every container using it is ignored — a
+  container holding a derived tree beside state that must be kept cannot
+  express the exclusion at all. A docker-in-docker data root is exactly that
+  shape, and excluding by image would drop all three of its volumes.
+- Backup: the name check runs before *containers_using_volume*, so an excluded
+  volume costs no docker inspection and the decision does not depend on which
+  containers exist when the run starts.
+- Tests: two volumes off one container, asserting the sibling survives — the
+  property the image lever cannot provide — as unit and end-to-end.
+
 ## [3.2.2] - 2026-07-31
 
 - Backup: the btrfs snapshot is carved inside its subject, as
