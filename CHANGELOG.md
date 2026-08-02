@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.4.0] - 2026-08-02
+
+- Backup: *-a* implies *-D*, so a generation was written with
+  *--devices --specials* and rsync recreated every unix socket and fifo found in
+  a volume. Where the backup root is an nfs-ganesha export, ganesha accepts the
+  socket on write but cannot serve it back, and the remote pull's sender then
+  fails with *readdir* / *readlink_stat* "Invalid argument (22)" and exits 23 —
+  deterministically, for every retry. *--no-D* keeps them out of the generation.
+- Backup: nothing restorable is lost. Sockets and fifos are recreated by the
+  daemons that own them, and the postfix queue itself — *incoming*, *active*,
+  *deferred*, *hold*, *maildrop* — is unaffected, so accepted-but-undelivered
+  mail stays in the backup. Device nodes go too; the only volume that could hold
+  them is a nested docker data root, which does not belong in a backup anyway.
+- Tests: the flag is asserted on the rsync invocation.
+
 ## [3.3.0] - 2026-08-02
 
 - Backup: *--volumes-no-backup-required* excludes a volume by name.
