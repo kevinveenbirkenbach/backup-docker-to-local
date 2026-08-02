@@ -69,6 +69,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     p.add_argument(
+        "--volumes-no-backup-required",
+        nargs="+",
+        default=[],
+        help="Exact volume names that are never backed up, whatever containers use them. For derived trees a restore cannot reproduce, above all a nested docker data root",
+    )
+
+    p.add_argument(
         "--everything",
         action="store_true",
         help="Force file backup for all volumes and also execute database dumps (like old script)",

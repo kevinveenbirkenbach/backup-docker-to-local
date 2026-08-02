@@ -54,6 +54,14 @@ def main() -> int:
 
         for volume_name in docker_volume_names():
             print(f"Start backup routine for volume: {volume_name}", flush=True)
+
+            if volume_name in args.volumes_no_backup_required:
+                print(
+                    f"Skipping volume '{volume_name}' entirely (declared no-backup).",
+                    flush=True,
+                )
+                continue
+
             containers = containers_using_volume(volume_name)
 
             if volume_is_fully_ignored(containers, args.images_no_backup_required):
