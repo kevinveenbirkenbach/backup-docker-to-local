@@ -12,6 +12,7 @@ from baudolo.backup.snapshot import volume_snapshot
 def stubbed_snapshot(kind: str, subject: str, tag: str):
     return volume_snapshot(kind, subject, tag, run=lambda command: [])
 
+
 ARGV = [
     "baudolo",
     "--compose-dir",

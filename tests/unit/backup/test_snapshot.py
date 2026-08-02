@@ -35,11 +35,15 @@ class TestBtrfs(unittest.TestCase):
         run = Runner()
         with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run):
             pass
-        self.assertEqual(run.calls[-1], "btrfs subvolume delete /var/lib/docker/.baudolo-20260731")
+        self.assertEqual(
+            run.calls[-1], "btrfs subvolume delete /var/lib/docker/.baudolo-20260731"
+        )
 
     def test_it_maps_a_volume_path_into_the_snapshot(self) -> None:
         run = Runner()
-        with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run) as resolve:
+        with volume_snapshot(
+            "btrfs", "/var/lib/docker", "20260731", run=run
+        ) as resolve:
             self.assertEqual(
                 resolve("/var/lib/docker/volumes/postgres_data/_data"),
                 "/var/lib/docker/.baudolo-20260731/volumes/postgres_data/_data",
@@ -47,7 +51,9 @@ class TestBtrfs(unittest.TestCase):
 
     def test_it_keeps_the_trailing_slash_rsync_reads_as_contents(self) -> None:
         run = Runner()
-        with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run) as resolve:
+        with volume_snapshot(
+            "btrfs", "/var/lib/docker", "20260731", run=run
+        ) as resolve:
             self.assertEqual(
                 resolve("/var/lib/docker/volumes/postgres_data/_data/"),
                 "/var/lib/docker/.baudolo-20260731/volumes/postgres_data/_data/",
@@ -102,14 +108,20 @@ class TestRejections(unittest.TestCase):
 
     def test_a_path_outside_the_subject_is_rejected(self) -> None:
         run = Runner()
-        with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run) as resolve:
+        with volume_snapshot(
+            "btrfs", "/var/lib/docker", "20260731", run=run
+        ) as resolve:
             with self.assertRaises(SnapshotError):
                 resolve("/etc/passwd")
 
     def test_the_subject_itself_resolves_to_the_snapshot_root(self) -> None:
         run = Runner()
-        with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run) as resolve:
-            self.assertEqual(resolve("/var/lib/docker"), "/var/lib/docker/.baudolo-20260731")
+        with volume_snapshot(
+            "btrfs", "/var/lib/docker", "20260731", run=run
+        ) as resolve:
+            self.assertEqual(
+                resolve("/var/lib/docker"), "/var/lib/docker/.baudolo-20260731"
+            )
 
 
 class Busy(Runner):

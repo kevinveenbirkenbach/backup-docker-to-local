@@ -29,7 +29,7 @@ LOOP_FS = {
     "ext4": "mkdir -p /subject/docker",
 }
 # A container carries no /lib/modules, so modprobe fails even on a loaded module.
-ZFS_READY = '{ [ -c /dev/zfs ] || modprobe zfs 2>/dev/null; }; [ -c /dev/zfs ]'
+ZFS_READY = "{ [ -c /dev/zfs ] || modprobe zfs 2>/dev/null; }; [ -c /dev/zfs ]"
 
 
 def mount_script(fstype: str) -> str:
@@ -51,7 +51,13 @@ def zfs_usable() -> bool:
     """Whether this host's kernel can serve zfs to a privileged container."""
     proc = run(
         [
-            "docker", "run", "--rm", "--privileged", IMAGE, "sh", "-lc",
+            "docker",
+            "run",
+            "--rm",
+            "--privileged",
+            IMAGE,
+            "sh",
+            "-lc",
             f"apk add -q zfs >/dev/null 2>&1 && {ZFS_READY}",
         ],
         capture=True,
@@ -87,11 +93,20 @@ def drive(fstype: str, kind: str, expect: str) -> str:
     try:
         proc = run(
             [
-                "docker", "run", "--rm", "--privileged",
-                "--name", staged.name,
-                "-v", f"{staged / 'src'}:/src:ro",
-                "-v", f"{staged / 'driver.py'}:/driver.py:ro",
-                IMAGE, "sh", "-lc", script,
+                "docker",
+                "run",
+                "--rm",
+                "--privileged",
+                "--name",
+                staged.name,
+                "-v",
+                f"{staged / 'src'}:/src:ro",
+                "-v",
+                f"{staged / 'driver.py'}:/driver.py:ro",
+                IMAGE,
+                "sh",
+                "-lc",
+                script,
             ],
             capture=True,
             check=False,
@@ -99,7 +114,9 @@ def drive(fstype: str, kind: str, expect: str) -> str:
     finally:
         shutil.rmtree(staged, ignore_errors=True)
     if proc.returncode != 0:
-        raise AssertionError(f"{fstype}/{kind} driver failed:\n{proc.stdout}\n{proc.stderr}")
+        raise AssertionError(
+            f"{fstype}/{kind} driver failed:\n{proc.stdout}\n{proc.stderr}"
+        )
     return proc.stdout
 
 
@@ -125,7 +142,9 @@ class TestE2ESnapshot(unittest.TestCase):
                     "E2E_REQUIRE_FILESYSTEMS demands zfs, but this kernel provides no "
                     "zfs module; load it before running the suite"
                 )
-            self.skipTest("this kernel provides no zfs module, so no pool can be created")
+            self.skipTest(
+                "this kernel provides no zfs module, so no pool can be created"
+            )
         self.assert_freezes("zfs")
 
     def test_ext4_has_no_snapshot_and_says_so(self) -> None:

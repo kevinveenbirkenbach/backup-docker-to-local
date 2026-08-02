@@ -1,4 +1,5 @@
 """Fixtures and paths the e2e suite builds its scenarios from."""
+
 from __future__ import annotations
 
 import shutil

@@ -25,7 +25,9 @@ GENERATION = f"{VERSIONS}/20260731"
 def shell(command: str) -> list[str]:
     proc = subprocess.run(command, shell=True, capture_output=True, text=True)
     if proc.returncode != 0:
-        raise SnapshotError(f"{command} exited {proc.returncode}: {proc.stderr.strip()}")
+        raise SnapshotError(
+            f"{command} exited {proc.returncode}: {proc.stderr.strip()}"
+        )
     return proc.stdout.splitlines()
 
 

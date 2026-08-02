@@ -39,7 +39,9 @@ class TestSnapshotFlags(unittest.TestCase):
             parse("--snapshot", "ext4", "--snapshot-subject", "/var/lib/docker")
 
     def test_zfs_is_accepted(self) -> None:
-        self.assertEqual(parse("--snapshot", "zfs", "--snapshot-subject", "/d").snapshot, "zfs")
+        self.assertEqual(
+            parse("--snapshot", "zfs", "--snapshot-subject", "/d").snapshot, "zfs"
+        )
 
     def test_shutdown_is_rejected_because_nothing_is_stopped(self) -> None:
         with self.assertRaises(SystemExit):

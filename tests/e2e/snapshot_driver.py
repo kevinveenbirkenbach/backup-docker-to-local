@@ -22,7 +22,9 @@ EXPECT = sys.argv[3]
 def shell(command: str) -> list[str]:
     proc = subprocess.run(command, shell=True, capture_output=True, text=True)
     if proc.returncode != 0:
-        raise SnapshotError(f"{command} exited {proc.returncode}: {proc.stderr.strip()}")
+        raise SnapshotError(
+            f"{command} exited {proc.returncode}: {proc.stderr.strip()}"
+        )
     return proc.stdout.splitlines()
 
 
@@ -55,5 +57,8 @@ with volume_snapshot(KIND, SUBJECT, "e2e", run=shell) as resolve:
 
     root = Path(resolve(SUBJECT))
 
-check("the snapshot is removed afterwards", not root.exists() or not (root / "volumes").exists())
+check(
+    "the snapshot is removed afterwards",
+    not root.exists() or not (root / "volumes").exists(),
+)
 print("ALL OK", flush=True)

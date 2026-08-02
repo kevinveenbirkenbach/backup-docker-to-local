@@ -100,7 +100,9 @@ def parse_args() -> argparse.Namespace:
     if bool(args.snapshot) != bool(args.snapshot_subject):
         p.error("--snapshot and --snapshot-subject must be given together")
     if args.snapshot and args.shutdown:
-        p.error("--shutdown is meaningless with --snapshot: containers are never stopped")
+        p.error(
+            "--shutdown is meaningless with --snapshot: containers are never stopped"
+        )
     if args.snapshot and args.hard_restart_projects:
         p.error(
             "--hard-restart-projects is meaningless with --snapshot: the flag exists "
