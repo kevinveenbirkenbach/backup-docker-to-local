@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.4.1] - 2026-08-05
+
+- Backup: each volume is copied twice into the same destination — once hot,
+  once cold after the container is stopped — and rsync ran with *-b*, so
+  *--delete* renamed rather than removed a file the source had dropped between
+  the passes. Stopping a container is what makes the source drop files: a
+  graceful shutdown flushes and the format rolls its commit point. The
+  superseded file survived as *name~* beside the real one and was restored into
+  live data.
+- Backup: for an opaque payload that is stale bytes nobody reads; for a format
+  that enumerates its own directory it is corruption. Lucene resolves the
+  current commit by parsing every file starting with *segments* as a radix-36
+  generation, so a restored *segments_3~* leaves the shard store unreadable and
+  the primary at *NO_VALID_SHARD_COPY*. With *.security-7* unallocatable the
+  reserved *elastic* user has no password hash, every probe answers 401 and the
+  container never turns healthy.
+- Backup: *--link-dest* already provides the incrementals and nothing reads the
+  twins — the restore path is an unfiltered *rsync -avv --delete* into the live
+  volume. Dropping *-b* leaves the predecessor generation byte-identical, keeps
+  the hardlinks intact and makes generations smaller, never larger.
+- Tests: the absence of *--backup* is asserted on the rsync invocation.
+
 ## [3.4.0] - 2026-08-02
 
 - Backup: *-a* implies *-D*, so a generation was written with
