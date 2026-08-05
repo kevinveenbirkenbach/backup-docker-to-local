@@ -1,6 +1,7 @@
 {
   "permissions": {
     "ask": [
+      "Bash(git commit*)",
       "Edit(CHANGELOG.md)",
       "Write(CHANGELOG.md)",
       "Edit(pyproject.toml)",
