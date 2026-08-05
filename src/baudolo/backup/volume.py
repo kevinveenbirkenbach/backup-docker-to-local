@@ -50,7 +50,7 @@ def backup_volume(
     verify = "--checksum " if authoritative else ""
 
     cmd = (
-        f"rsync -abP --no-D --delete --delete-excluded "
+        f"rsync -aP --no-D --delete --delete-excluded "
         f"{verify}{link_dest} {source} {dest}"
     )
 
