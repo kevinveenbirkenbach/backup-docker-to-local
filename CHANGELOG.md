@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.4.2] - 2026-08-15
+
+- Backup: *has_image* matched the raw *.Config.Image*, so the registry host and
+  the tag decided the dump tool. On a swarm node named after the app under test,
+  *svc-db-mariadb-swarm-mgr-01:5000/postgres_custom* read as MariaDB and
+  *mariadb-dump* ran inside a Postgres container: exit 127, and the
+  *BackupException* took the backup unit with it.
+- Backup: *image_name* strips digest, tag and registry host, so the engine rests
+  on the repository path alone — the exact-matching intent of 3.0.0 applied to
+  the one place that change did not reach.
+- Tests: both false-positive directions on *has_image*, plus an e2e that
+  reproduces the shape with a *docker tag* and asserts a real *pg_dump* lands.
+
 ## [3.4.1] - 2026-08-05
 
 - Backup: each volume is copied twice into the same destination — once hot,
