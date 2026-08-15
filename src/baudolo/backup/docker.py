@@ -9,9 +9,29 @@ def get_image_info(container: str) -> str:
     )[0]
 
 
+def image_name(container: str) -> str:
+    """The image's repository path, without registry host, tag or digest.
+
+    A swarm node that hosts the local registry puts its own hostname in front
+    of every pull, so the raw reference of a Postgres container can read
+    `svc-db-mariadb-swarm-mgr-01:5000/postgres_custom:17-3.5`. Matching the
+    whole reference finds "mariadb" there and dumps the database with
+    mariadb-dump, which the Postgres image does not ship (exit 127). Tags bite
+    the same way: `xwiki_custom:lts-postgres-tomcat`.
+    """
+    reference = get_image_info(container).strip().split("@", 1)[0]
+    head, _, tail = reference.rpartition("/")
+    tail = tail.split(":", 1)[0]
+    if head:
+        registry = head.split("/", 1)[0]
+        if "." in registry or ":" in registry or registry == "localhost":
+            head = head.partition("/")[2]
+    return f"{head}/{tail}" if head else tail
+
+
 def has_image(container: str, pattern: str) -> bool:
-    """Return True if container's image contains the pattern."""
-    return pattern in get_image_info(container)
+    """Return True if the container's image name contains the pattern."""
+    return pattern in image_name(container)
 
 
 def docker_volume_names() -> list[str]:
