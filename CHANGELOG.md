@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.4.3] - 2026-08-16
+
+- Backup: *create_version_directory* carried *exist_ok=True*, so a run starting
+  in the same wall-clock second as its predecessor claimed that predecessor's
+  generation. Generation names carry seconds, and a host with little to copy
+  finishes inside one — rsync *--delete* then overwrote a finished generation,
+  and only afterwards did *create_stamp_file* refuse the already-stamped
+  directory and exit 2. The guard reported the damage instead of preventing it.
+- Backup: the generation directory is claimed exclusively. Claiming it is the
+  first filesystem action of a run, so a collision aborts before the first
+  write and names the second it collided on.
+- Tests: the idempotence test asserted the reuse and gave way to one that
+  requires the refusal.
+
 ## [3.4.2] - 2026-08-15
 
 - Backup: *has_image* matched the raw *.Config.Image*, so the registry host and
