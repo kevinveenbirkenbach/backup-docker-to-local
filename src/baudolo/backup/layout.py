@@ -7,7 +7,7 @@ import pathlib
 
 from dirval import create_stamp_file
 
-from .shell import execute_shell_command
+from .shell import BackupException, execute_shell_command
 
 
 def get_machine_id() -> str:
@@ -23,7 +23,14 @@ def stamp_directory(version_dir: str) -> None:
 
 def create_version_directory(versions_dir: str, backup_time: str) -> str:
     version_dir = os.path.join(versions_dir, backup_time)
-    pathlib.Path(version_dir).mkdir(parents=True, exist_ok=True)
+    try:
+        pathlib.Path(version_dir).mkdir(parents=True)
+    except FileExistsError:
+        raise BackupException(
+            f"generation {backup_time} already exists at {version_dir}; "
+            "another run claimed this second - refusing to write into it, "
+            "since rsync --delete would overwrite that generation"
+        ) from None
     return version_dir
 
 

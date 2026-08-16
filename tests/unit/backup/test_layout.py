@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from baudolo.backup import layout as mod
+from baudolo.backup.shell import BackupException
 
 
 class TestVersionDirectory(unittest.TestCase):
@@ -17,11 +18,12 @@ class TestVersionDirectory(unittest.TestCase):
             self.assertTrue(Path(created).is_dir())
             self.assertEqual(Path(created).name, "20260731020304")
 
-    def test_it_is_idempotent(self) -> None:
+    def test_it_refuses_a_generation_another_run_already_claimed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            first = mod.create_version_directory(tmp, "20260731")
-            second = mod.create_version_directory(tmp, "20260731")
-            self.assertEqual(first, second)
+            mod.create_version_directory(tmp, "20260731")
+            with self.assertRaises(BackupException) as caught:
+                mod.create_version_directory(tmp, "20260731")
+            self.assertIn("20260731", str(caught.exception))
 
     def test_it_creates_missing_parents(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
