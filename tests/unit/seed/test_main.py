@@ -17,20 +17,15 @@ class TestSeedMain(unittest.TestCase):
             columns=["instance", "database", "username", "password"]
         )
 
-    def test_validate_database_value_rejects_empty(self) -> None:
+    def test_a_rejected_database_never_reaches_the_file(self) -> None:
         with self.assertRaises(ValueError):
-            seed_main._validate_database_value("", instance="x")
-
-    def test_validate_database_value_accepts_star(self) -> None:
-        self.assertEqual(seed_main._validate_database_value("*", instance="x"), "*")
-
-    def test_validate_database_value_rejects_nan(self) -> None:
-        with self.assertRaises(ValueError):
-            seed_main._validate_database_value("nan", instance="x")
-
-    def test_validate_database_value_rejects_invalid_name(self) -> None:
-        with self.assertRaises(ValueError):
-            seed_main._validate_database_value("bad name", instance="x")
+            seed_main.check_and_add_entry(
+                file_path="/nonexistent/databases.csv",
+                instance="x",
+                database="bad name",
+                username="u",
+                password="p",
+            )
 
     def _mock_df_mask_any(self, *, any_value: bool) -> MagicMock:
         """

@@ -2,38 +2,16 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import sys
 
 import pandas as pd
 from pandas.errors import EmptyDataError
 
-DB_NAME_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_-]*$")
-
-
-def _validate_database_value(value: str | None, *, instance: str) -> str:
-    v = (value or "").strip()
-    if v == "":
-        raise ValueError(
-            f"Invalid databases.csv entry for instance '{instance}': "
-            "column 'database' must be '*' or a concrete database name (not empty)."
-        )
-    if v == "*":
-        return "*"
-    if v.lower() == "nan":
-        raise ValueError(
-            f"Invalid databases.csv entry for instance '{instance}': database must not be 'nan'."
-        )
-    if not DB_NAME_RE.match(v):
-        raise ValueError(
-            f"Invalid databases.csv entry for instance '{instance}': "
-            f"invalid database name '{v}'. Allowed: letters, numbers, '_' and '-'."
-        )
-    return v
+from baudolo.databases import COLUMNS, DELIMITER, validate_database
 
 
 def _empty_df() -> pd.DataFrame:
-    return pd.DataFrame(columns=["instance", "database", "username", "password"])
+    return pd.DataFrame(columns=list(COLUMNS))
 
 
 def check_and_add_entry(
@@ -50,13 +28,13 @@ def check_and_add_entry(
     - database MUST be set
     - database MUST be '*' or a valid database name
     """
-    database = _validate_database_value(database, instance=instance)
+    database = validate_database(database, instance=instance)
 
     if os.path.exists(file_path):
         try:
             df = pd.read_csv(
                 file_path,
-                sep=";",
+                sep=DELIMITER,
                 dtype=str,
                 keep_default_na=False,
             )
@@ -77,11 +55,11 @@ def check_and_add_entry(
         print("Adding new entry.")
         new_entry = pd.DataFrame(
             [[instance, database, username, password]],
-            columns=["instance", "database", "username", "password"],
+            columns=list(COLUMNS),
         )
         df = pd.concat([df, new_entry], ignore_index=True)
 
-    df.to_csv(file_path, sep=";", index=False)
+    df.to_csv(file_path, sep=DELIMITER, index=False)
 
 
 def main() -> None:

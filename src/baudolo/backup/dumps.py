@@ -7,6 +7,8 @@ import sys
 import pandas
 from pandas.errors import EmptyDataError
 
+from baudolo.databases import COLUMNS, DELIMITER
+
 from .db import backup_database
 from .docker import has_tool, image_id
 
@@ -81,7 +83,7 @@ def _empty_databases_df() -> pandas.DataFrame:
     This allows the backup to continue without DB dumps when the CSV is missing
     or empty (pandas EmptyDataError).
     """
-    return pandas.DataFrame(columns=["instance", "database", "username", "password"])
+    return pandas.DataFrame(columns=list(COLUMNS))
 
 
 def load_databases_df(csv_path: str) -> pandas.DataFrame:
@@ -93,7 +95,9 @@ def load_databases_df(csv_path: str) -> pandas.DataFrame:
     - Valid CSV        -> return dataframe
     """
     try:
-        return pandas.read_csv(csv_path, sep=";", keep_default_na=False, dtype=str)
+        return pandas.read_csv(
+            csv_path, sep=DELIMITER, keep_default_na=False, dtype=str
+        )
     except FileNotFoundError:
         print(
             f"WARNING: databases.csv not found: {csv_path}. Continuing without database dumps.",
