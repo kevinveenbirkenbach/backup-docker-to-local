@@ -48,23 +48,27 @@ def _resolver(subject: str, root: str) -> Callable[[str], str]:
     return resolve
 
 
-def _btrfs(subject: str, name: str, run: Callable[[str], list[str]]) -> tuple[str, str]:
+def _btrfs(
+    subject: str, name: str, run: Callable[[list[str]], list[str]]
+) -> tuple[str, list[str]]:
     # The snapshot goes inside the subject, never beside it: the kernel rejects
     # a snapshot whose destination is on another filesystem, which is exactly
     # what the parent directory is when the subject is a mountpoint of its own.
     target = os.path.join(os.path.abspath(subject), f".{name}")
-    run(f"btrfs subvolume snapshot -r {subject} {target}")
-    return target, f"btrfs subvolume delete {target}"
+    run(["btrfs", "subvolume", "snapshot", "-r", subject, target])
+    return target, ["btrfs", "subvolume", "delete", target]
 
 
-def _zfs(subject: str, name: str, run: Callable[[str], list[str]]) -> tuple[str, str]:
-    output = run(f"zfs list -H -o name {subject}")
+def _zfs(
+    subject: str, name: str, run: Callable[[list[str]], list[str]]
+) -> tuple[str, list[str]]:
+    output = run(["zfs", "list", "-H", "-o", "name", subject])
     dataset = (output[0] if output else "").strip()
     if not dataset:
         raise SnapshotError(f"no zfs dataset is mounted at {subject}")
-    run(f"zfs snapshot {dataset}@{name}")
+    run(["zfs", "snapshot", f"{dataset}@{name}"])
     root = os.path.join(subject, ".zfs", "snapshot", name)
-    return root, f"zfs destroy {dataset}@{name}"
+    return root, ["zfs", "destroy", f"{dataset}@{name}"]
 
 
 _CREATE = {"btrfs": _btrfs, "zfs": _zfs}
@@ -129,7 +133,7 @@ def volume_snapshot(
     kind: str,
     subject: str,
     tag: str,
-    run: Callable[[str], list[str]] = execute_shell_command,
+    run: Callable[[list[str]], list[str]] = execute_shell_command,
 ) -> Iterator[Callable[[str], str]]:
     """Yield a resolver mapping a path under ``subject`` into a snapshot of it.
 

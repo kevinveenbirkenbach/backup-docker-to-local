@@ -1,18 +1,27 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from .shell import BackupException, execute_shell_command
+
+
+def docker_exec_argv(
+    container: str, argv: Sequence[str], *, interactive: bool = False
+) -> list[str]:
+    """The argv that runs *argv* inside *container*."""
+    return ["docker", "exec", *(["-i"] if interactive else []), container, *argv]
 
 
 def get_image_info(container: str) -> str:
     return execute_shell_command(
-        f"docker inspect --format '{{{{.Config.Image}}}}' {container}"
+        ["docker", "inspect", "--format", "{{.Config.Image}}", container]
     )[0]
 
 
 def image_id(container: str) -> str:
     """The container's image ID, identical for every replica of one image."""
     return execute_shell_command(
-        f"docker inspect --format '{{{{.Image}}}}' {container}"
+        ["docker", "inspect", "--format", "{{.Image}}", container]
     )[0].strip()
 
 
@@ -24,19 +33,26 @@ def has_tool(container: str, tool: str) -> bool:
     tool it ships.
     """
     try:
-        execute_shell_command(f"docker exec {container} {tool} --version")
+        execute_shell_command(docker_exec_argv(container, [tool, "--version"]))
     except BackupException:
         return False
     return True
 
 
 def docker_volume_names() -> list[str]:
-    return execute_shell_command("docker volume ls --format '{{.Name}}'")
+    return execute_shell_command(["docker", "volume", "ls", "--format", "{{.Name}}"])
 
 
 def containers_using_volume(volume_name: str) -> list[str]:
     return execute_shell_command(
-        f"docker ps --filter volume=\"{volume_name}\" --format '{{{{.Names}}}}'"
+        [
+            "docker",
+            "ps",
+            "--filter",
+            f"volume={volume_name}",
+            "--format",
+            "{{.Names}}",
+        ]
     )
 
 
@@ -50,12 +66,25 @@ def is_swarm_task(container: str) -> bool:
     keeps failing the run loudly instead of silently skipping the stop."""
     try:
         out = execute_shell_command(
-            "docker inspect --format "
-            f"'{{{{index .Config.Labels \"com.docker.swarm.task.id\"}}}}' {container}"
+            [
+                "docker",
+                "inspect",
+                "--format",
+                '{{index .Config.Labels "com.docker.swarm.task.id"}}',
+                container,
+            ]
         )
     except BackupException:
         still_listed = execute_shell_command(
-            f"docker ps -a --filter name=^{container}$ --format '{{{{.Names}}}}'"
+            [
+                "docker",
+                "ps",
+                "-a",
+                "--filter",
+                f"name=^{container}$",
+                "--format",
+                "{{.Names}}",
+            ]
         )
         if still_listed and still_listed[0].strip():
             raise
@@ -82,17 +111,5 @@ def change_containers_status(containers: list[str], status: str) -> None:
     if not containers:
         print(f"No containers to {status}.", flush=True)
         return
-    names = " ".join(containers)
-    print(f"{status.capitalize()} containers: {names}...", flush=True)
-    execute_shell_command(f"docker {status} {names}")
-
-
-def docker_volume_exists(volume: str) -> bool:
-    # Avoid throwing exceptions for exists checks.
-    try:
-        execute_shell_command(
-            f"docker volume inspect {volume} >/dev/null 2>&1 && echo OK"
-        )
-        return True
-    except BackupException:
-        return False
+    print(f"{status.capitalize()} containers: {' '.join(containers)}...", flush=True)
+    execute_shell_command(["docker", status, *containers])

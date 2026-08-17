@@ -22,13 +22,11 @@ VERSIONS = "/backups"
 GENERATION = f"{VERSIONS}/20260731"
 
 
-def shell(command: str) -> list[str]:
-    proc = subprocess.run(
-        command, shell=True, capture_output=True, text=True, check=False
-    )
+def shell(command: list[str]) -> list[str]:
+    proc = subprocess.run(command, capture_output=True, text=True, check=False)
     if proc.returncode != 0:
         raise SnapshotError(
-            f"{command} exited {proc.returncode}: {proc.stderr.strip()}"
+            f"{' '.join(command)} exited {proc.returncode}: {proc.stderr.strip()}"
         )
     return proc.stdout.splitlines()
 

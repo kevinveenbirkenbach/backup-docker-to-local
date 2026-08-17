@@ -10,13 +10,13 @@ from baudolo.backup.snapshot import SnapshotError, volume_snapshot
 
 class Runner:
     def __init__(self, replies: dict[str, list[str]] | None = None) -> None:
-        self.calls: list[str] = []
+        self.calls: list[list[str]] = []
         self.replies = replies or {}
 
-    def __call__(self, command: str) -> list[str]:
-        self.calls.append(command)
+    def __call__(self, command: list[str]) -> list[str]:
+        self.calls.append(list(command))
         for prefix, reply in self.replies.items():
-            if command.startswith(prefix):
+            if " ".join(command).startswith(prefix):
                 return reply
         return []
 
@@ -28,7 +28,14 @@ class TestBtrfs(unittest.TestCase):
             pass
         self.assertEqual(
             run.calls[0],
-            "btrfs subvolume snapshot -r /var/lib/docker /var/lib/docker/.baudolo-20260731",
+            [
+                "btrfs",
+                "subvolume",
+                "snapshot",
+                "-r",
+                "/var/lib/docker",
+                "/var/lib/docker/.baudolo-20260731",
+            ],
         )
 
     def test_it_removes_the_snapshot_afterwards(self) -> None:
@@ -36,7 +43,8 @@ class TestBtrfs(unittest.TestCase):
         with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run):
             pass
         self.assertEqual(
-            run.calls[-1], "btrfs subvolume delete /var/lib/docker/.baudolo-20260731"
+            run.calls[-1],
+            ["btrfs", "subvolume", "delete", "/var/lib/docker/.baudolo-20260731"],
         )
 
     def test_it_maps_a_volume_path_into_the_snapshot(self) -> None:
@@ -66,7 +74,7 @@ class TestBtrfs(unittest.TestCase):
             volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run),
         ):
             raise ZeroDivisionError
-        self.assertTrue(run.calls[-1].startswith("btrfs subvolume delete"))
+        self.assertEqual(run.calls[-1][:3], ["btrfs", "subvolume", "delete"])
 
 
 class TestZfs(unittest.TestCase):
@@ -77,13 +85,15 @@ class TestZfs(unittest.TestCase):
         run = self._run()
         with volume_snapshot("zfs", "/var/lib/docker", "20260731", run=run):
             pass
-        self.assertIn("zfs snapshot tank/docker@baudolo-20260731", run.calls)
+        self.assertIn(["zfs", "snapshot", "tank/docker@baudolo-20260731"], run.calls)
 
     def test_it_destroys_the_snapshot_afterwards(self) -> None:
         run = self._run()
         with volume_snapshot("zfs", "/var/lib/docker", "20260731", run=run):
             pass
-        self.assertEqual(run.calls[-1], "zfs destroy tank/docker@baudolo-20260731")
+        self.assertEqual(
+            run.calls[-1], ["zfs", "destroy", "tank/docker@baudolo-20260731"]
+        )
 
     def test_it_maps_a_volume_path_through_the_dot_zfs_directory(self) -> None:
         run = self._run()
@@ -131,8 +141,8 @@ class TestRejections(unittest.TestCase):
 
 
 class Busy(Runner):
-    def __call__(self, command: str) -> list[str]:
-        if command.startswith("btrfs subvolume delete"):
+    def __call__(self, command: list[str]) -> list[str]:
+        if command[:3] == ["btrfs", "subvolume", "delete"]:
             raise BackupException("target is busy")
         return super().__call__(command)
 

@@ -48,7 +48,7 @@ class TestBackupVolume(unittest.TestCase):
 
     def test_it_keeps_no_twin_of_what_the_second_pass_replaces(self) -> None:
         command = self.copy(authoritative=True)
-        self.assertIn("rsync -aP ", command)
+        self.assertEqual(command[:2], ["rsync", "-aP"])
         self.assertNotIn("--backup", command)
 
     def test_it_creates_the_destination(self) -> None:

@@ -11,7 +11,7 @@ from .shell import BackupException, execute_shell_command
 
 
 def get_machine_id() -> str:
-    return execute_shell_command("sha256sum /etc/machine-id")[0][0:64]
+    return execute_shell_command(["sha256sum", "/etc/machine-id"])[0][0:64]
 
 
 def stamp_directory(version_dir: str) -> None:

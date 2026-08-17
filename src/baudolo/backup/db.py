@@ -7,7 +7,10 @@ import re
 
 import pandas
 
-from .shell import BackupException, execute_shell_command
+from baudolo.databases import CLUSTER_ROW, validate_database
+
+from .docker import docker_exec_argv
+from .shell import BackupException, execute_to_file
 
 log = logging.getLogger(__name__)
 
@@ -21,47 +24,21 @@ def get_instance(container: str, database_containers: list[str]) -> str:
     return re.split(r"(_|-)(database|db|postgres)", container)[0]
 
 
-def _validate_database_value(value: str | None, *, instance: str) -> str:
-    """
-    Enforce explicit database semantics:
-
-    - "*"       => dump ALL databases (cluster dump for Postgres)
-    - "<name>"  => dump exactly this database
-    - ""        => invalid configuration (would previously result in NaN / nan.backup.sql)
-    """
-    v = (value or "").strip()
-    if v == "":
-        raise ValueError(
-            f"Invalid databases.csv entry for instance '{instance}': "
-            "column 'database' must be '*' or a concrete database name (not empty)."
-        )
-    return v
-
-
-def _atomic_write_cmd(cmd: str, out_file: str) -> None:
-    """
-    Write dump output atomically:
-    - write to <file>.tmp
-    - rename to <file> only on success
-
-    This prevents empty or partial dump files from being treated as valid backups.
-    """
-    tmp = f"{out_file}.tmp"
-    execute_shell_command(f"{cmd} > {tmp}")
-    execute_shell_command(f"mv {tmp} {out_file}")
-
-
 def fallback_pg_dumpall(
     container: str, username: str, password: str, out_file: str
 ) -> None:
     """
     Perform a full Postgres cluster dump using pg_dumpall.
     """
-    cmd = (
-        f"PGPASSWORD={password} docker exec -i {container} "
-        f"pg_dumpall -U {username} -h localhost"
+    execute_to_file(
+        docker_exec_argv(
+            container,
+            ["pg_dumpall", "-U", username, "-h", "localhost"],
+            interactive=True,
+        ),
+        out_file,
+        env={"PGPASSWORD": password},
     )
-    _atomic_write_cmd(cmd, out_file)
 
 
 def backup_database(
@@ -99,13 +76,13 @@ def backup_database(
         user = (getattr(row, "username", "") or "").strip()
         password = (getattr(row, "password", "") or "").strip()
 
-        db_value = _validate_database_value(raw_db, instance=instance_name)
+        db_value = validate_database(raw_db, instance=instance_name)
 
-        if db_value == "*":
+        if db_value == CLUSTER_ROW:
             if db_type != "postgres":
                 raise ValueError(
                     f"databases.csv entry for instance '{instance_name}': "
-                    "'*' is currently only supported for Postgres."
+                    f"'{CLUSTER_ROW}' is currently only supported for Postgres."
                 )
 
             cluster_file = os.path.join(out_dir, f"{instance_name}.cluster.backup.sql")
@@ -118,23 +95,46 @@ def backup_database(
 
         if db_type == "mariadb":
             # Force TCP so auth matches '<user>'@'%' instead of socket -> 'localhost'.
-            cmd = (
-                f"docker exec {container} {dump_tool} "
-                f"-h 127.0.0.1 --protocol=tcp "
-                f"-u {user} -p{password} {db_name}"
+            execute_to_file(
+                docker_exec_argv(
+                    container,
+                    [
+                        dump_tool,
+                        "-h",
+                        "127.0.0.1",
+                        "--protocol=tcp",
+                        "-u",
+                        user,
+                        f"-p{password}",
+                        db_name,
+                    ],
+                ),
+                dump_file,
             )
-            _atomic_write_cmd(cmd, dump_file)
             produced = True
             continue
 
         if db_type == "postgres":
             try:
-                cmd = (
-                    f"PGPASSWORD={password} docker exec -i {container} "
-                    f"pg_dump -U {user} -d {db_name} -h localhost "
-                    f"--no-owner --no-privileges"
+                execute_to_file(
+                    docker_exec_argv(
+                        container,
+                        [
+                            "pg_dump",
+                            "-U",
+                            user,
+                            "-d",
+                            db_name,
+                            "-h",
+                            "localhost",
+                            "--no-owner",
+                            "--no-privileges",
+                        ],
+                        interactive=True,
+                    ),
+                    dump_file,
+                    env={"PGPASSWORD": password},
                 )
-                _atomic_write_cmd(cmd, dump_file)
                 produced = True
             except BackupException as e:
                 raise BackupException(

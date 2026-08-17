@@ -35,7 +35,9 @@ class TestHasTool(unittest.TestCase):
         with patch.object(docker_mod, "execute_shell_command", side_effect=_capture):
             docker_mod.has_tool("c1", "pg_dumpall")
 
-        self.assertEqual(captured, ["docker exec c1 pg_dumpall --version"])
+        self.assertEqual(
+            captured, [["docker", "exec", "c1", "pg_dumpall", "--version"]]
+        )
 
 
 if __name__ == "__main__":

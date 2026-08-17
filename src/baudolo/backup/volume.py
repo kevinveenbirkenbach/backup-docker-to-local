@@ -30,7 +30,7 @@ class Backing:
 
 def inspect_backing(volume_name: str) -> Backing:
     reported = execute_shell_command(
-        f"docker volume inspect --format '{{{{json .}}}}' {volume_name}"
+        ["docker", "volume", "inspect", "--format", "{{json .}}", volume_name]
     )[0]
     data = json.loads(reported)
     return Backing(
@@ -73,13 +73,12 @@ def backup_volume(
     pathlib.Path(dest).mkdir(parents=True, exist_ok=True)
 
     last = get_last_backup_dir(versions_dir, volume_name, dest)
-    link_dest = f"--link-dest='{last}'" if last else ""
-    verify = "--checksum " if authoritative else ""
-
-    cmd = (
-        f"rsync -aP --no-D --delete --delete-excluded "
-        f"{verify}{link_dest} {source} {dest}"
-    )
+    cmd = ["rsync", "-aP", "--no-D", "--delete", "--delete-excluded"]
+    if authoritative:
+        cmd.append("--checksum")
+    if last:
+        cmd.append(f"--link-dest={last}")
+    cmd += [source, dest]
 
     try:
         execute_shell_command(cmd)

@@ -23,13 +23,11 @@ from baudolo.backup.volume import Backing
 SUBJECT = sys.argv[1]
 
 
-def shell(command: str) -> list[str]:
-    proc = subprocess.run(
-        command, shell=True, capture_output=True, text=True, check=False
-    )
+def shell(command: list[str]) -> list[str]:
+    proc = subprocess.run(command, capture_output=True, text=True, check=False)
     if proc.returncode != 0:
         raise SnapshotError(
-            f"{command} exited {proc.returncode}: {proc.stderr.strip()}"
+            f"{' '.join(command)} exited {proc.returncode}: {proc.stderr.strip()}"
         )
     return proc.stdout.splitlines()
 
@@ -50,7 +48,7 @@ def volume(name: str, payload: str) -> Path:
 plain = volume("plain", "plain-payload")
 own = Path(SUBJECT) / "volumes" / "own" / "_data"
 own.mkdir(parents=True, exist_ok=True)
-shell(f"mount -t tmpfs tmpfs {own}")
+shell(["mount", "-t", "tmpfs", "tmpfs", own])
 (own / "state").write_text("own-payload")
 
 check("a plain volume is captured", unsnapshotted(Backing(str(plain)), SUBJECT) is None)
