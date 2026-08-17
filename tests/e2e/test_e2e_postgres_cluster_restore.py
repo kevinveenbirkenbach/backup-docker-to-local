@@ -23,11 +23,11 @@ SEED_SQL = (
     "CREATE DATABASE first OWNER app",
     "CREATE DATABASE second OWNER app",
 )
-DROP_SQL = (
-    "DROP DATABASE first",
-    "DROP DATABASE second",
-    "DROP ROLE app",
+SIBLING_SQL = (
+    "CREATE ROLE neighbour LOGIN PASSWORD 'neighbourpw'",
+    "CREATE DATABASE sibling OWNER neighbour",
 )
+SIBLING_PAYLOAD = "CREATE TABLE t (v text); INSERT INTO t VALUES ('sibling-payload');"
 FIRST_SQL = "CREATE TABLE t (v text); INSERT INTO t VALUES ('first-payload');"
 SECOND_SQL = "CREATE TABLE t (v text); INSERT INTO t VALUES ('second-payload');"
 
@@ -89,9 +89,6 @@ class TestE2EPostgresClusterRestore(unittest.TestCase):
             / f"{cls.pg_container}.cluster.backup.sql"
         )
 
-        for statement in DROP_SQL:
-            cls._psql("postgres", statement)
-
         run(
             [
                 "baudolo-restore",
@@ -115,6 +112,34 @@ class TestE2EPostgresClusterRestore(unittest.TestCase):
             ]
         )
 
+        for statement in SIBLING_SQL:
+            cls._psql("postgres", statement)
+        cls._psql("sibling", SIBLING_PAYLOAD)
+        cls.refused = run(cls._restore_argv(), check=False)
+
+    @classmethod
+    def _restore_argv(cls) -> list:
+        return [
+            "baudolo-restore",
+            "cluster",
+            cls.pg_volume,
+            cls.hash,
+            cls.version,
+            "--backups-dir",
+            cls.backups_dir,
+            "--repo-name",
+            cls.repo_name,
+            "--container",
+            cls.pg_container,
+            "--instance",
+            cls.pg_container,
+            "--db-user",
+            "postgres",
+            "--db-password",
+            "pgpw",
+            "--empty",
+        ]
+
     @classmethod
     def tearDownClass(cls) -> None:
         cleanup_docker(containers=cls.containers, volumes=cls.volumes)
@@ -135,6 +160,19 @@ class TestE2EPostgresClusterRestore(unittest.TestCase):
 
     def test_the_backup_wrote_a_cluster_dump(self) -> None:
         self.assertTrue(self.dump.is_file(), f"no cluster dump at {self.dump}")
+
+    def test_the_preclean_really_dropped_a_populated_cluster(self) -> None:
+        self.assertEqual(self._psql("first", "SELECT v FROM t"), "first-payload")
+
+    def test_a_second_empty_is_refused_once_a_foreign_database_exists(self) -> None:
+        self.assertNotEqual(self.refused.returncode, 0, self.refused.stdout)
+        self.assertIn("sibling", self.refused.stderr)
+
+    def test_the_refusal_left_the_foreign_database_alone(self) -> None:
+        self.assertEqual(self._psql("sibling", "SELECT v FROM t"), "sibling-payload")
+
+    def test_the_refusal_dropped_nothing_of_its_own(self) -> None:
+        self.assertEqual(self._psql("first", "SELECT v FROM t"), "first-payload")
 
     def test_both_databases_are_back(self) -> None:
         listed = self._psql(

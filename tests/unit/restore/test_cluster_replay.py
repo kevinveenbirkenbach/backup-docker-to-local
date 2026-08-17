@@ -11,6 +11,8 @@ class TestClusterReplay(unittest.TestCase):
         calls = []
 
         def _capture(container, argv, **kwargs):
+            if "-tAc" in argv:
+                return MagicMock(stdout=b"")
             calls.append((argv, kwargs.get("stdin")))
             return MagicMock()
 
@@ -58,7 +60,7 @@ class TestClusterReplay(unittest.TestCase):
         self.assertIn("DROP OWNED BY", preclean)
         self.assertIn("ORDER BY phase", preclean)
 
-    def test_the_preclean_spares_what_the_dump_does_not_recreate(self) -> None:
+    def test_the_preclean_spares_what_no_dump_recreates(self) -> None:
         preclean = self._replay(empty=True)[0][1].decode()
         self.assertIn("NOT datistemplate", preclean)
         self.assertIn("datname <> current_database()", preclean)

@@ -8,6 +8,9 @@
 -- control database. Template databases, the control database itself, the pg_*
 -- system roles and the connecting role are kept - the dump does not recreate
 -- them and dropping them would end the session.
+-- The sweep stays catalog-wide on purpose: a scoped one leaves databases that
+-- pin a dumped role in pg_shdepend, and phase 3 then fails after phase 1 has
+-- already dropped. assert_instance_matches_dump refuses before this runs.
 SELECT statement
   FROM (
     SELECT 1 AS phase,

@@ -30,6 +30,139 @@ from .version import guard
 CONTROL_DB = "postgres"
 _CLUSTER_PRECLEAN_SQL = os.path.join(os.path.dirname(__file__), "cluster_preclean.sql")
 _CREATE_ROLE = re.compile(rb'^CREATE ROLE "?([^";]+)"?;\s*$')
+_CREATE_DATABASE = re.compile(rb"^CREATE DATABASE\s+(.*)$")
+_CREATE_ROLE_LINE = re.compile(rb"^CREATE ROLE\s+(.*)$")
+_CONNECT = re.compile(rb"^\\connect\s+(.*)$")
+_NO_ROWS = "SELECT ''::text WHERE false"
+
+
+def _first_identifier(rest: str) -> str | None:
+    """The first SQL identifier in *rest*, quoted or bare.
+
+    A quoted identifier may hold spaces and doubled quotes, so it cannot be
+    read with a character class that stops at whitespace - which is how a
+    database called ``odd name`` used to leave the inventory as ``odd``.
+    """
+    text = rest.strip()
+    if not text:
+        return None
+    if text.startswith('"'):
+        out = []
+        index = 1
+        while index < len(text):
+            char = text[index]
+            if char == '"':
+                if index + 1 < len(text) and text[index + 1] == '"':
+                    out.append('"')
+                    index += 2
+                    continue
+                return "".join(out)
+            out.append(char)
+            index += 1
+        return None
+    return re.split(r"[\s;(]", text, maxsplit=1)[0] or None
+
+
+def _connect_target(rest: str) -> str | None:
+    """The database a ``\\connect`` line switches to.
+
+    psql options precede the name (``\\connect -reuse-previous=on dbname=x``),
+    and the name may arrive as a ``dbname=`` assignment rather than bare.
+    """
+    for token in rest.strip().split():
+        if token.startswith("-"):
+            continue
+        if token.startswith("dbname="):
+            return _first_identifier(token[len("dbname=") :])
+        return _first_identifier(rest.strip()[rest.strip().index(token) :])
+    return None
+
+
+def dump_inventory(sql_path: str) -> tuple[list[str], list[str]]:
+    """The databases and roles a cluster dump recreates.
+
+    Args:
+        sql_path: the ``pg_dumpall`` stream.
+
+    Returns:
+        ``(databases, roles)``, each in the order the dump names them. The
+        pre-clean is scoped to these: everything else in the instance belongs
+        to no backup this restore holds, and dropping it would destroy data
+        the replay cannot bring back.
+    """
+    databases: list[str] = []
+    roles: list[str] = []
+    with open(sql_path, "rb") as handle:
+        for raw in handle:
+            line = raw.decode("utf-8", "replace")
+            for pattern, sink, read in (
+                (_CREATE_DATABASE, databases, _first_identifier),
+                (_CONNECT, databases, _connect_target),
+                (_CREATE_ROLE_LINE, roles, _first_identifier),
+            ):
+                found = pattern.match(raw)
+                if not found:
+                    continue
+                name = read(line[found.start(1) :])
+                if name and name not in sink:
+                    sink.append(name)
+    return databases, roles
+
+
+def preclean_sql() -> str:
+    """The catalog-wide pre-clean, safe only behind the instance check."""
+    with open(_CLUSTER_PRECLEAN_SQL, encoding="utf-8") as preclean:
+        return preclean.read()
+
+
+def instance_databases(container: str, user: str, docker_env: dict) -> list[str]:
+    """The instance's own databases, templates and control database aside."""
+    listed = docker_exec(
+        container,
+        [
+            "psql",
+            "-U",
+            user,
+            "-d",
+            CONTROL_DB,
+            "-tAc",
+            (
+                "SELECT datname FROM pg_database "
+                "WHERE NOT datistemplate AND datname <> current_database()"
+            ),
+        ],
+        capture=True,
+        docker_env=docker_env,
+    ).stdout
+    text = listed.decode() if isinstance(listed, bytes) else listed
+    return [name for name in text.split() if name]
+
+
+def assert_instance_matches_dump(
+    container: str, user: str, sql_path: str, docker_env: dict
+) -> None:
+    """Refuse ``--empty`` on an instance holding anything the dump lacks.
+
+    The pre-clean is a catalog-wide sweep, so a foreign database would be
+    destroyed with no way back. Scoping the sweep instead is not a fix: a
+    surviving database that owns or grants to one of the dump's roles pins
+    that role in pg_shdepend, and DROP ROLE then fails after the dump's own
+    databases are already gone.
+
+    Raises:
+        RuntimeError: the instance carries databases this dump cannot restore.
+    """
+    dumped, _roles = dump_inventory(sql_path)
+    present = instance_databases(container, user, docker_env)
+    foreign = sorted(set(present) - set(dumped))
+    if foreign:
+        raise RuntimeError(
+            f"{container} also holds {', '.join(foreign)}, which "
+            f"{os.path.basename(sql_path)} does not carry. --empty wipes the "
+            "instance, so those would be destroyed with nothing to restore "
+            "them from. Move them off this instance, or drop them yourself if "
+            "they are disposable."
+        )
 
 
 def _psql(user: str) -> list[str]:
@@ -98,12 +231,11 @@ def restore_cluster_sql(
     docker_env = {"PGPASSWORD": password}
 
     if empty:
-        with open(_CLUSTER_PRECLEAN_SQL, encoding="utf-8") as preclean:
-            drop_sql = preclean.read()
+        assert_instance_matches_dump(container, user, sql_path, docker_env)
         docker_exec(
             container,
             _psql(user),
-            stdin=drop_sql.encode(),
+            stdin=preclean_sql().encode(),
             docker_env=docker_env,
         )
 
