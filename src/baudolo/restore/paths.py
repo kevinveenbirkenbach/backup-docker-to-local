@@ -27,3 +27,7 @@ class BackupPaths:
 
     def sql_file(self, db_name: str) -> str:
         return os.path.join(self.root(), "sql", f"{db_name}.backup.sql")
+
+    def cluster_file(self, instance: str) -> str:
+        """The pg_dumpall stream a `database = '*'` row produces."""
+        return os.path.join(self.root(), "sql", f"{instance}.cluster.backup.sql")

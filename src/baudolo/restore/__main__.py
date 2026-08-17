@@ -3,10 +3,11 @@ from __future__ import annotations
 import argparse
 import sys
 
-from .paths import BackupPaths
-from .files import restore_volume_files
-from .db.postgres import restore_postgres_sql
+from .db.cluster import restore_cluster_sql
 from .db.mariadb import restore_mariadb_sql
+from .db.postgres import restore_postgres_sql
+from .files import restore_volume_files
+from .paths import BackupPaths
 
 
 def _add_common_backup_args(p: argparse.ArgumentParser) -> None:
@@ -60,6 +61,27 @@ def main(argv: list[str] | None = None) -> int:
     p_pg.add_argument("--empty", action="store_true")
 
     # ------------------------------------------------------------------
+    # cluster
+    # ------------------------------------------------------------------
+    p_cluster = sub.add_parser(
+        "cluster", help="Restore a full PostgreSQL cluster dump (pg_dumpall)"
+    )
+    _add_common_backup_args(p_cluster)
+    p_cluster.add_argument("--container", required=True)
+    p_cluster.add_argument(
+        "--instance",
+        required=True,
+        help="Instance the dump was taken from; names <instance>.cluster.backup.sql",
+    )
+    p_cluster.add_argument(
+        "--db-user",
+        required=True,
+        help="Superuser of the instance; the dump creates roles and databases",
+    )
+    p_cluster.add_argument("--db-password", required=True)
+    p_cluster.add_argument("--empty", action="store_true")
+
+    # ------------------------------------------------------------------
     # mariadb
     # ------------------------------------------------------------------
     p_mdb = sub.add_parser(
@@ -107,6 +129,22 @@ def main(argv: list[str] | None = None) -> int:
                     repo_name=args.repo_name,
                     backups_dir=args.backups_dir,
                 ).sql_file(args.db_name),
+                empty=args.empty,
+            )
+            return 0
+
+        if args.cmd == "cluster":
+            restore_cluster_sql(
+                container=args.container,
+                user=args.db_user,
+                password=args.db_password,
+                sql_path=BackupPaths(
+                    args.volume_name,
+                    args.backup_hash,
+                    args.version,
+                    repo_name=args.repo_name,
+                    backups_dir=args.backups_dir,
+                ).cluster_file(args.instance),
                 empty=args.empty,
             )
             return 0
