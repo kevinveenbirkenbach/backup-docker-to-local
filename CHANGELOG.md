@@ -1,5 +1,45 @@
 # Changelog
 
+## [5.0.0] - 2026-08-18
+
+**[5.0.0] - 2026-08-18**
+
+Breaking:
+- Library: *BackupException* is now *BackupError* and *VersionMismatch* is now
+  *VersionMismatchError*. Both names violated the convention that an exception
+  class ends in *Error*; the first is imported by six modules, so the rename is
+  atomic across the package.
+- Library: *backup_dumps_for_volume* and *backup_mariadb_or_postgres* return a
+  *VolumeOutcome* instead of a *(bool, bool)* tuple. The pair could not carry
+  the detected engine, which the caller needs for the manifest.
+
+New:
+- Backup: every generation carries a *manifest.json* stating its layout and,
+  per volume, *database* (it held one), *dumped* (a dump was produced) and
+  *engine* (which one was detected). A volume with *database* and no *dumped*
+  was copied as raw engine files — under *--only-sql* that fallback is the
+  documented behaviour, and until now nothing in the finished tree said it had
+  happened. Restoring such a volume replays engine files instead of a dump.
+- Library: *baudolo.generation* states the generation layout once — *files*,
+  *sql*, the dump suffixes, the manifest name. *BackupPaths*, the dump writer
+  and the volume copier stop spelling them out separately. The module is
+  import-free on purpose, so a consumer can read a manifest with nothing but
+  *json* on a host where this package is not installed.
+
+Changed:
+- Build: the test targets no longer depend on *clean*. *clean* is
+  *git clean -fdX .*, so running the unit tests deleted every git-ignored file
+  in the working tree. It was compensating for a missing *.dockerignore*, which
+  now keeps *__pycache__*, egg-info and build output out of the image context
+  where that belongs. *clean* remains available as its own target.
+- Lint: a ruff configuration is declared. The package ran on ruff's defaults
+  while its consumer held itself to a far wider selection; measured against
+  that selection the tree had 224 findings and now has none. Includes a full
+  *os.path* to *pathlib* migration, with two deliberate exceptions: *abspath*
+  stays where *Path.resolve()* would follow symlinks and let a symlinked volume
+  test as inside the snapshot subject, and the rsync trailing separator is kept
+  explicit where *Path* would drop it.
+
 ## [4.0.0] - 2026-08-17
 
 Breaking:
