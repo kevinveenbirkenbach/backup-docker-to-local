@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.6.0] - 2026-08-17
+
+Release 3.6.0
+
 ## [3.5.0] - 2026-08-17
 
 - Restore: a *database = '*'* row makes the backup write
