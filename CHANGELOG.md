@@ -1,5 +1,37 @@
 # Changelog
 
+## [4.0.0] - 2026-08-17
+
+Breaking:
+- CLI: *--repo-name* and *--databases-csv* are required. One default was the
+  literal *backup-docker-to-local* while its help promised the git folder name;
+  the other pointed into the installed package, so a forgotten flag ran the
+  whole backup silently without a single dump.
+- CLI: *--dump-only-sql* is now *--only-sql*; the old spelling exits 2.
+- CLI: *--everything* is withdrawn. Its only real effect was to ignore
+  *--images-no-stop-required*, which leaving that list empty already does.
+- Library: the runner injected into *volume_snapshot* receives an argv list
+  instead of a command string.
+
+New:
+- Backup: *--only-files* — no dumps at all, every volume as files, for hosts
+  that hold no database credentials. Needs no *--databases-csv*; mutually
+  exclusive with *--only-sql*.
+- Backup: the engine is detected by executing the dump tool in the container
+  (*pg_dumpall*, *mariadb-dump*, *mysqldump*), not by reading the image name.
+  A dedicated Postgres tagged *<app>-database* is finally dumped; an image
+  merely named like an engine no longer kills the run with exit 127. Probed
+  once per image ID, and an image shipping only *mysqldump* is dumped with it.
+- Library: *baudolo.databases* states the databases.csv contract once —
+  columns, delimiter, cluster marker, validator, *read_rows()* — for the seed,
+  the backup, and external consumers.
+
+Changed:
+- Backup: every command is an argv list; *shell=True* is gone. A database name
+  is validated on read as strictly as the seed writes it, *PGPASSWORD* travels
+  in the child's environment instead of the command string, and a failing dump
+  deletes its partial file instead of leaving it behind.
+
 ## [3.6.1] - 2026-08-17
 
 - Restore: *--empty* on a cluster dump is a catalog-wide sweep — it drops every
