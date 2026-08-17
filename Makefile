@@ -51,19 +51,19 @@ ruff-fix: install-lint
 
 lint: ruff
 
-# clean + build run once and in order, then lint and the three suites run
-# concurrently via -j4; the *-run targets carry no clean/build prereq so the
-# sub-make cannot race a second clean against build.
+# build runs once, then lint and the three suites run concurrently via -j4; the
+# *-run targets carry no build prereq so the sub-make cannot race a second build.
+# `clean` is deliberately not a prerequisite; .dockerignore keeps the image
+# context clean instead.
 test:
-	@$(MAKE) clean
 	@$(MAKE) build
 	@$(MAKE) -j4 lint test-unit-run test-integration-run test-e2e-run
 
-test-unit: clean build test-unit-run
+test-unit: build test-unit-run
 
-test-integration: clean build test-integration-run
+test-integration: build test-integration-run
 
-test-e2e: clean build test-e2e-run
+test-e2e: build test-e2e-run
 
 test-unit-run:
 	@echo ">> Running unit tests"
