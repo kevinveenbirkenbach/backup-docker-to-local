@@ -1,5 +1,29 @@
 # Changelog
 
+## [3.6.1] - 2026-08-17
+
+- Restore: *--empty* on a cluster dump is a catalog-wide sweep — it drops every
+  non-template database and every non-pg_ role of the instance. On a dedicated
+  instance that is right, because the dump recreates all of it; on a shared one
+  it destroys databases the dump does not carry, with nothing to restore them
+  from. No test had ever executed that sweep: the e2e dropped the cluster by
+  hand first and left the pre-clean with zero rows to generate.
+- Restore: the instance is checked instead of the sweep being narrowed.
+  *--empty* refuses when the instance holds a database the dump does not carry,
+  names it, and touches nothing. Narrowing the sweep is the obvious fix and is
+  worse — a surviving database that owns or merely grants to one of the dump's
+  roles pins it in *pg_shdepend*, *DROP OWNED BY* reaches only the control
+  database the pre-clean is connected to, so *DROP ROLE* fails after the dump's
+  own databases are already gone and the replay never starts.
+- Restore: the dump's inventory is read with a real identifier parser. A quoted
+  name may hold spaces, and psql options precede the target of a *\connect*
+  line, so a character class that stops at whitespace read *"odd name"* as
+  *odd* and *-reuse-previous=on* as a database.
+- Tests: the cluster e2e no longer empties the instance itself, so *--empty*
+  has to do it and the replay has to put it back. A second pass adds a foreign
+  database and requires the refusal to leave both it and the restored data
+  untouched.
+
 ## [3.6.0] - 2026-08-17
 
 - Restore: *--empty* drops the schema in one session and replays in the next,
