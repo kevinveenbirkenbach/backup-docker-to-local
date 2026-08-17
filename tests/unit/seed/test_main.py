@@ -131,7 +131,6 @@ class TestSeedMain(unittest.TestCase):
             warning_calls,
             "Expected a WARNING print when databases.csv is empty, but none was found.",
         )
-        # Ensure the warning goes to stderr
         _, warn_kwargs = warning_calls[0]
         self.assertEqual(warn_kwargs.get("file"), seed_main.sys.stderr)
 

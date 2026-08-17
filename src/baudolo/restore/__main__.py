@@ -34,9 +34,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    # ------------------------------------------------------------------
-    # files
-    # ------------------------------------------------------------------
     p_files = sub.add_parser("files", help="Restore files into a docker volume")
     _add_common_backup_args(p_files)
     p_files.add_argument(
@@ -49,9 +46,6 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
 
-    # ------------------------------------------------------------------
-    # postgres
-    # ------------------------------------------------------------------
     p_pg = sub.add_parser("postgres", help="Restore a single PostgreSQL database dump")
     _add_common_backup_args(p_pg)
     p_pg.add_argument("--container", required=True)
@@ -60,9 +54,6 @@ def main(argv: list[str] | None = None) -> int:
     p_pg.add_argument("--db-password", required=True)
     p_pg.add_argument("--empty", action="store_true")
 
-    # ------------------------------------------------------------------
-    # cluster
-    # ------------------------------------------------------------------
     p_cluster = sub.add_parser(
         "cluster", help="Restore a full PostgreSQL cluster dump (pg_dumpall)"
     )
@@ -81,9 +72,6 @@ def main(argv: list[str] | None = None) -> int:
     p_cluster.add_argument("--db-password", required=True)
     p_cluster.add_argument("--empty", action="store_true")
 
-    # ------------------------------------------------------------------
-    # mariadb
-    # ------------------------------------------------------------------
     p_mdb = sub.add_parser(
         "mariadb", help="Restore a single MariaDB/MySQL-compatible dump"
     )
@@ -98,8 +86,6 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.cmd == "files":
-            # target volume = args.volume_name
-            # source volume (backup key) defaults to target volume
             source_volume = args.source_volume or args.volume_name
 
             bp_files = BackupPaths(
@@ -170,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("Unhandled command")
         return 2
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - CLI boundary: any failure becomes exit 1
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
 

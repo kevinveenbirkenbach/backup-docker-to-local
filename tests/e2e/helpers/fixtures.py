@@ -97,8 +97,7 @@ def write_databases_csv(path: str, rows: list[tuple[str, str, str, str]]) -> Non
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         f.write("instance;database;username;password\n")
-        for inst, db, user, pw in rows:
-            f.write(f"{inst};{db};{user};{pw}\n")
+        f.writelines(f"{inst};{db};{user};{pw}\n" for inst, db, user, pw in rows)
 
 
 def cleanup_docker(*, containers: list[str], volumes: list[str]) -> None:

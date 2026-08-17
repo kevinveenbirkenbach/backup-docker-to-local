@@ -30,17 +30,13 @@ def main() -> int:
     args = parse_args()
 
     machine_id = get_machine_id()
-    backup_time = datetime.now().strftime("%Y%m%d%H%M%S")
+    # Local wall clock on purpose: generations sort by this name, and UTC would
+    # order new ones before the existing ones wherever the offset is positive.
+    backup_time = datetime.now().strftime("%Y%m%d%H%M%S")  # noqa: DTZ005
 
     versions_dir = os.path.join(args.backups_dir, machine_id, args.repo_name)
     version_dir = create_version_directory(versions_dir, backup_time)
 
-    # IMPORTANT:
-    # - keep_default_na=False prevents empty fields from turning into NaN
-    # - dtype=str keeps all columns stable for comparisons/validation
-    #
-    # Robust behavior:
-    # - if the file is missing or empty, we continue without DB dumps.
     databases_df = load_databases_df(args.databases_csv)
 
     print("💾 Start volume backups...", flush=True)
@@ -80,24 +76,29 @@ def main() -> int:
                 database_containers=args.database_containers,
             )
 
-            if args.dump_only_sql:
-                if found_db:
-                    if not dumped_any:
-                        print(
-                            f"WARNING: dump-only-sql requested but no DB dump was produced for DB volume '{volume_name}'. "
-                            "Falling back to file backup.",
-                            flush=True,
-                        )
-                    else:
-                        continue
+            if args.dump_only_sql and found_db:
+                if not dumped_any:
+                    print(
+                        f"WARNING: dump-only-sql requested but no DB dump was produced for DB volume '{volume_name}'. "
+                        "Falling back to file backup.",
+                        flush=True,
+                    )
+                else:
+                    continue
 
             live_source = get_storage_path(volume_name)
 
-            def copy(*, authoritative: bool, source: str = live_source) -> None:
+            def copy(
+                *,
+                authoritative: bool,
+                source: str = live_source,
+                volume: str = volume_name,
+                target: str = vol_dir,
+            ) -> None:
                 backup_volume(
                     versions_dir,
-                    volume_name,
-                    vol_dir,
+                    volume,
+                    target,
                     authoritative=authoritative,
                     source=source,
                 )

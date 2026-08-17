@@ -22,11 +22,11 @@ exit 42
         if not out:
             raise RuntimeError("empty client detection output")
         return out
-    except Exception as e:
+    except Exception:
         print(
             "ERROR: neither 'mariadb' nor 'mysql' found in container.", file=sys.stderr
         )
-        raise e
+        raise
 
 
 def restore_mariadb_sql(
@@ -44,9 +44,7 @@ def restore_mariadb_sql(
         raise FileNotFoundError(sql_path)
 
     if empty:
-        # IMPORTANT:
-        # Do NOT hardcode 'mysql' here. Use the detected client.
-        # MariaDB 11 images may not contain the mysql binary at all.
+        # Do not hardcode 'mysql': MariaDB 11 images may not ship that binary.
         result = docker_exec(
             container,
             [

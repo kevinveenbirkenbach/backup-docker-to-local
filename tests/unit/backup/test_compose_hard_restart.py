@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import unittest
-from typing import List
 from unittest.mock import patch
 
 
@@ -11,7 +10,7 @@ class HardRestartArgTests(unittest.TestCase):
     the dir is a stack whose overlay network collides with compose up, pass
     nothing."""
 
-    def _parse(self, extra: List[str]):
+    def _parse(self, extra: list[str]):
         import sys
 
         from baudolo.backup import cli

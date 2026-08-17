@@ -1,4 +1,4 @@
-.PHONY: install build clean \
+.PHONY: install install-lint build clean lint ruff ruff-fix \
 		test test-unit test-integration test-e2e \
 		test-unit-run test-integration-run test-e2e-run
 
@@ -34,13 +34,30 @@ build:
 clean:
 	git clean -fdX .
 
-# clean + build run once and in order, then the three suites run concurrently
-# via -j3; the *-run targets carry no clean/build prereq so the sub-make cannot
-# race a second clean against build.
+# Separate from `install` so the test image does not have to carry the linter.
+install-lint:
+	@$(PY_DEFAULT) -m pip install -q -e ".[lint]"
+
+# Runs on the host, not in the image, so it also covers what the Dockerfile
+# does not copy.
+ruff: install-lint
+	@echo ">> Running ruff over the whole repository"
+	@$(PY_DEFAULT) -m ruff check .
+	@$(PY_DEFAULT) -m ruff format --check .
+
+ruff-fix: install-lint
+	@$(PY_DEFAULT) -m ruff check --fix .
+	@$(PY_DEFAULT) -m ruff format .
+
+lint: ruff
+
+# clean + build run once and in order, then lint and the three suites run
+# concurrently via -j4; the *-run targets carry no clean/build prereq so the
+# sub-make cannot race a second clean against build.
 test:
 	@$(MAKE) clean
 	@$(MAKE) build
-	@$(MAKE) -j3 test-unit-run test-integration-run test-e2e-run
+	@$(MAKE) -j4 lint test-unit-run test-integration-run test-e2e-run
 
 test-unit: clean build test-unit-run
 

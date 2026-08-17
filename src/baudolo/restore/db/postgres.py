@@ -50,7 +50,6 @@ def restore_postgres_sql(
     if not os.path.isfile(sql_path):
         raise FileNotFoundError(sql_path)
 
-    # Make password available INSIDE the container for psql.
     docker_env = {"PGPASSWORD": password}
 
     if empty:

@@ -1,9 +1,8 @@
-# tests/e2e/test_e2e_dump_only_fallback_to_files.py
 import unittest
 
 from .helpers import (
-    POSTGRES_IMAGE,
     POSTGRES_DATA_DIR,
+    POSTGRES_IMAGE,
     backup_path,
     cleanup_docker,
     create_minimal_compose_dir,
@@ -12,8 +11,8 @@ from .helpers import (
     require_docker,
     run,
     unique,
-    write_databases_csv,
     wait_for_postgres,
+    write_databases_csv,
 )
 
 
@@ -37,7 +36,6 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
 
         run(["docker", "volume", "create", cls.pg_volume])
 
-        # Start Postgres (creates a real DB volume)
         run(
             [
                 "docker",

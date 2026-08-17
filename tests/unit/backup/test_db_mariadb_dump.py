@@ -20,15 +20,17 @@ def _capture_commands(*, db_type, rows, container):
         captured.append(cmd)
         return []
 
-    with tempfile.TemporaryDirectory() as td:
-        with patch.object(db_mod, "execute_shell_command", side_effect=_capture):
-            db_mod.backup_database(
-                container=container,
-                volume_dir=td,
-                db_type=db_type,
-                databases_df=_df(rows),
-                database_containers=[container],
-            )
+    with (
+        tempfile.TemporaryDirectory() as td,
+        patch.object(db_mod, "execute_shell_command", side_effect=_capture),
+    ):
+        db_mod.backup_database(
+            container=container,
+            volume_dir=td,
+            db_type=db_type,
+            databases_df=_df(rows),
+            database_containers=[container],
+        )
     return captured
 
 

@@ -15,7 +15,7 @@ def backup_mariadb_or_postgres(
     *,
     container: str,
     volume_dir: str,
-    databases_df: "pandas.DataFrame",
+    databases_df: pandas.DataFrame,
     database_containers: list[str],
 ) -> tuple[bool, bool]:
     """
@@ -34,7 +34,7 @@ def backup_mariadb_or_postgres(
     return False, False
 
 
-def _empty_databases_df() -> "pandas.DataFrame":
+def _empty_databases_df() -> pandas.DataFrame:
     """
     Create an empty DataFrame with the expected schema for databases.csv.
 
@@ -44,7 +44,7 @@ def _empty_databases_df() -> "pandas.DataFrame":
     return pandas.DataFrame(columns=["instance", "database", "username", "password"])
 
 
-def load_databases_df(csv_path: str) -> "pandas.DataFrame":
+def load_databases_df(csv_path: str) -> pandas.DataFrame:
     """
     Load databases.csv robustly.
 
@@ -74,7 +74,7 @@ def backup_dumps_for_volume(
     *,
     containers: list[str],
     vol_dir: str,
-    databases_df: "pandas.DataFrame",
+    databases_df: pandas.DataFrame,
     database_containers: list[str],
 ) -> tuple[bool, bool]:
     """

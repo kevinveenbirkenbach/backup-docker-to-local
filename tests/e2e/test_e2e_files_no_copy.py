@@ -1,16 +1,16 @@
 import unittest
 
 from .helpers import (
-    backup_run,
     backup_path,
+    backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
+    run,
     unique,
     write_databases_csv,
-    run,
 )
 
 
@@ -29,7 +29,6 @@ class TestE2EFilesNoCopy(unittest.TestCase):
         cls.containers: list[str] = []
         cls.volumes = [cls.volume_src]
 
-        # Create source volume and write a marker file
         run(["docker", "volume", "create", cls.volume_src])
         run(
             [

@@ -98,5 +98,5 @@ def docker_volume_exists(volume: str) -> bool:
             f"docker volume inspect {volume} >/dev/null 2>&1 && echo OK"
         )
         return True
-    except Exception:
+    except BackupException:
         return False

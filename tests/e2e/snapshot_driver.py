@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, "/src")
 
-from baudolo.backup.snapshot import SnapshotError, volume_snapshot  # noqa: E402
+from baudolo.backup.snapshot import SnapshotError, volume_snapshot
 
 KIND = sys.argv[1]
 SUBJECT = sys.argv[2]
@@ -20,7 +20,9 @@ EXPECT = sys.argv[3]
 
 
 def shell(command: str) -> list[str]:
-    proc = subprocess.run(command, shell=True, capture_output=True, text=True)
+    proc = subprocess.run(
+        command, shell=True, capture_output=True, text=True, check=False
+    )
     if proc.returncode != 0:
         raise SnapshotError(
             f"{command} exited {proc.returncode}: {proc.stderr.strip()}"

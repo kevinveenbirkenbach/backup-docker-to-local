@@ -30,8 +30,8 @@ import pandas
 from baudolo.backup import db as db_mod
 
 from .helpers import (
-    MARIADB_IMAGE,
     MARIADB_DATA_DIR,
+    MARIADB_IMAGE,
     cleanup_docker,
     require_docker,
     run,

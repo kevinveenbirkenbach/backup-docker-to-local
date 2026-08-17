@@ -1,5 +1,3 @@
-# tests/e2e/test_e2e_swarm_task_skip.py
-#
 # Reproduces the swarm flake fixed on this branch: baudolo used to stop a
 # swarm task container around the volume file backup because its image was
 # not whitelisted; the orchestrator immediately replaced the stopped task and

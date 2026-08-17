@@ -3,7 +3,6 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from typing import List
 from unittest.mock import patch
 
 from .compose_fixture import setup_compose_dir as _setup_compose_dir
@@ -99,7 +98,7 @@ class TestCompose(unittest.TestCase):
                     str(d), ["up", "-d", "--force-recreate"]
                 )
 
-            expected: List[str] = [
+            expected: list[str] = [
                 "/usr/bin/docker",
                 "compose",
                 "--chdir",

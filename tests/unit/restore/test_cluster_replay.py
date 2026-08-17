@@ -65,10 +65,7 @@ class TestClusterReplay(unittest.TestCase):
         self.assertIn("rolname <> current_user", preclean)
 
     def test_only_the_connecting_role_loses_its_create(self) -> None:
-        # Captured from pg_dumpall 17: the bootstrap superuser is recreated like
-        # any other role, and the pre-clean cannot drop the one holding the
-        # session - so that single CREATE always collides while its ALTER, which
-        # carries the attributes and the password, must survive.
+        # Captured from pg_dumpall 17.
         dump = [
             b"CREATE ROLE app;\n",
             b"ALTER ROLE app WITH NOSUPERUSER INHERIT LOGIN PASSWORD 'SCRAM-SHA-256$...';\n",

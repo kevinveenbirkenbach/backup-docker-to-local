@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from typing import Optional
 
 
 def run(
@@ -10,7 +9,7 @@ def run(
     *,
     stdin=None,
     capture: bool = False,
-    env: Optional[dict] = None,
+    env: dict | None = None,
 ) -> subprocess.CompletedProcess:
     try:
         kwargs: dict = {
@@ -26,21 +25,18 @@ def run(
         else:
             kwargs["stdin"] = stdin
 
-        return subprocess.run(cmd, **kwargs)
+        return subprocess.run(cmd, **kwargs)  # noqa: PLW1510 - check lives in kwargs
 
     except subprocess.CalledProcessError as e:
         msg = f"ERROR: command failed ({e.returncode}): {' '.join(cmd)}"
         print(msg, file=sys.stderr)
-        if e.stdout:
+        for stream in (e.stdout, e.stderr):
+            if not stream:
+                continue
             try:
-                print(e.stdout.decode(), file=sys.stderr)
-            except Exception:
-                print(e.stdout, file=sys.stderr)
-        if e.stderr:
-            try:
-                print(e.stderr.decode(), file=sys.stderr)
-            except Exception:
-                print(e.stderr, file=sys.stderr)
+                print(stream.decode(), file=sys.stderr)
+            except (UnicodeDecodeError, AttributeError):
+                print(stream, file=sys.stderr)
         raise
 
 
@@ -50,8 +46,8 @@ def docker_exec(
     *,
     stdin=None,
     capture: bool = False,
-    env: Optional[dict] = None,
-    docker_env: Optional[dict[str, str]] = None,
+    env: dict | None = None,
+    docker_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
     cmd: list[str] = ["docker", "exec", "-i"]
     if docker_env:
@@ -67,8 +63,8 @@ def docker_exec_sh(
     *,
     stdin=None,
     capture: bool = False,
-    env: Optional[dict] = None,
-    docker_env: Optional[dict[str, str]] = None,
+    env: dict | None = None,
+    docker_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
     return docker_exec(
         container,
@@ -85,5 +81,6 @@ def docker_volume_exists(volume: str) -> bool:
         ["docker", "volume", "inspect", volume],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        check=False,
     )
     return p.returncode == 0

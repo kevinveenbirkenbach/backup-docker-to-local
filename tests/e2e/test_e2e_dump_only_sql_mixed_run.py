@@ -1,8 +1,8 @@
 import unittest
 
 from .helpers import (
-    POSTGRES_IMAGE,
     POSTGRES_DATA_DIR,
+    POSTGRES_IMAGE,
     backup_path,
     cleanup_docker,
     create_minimal_compose_dir,
@@ -35,7 +35,6 @@ class TestE2EDumpOnlySqlMixedRun(unittest.TestCase):
         cls.containers: list[str] = []
         cls.volumes = [cls.db_volume, cls.files_volume]
 
-        # Create volumes
         run(["docker", "volume", "create", cls.db_volume])
         run(["docker", "volume", "create", cls.files_volume])
 
@@ -114,7 +113,6 @@ class TestE2EDumpOnlySqlMixedRun(unittest.TestCase):
             [(cls.pg_container, cls.pg_db, cls.pg_user, cls.pg_password)],
         )
 
-        # Run baudolo with dump-only-sql
         cmd = [
             "baudolo",
             "--compose-dir",

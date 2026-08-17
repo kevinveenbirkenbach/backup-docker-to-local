@@ -9,7 +9,6 @@ import pandas as pd
 # Adjust if your package name/import path differs.
 from baudolo.backup.dumps import load_databases_df
 
-
 EXPECTED_COLUMNS = ["instance", "database", "username", "password"]
 
 
@@ -33,7 +32,6 @@ class TestLoadDatabasesDf(unittest.TestCase):
     def test_empty_csv_is_handled_with_warning_and_empty_df(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             empty_path = os.path.join(td, "databases.csv")
-            # Create an empty file (0 bytes)
             with open(empty_path, "w", encoding="utf-8") as f:
                 f.write("")
 

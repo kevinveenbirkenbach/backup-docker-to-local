@@ -12,8 +12,8 @@ import sys
 
 sys.path.insert(0, "/src")
 
-from baudolo.backup.snapshot import SnapshotError, volume_snapshot  # noqa: E402
-from baudolo.backup.volume import backup_volume  # noqa: E402
+from baudolo.backup.snapshot import SnapshotError, volume_snapshot
+from baudolo.backup.volume import backup_volume
 
 SUBJECT = "/subject/docker"
 VOLUME = "mariadb_data"
@@ -23,7 +23,9 @@ GENERATION = f"{VERSIONS}/20260731"
 
 
 def shell(command: str) -> list[str]:
-    proc = subprocess.run(command, shell=True, capture_output=True, text=True)
+    proc = subprocess.run(
+        command, shell=True, capture_output=True, text=True, check=False
+    )
     if proc.returncode != 0:
         raise SnapshotError(
             f"{command} exited {proc.returncode}: {proc.stderr.strip()}"

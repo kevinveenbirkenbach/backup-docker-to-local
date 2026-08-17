@@ -61,9 +61,11 @@ class TestBtrfs(unittest.TestCase):
 
     def test_it_removes_the_snapshot_even_when_the_body_raises(self) -> None:
         run = Runner()
-        with self.assertRaises(ZeroDivisionError):
-            with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run):
-                raise ZeroDivisionError
+        with (
+            self.assertRaises(ZeroDivisionError),
+            volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run),
+        ):
+            raise ZeroDivisionError
         self.assertTrue(run.calls[-1].startswith("btrfs subvolume delete"))
 
 
@@ -93,26 +95,30 @@ class TestZfs(unittest.TestCase):
 
     def test_an_unmounted_dataset_is_an_error(self) -> None:
         run = Runner({"zfs list": [""]})
-        with self.assertRaises(SnapshotError):
-            with volume_snapshot("zfs", "/var/lib/docker", "20260731", run=run):
-                pass
+        with (
+            self.assertRaises(SnapshotError),
+            volume_snapshot("zfs", "/var/lib/docker", "20260731", run=run),
+        ):
+            pass
 
 
 class TestRejections(unittest.TestCase):
     def test_an_unknown_kind_is_rejected(self) -> None:
         run = Runner()
-        with self.assertRaises(SnapshotError):
-            with volume_snapshot("ext4", "/var/lib/docker", "20260731", run=run):
-                pass
+        with (
+            self.assertRaises(SnapshotError),
+            volume_snapshot("ext4", "/var/lib/docker", "20260731", run=run),
+        ):
+            pass
         self.assertEqual(run.calls, [])
 
     def test_a_path_outside_the_subject_is_rejected(self) -> None:
         run = Runner()
-        with volume_snapshot(
-            "btrfs", "/var/lib/docker", "20260731", run=run
-        ) as resolve:
-            with self.assertRaises(SnapshotError):
-                resolve("/etc/passwd")
+        with (
+            volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=run) as resolve,
+            self.assertRaises(SnapshotError),
+        ):
+            resolve("/etc/passwd")
 
     def test_the_subject_itself_resolves_to_the_snapshot_root(self) -> None:
         run = Runner()
@@ -137,9 +143,11 @@ class TestRemovalFailure(unittest.TestCase):
             pass
 
     def test_a_failed_removal_does_not_mask_the_body(self) -> None:
-        with self.assertRaises(ZeroDivisionError):
-            with volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=Busy()):
-                raise ZeroDivisionError
+        with (
+            self.assertRaises(ZeroDivisionError),
+            volume_snapshot("btrfs", "/var/lib/docker", "20260731", run=Busy()),
+        ):
+            raise ZeroDivisionError
 
 
 if __name__ == "__main__":

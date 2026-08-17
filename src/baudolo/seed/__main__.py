@@ -1,18 +1,17 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
 import os
 import re
 import sys
+
 import pandas as pd
-from typing import Optional
 from pandas.errors import EmptyDataError
 
 DB_NAME_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_-]*$")
 
 
-def _validate_database_value(value: Optional[str], *, instance: str) -> str:
+def _validate_database_value(value: str | None, *, instance: str) -> str:
     v = (value or "").strip()
     if v == "":
         raise ValueError(
@@ -40,7 +39,7 @@ def _empty_df() -> pd.DataFrame:
 def check_and_add_entry(
     file_path: str,
     instance: str,
-    database: Optional[str],
+    database: str | None,
     username: str,
     password: str,
 ) -> None:
@@ -108,7 +107,7 @@ def main() -> None:
             username=args.username,
             password=args.password,
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - CLI boundary: any failure becomes exit 1
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
 

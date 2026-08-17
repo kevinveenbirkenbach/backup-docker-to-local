@@ -1,16 +1,16 @@
 import unittest
 
 from .helpers import (
-    backup_run,
     backup_path,
+    backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
+    run,
     unique,
     write_databases_csv,
-    run,
 )
 
 
@@ -30,7 +30,6 @@ class TestE2EFilesFull(unittest.TestCase):
         cls.containers = []
         cls.volumes = [cls.volume_src, cls.volume_dst]
 
-        # create source volume with a file
         run(["docker", "volume", "create", cls.volume_src])
         run(
             [
@@ -50,7 +49,6 @@ class TestE2EFilesFull(unittest.TestCase):
         cls.databases_csv = f"/tmp/{cls.prefix}/databases.csv"
         write_databases_csv(cls.databases_csv, [])
 
-        # Run backup (files should be copied)
         backup_run(
             backups_dir=cls.backups_dir,
             repo_name=cls.repo_name,
@@ -97,7 +95,6 @@ class TestE2EFilesFull(unittest.TestCase):
             ]
         )
 
-        # verify restored file exists in dst volume
         p = run(
             [
                 "docker",

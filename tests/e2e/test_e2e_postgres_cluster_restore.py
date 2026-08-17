@@ -16,15 +16,8 @@ from .helpers import (
     write_databases_csv,
 )
 
-# A `database = '*'` row makes the backup side write one pg_dumpall stream for
-# the whole instance instead of a dump per database - the shape an application
-# with several databases in one engine produces. This proves the stream is
-# replayable: two databases and their owning role are dropped outright, and the
-# cluster restore has to bring all three back. Before the cluster subcommand
-# existed the dump was stored and unreadable.
-# Each statement runs on its own: psql wraps a multi-statement -c in one
-# transaction, and CREATE DATABASE is forbidden inside one - the same rule that
-# keeps the cluster replay out of --single-transaction.
+# One statement per entry: psql wraps a multi-statement -c in a transaction,
+# and CREATE DATABASE is forbidden inside one.
 SEED_SQL = (
     "CREATE ROLE app LOGIN PASSWORD 'apppw'",
     "CREATE DATABASE first OWNER app",
@@ -96,7 +89,6 @@ class TestE2EPostgresClusterRestore(unittest.TestCase):
             / f"{cls.pg_container}.cluster.backup.sql"
         )
 
-        # The disaster: both databases and the role that owns them are gone.
         for statement in DROP_SQL:
             cls._psql("postgres", statement)
 
@@ -156,9 +148,6 @@ class TestE2EPostgresClusterRestore(unittest.TestCase):
         self.assertEqual(self._psql("second", "SELECT v FROM t"), "second-payload")
 
     def test_the_superusers_own_create_was_filtered(self) -> None:
-        # The dump recreates every role including the one the replay connects
-        # as; only its ALTER may survive, or the stream dies on the first
-        # statement with ON_ERROR_STOP.
         self.assertEqual(
             self._psql(
                 "postgres", "SELECT rolsuper FROM pg_roles WHERE rolname = 'postgres'"

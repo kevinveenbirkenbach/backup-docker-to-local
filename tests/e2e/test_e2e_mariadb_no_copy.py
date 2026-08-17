@@ -1,21 +1,20 @@
-# tests/e2e/test_e2e_mariadb_no_copy.py
 import unittest
 
 from .helpers import (
-    MARIADB_IMAGE,
     MARIADB_DATA_DIR,
-    backup_run,
+    MARIADB_IMAGE,
     backup_path,
+    backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
-    unique,
-    write_databases_csv,
     run,
+    unique,
     wait_for_mariadb,
     wait_for_mariadb_sql,
+    write_databases_csv,
 )
 
 
@@ -69,7 +68,6 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
             cls.db_container, user=cls.db_user, password=cls.db_password, timeout_s=90
         )
 
-        # Create table + data (TCP)
         run(
             [
                 "docker",
@@ -77,9 +75,11 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
                 cls.db_container,
                 "sh",
                 "-lc",
-                f"mariadb -h 127.0.0.1 -u{cls.db_user} -p{cls.db_password} "
-                f'-e "CREATE TABLE {cls.db_name}.t (id INT PRIMARY KEY, v VARCHAR(50)); '
-                f"INSERT INTO {cls.db_name}.t VALUES (1,'ok');\"",
+                (
+                    f"mariadb -h 127.0.0.1 -u{cls.db_user} -p{cls.db_password} "
+                    f'-e "CREATE TABLE {cls.db_name}.t (id INT PRIMARY KEY, v VARCHAR(50)); '
+                    f"INSERT INTO {cls.db_name}.t VALUES (1,'ok');\""
+                ),
             ]
         )
 
@@ -110,8 +110,10 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
                 cls.db_container,
                 "sh",
                 "-lc",
-                f"mariadb -h 127.0.0.1 -u{cls.db_user} -p{cls.db_password} "
-                f'-e "DROP TABLE {cls.db_name}.t;"',
+                (
+                    f"mariadb -h 127.0.0.1 -u{cls.db_user} -p{cls.db_password} "
+                    f'-e "DROP TABLE {cls.db_name}.t;"'
+                ),
             ]
         )
 
@@ -158,8 +160,10 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
                 self.db_container,
                 "sh",
                 "-lc",
-                f"mariadb -h 127.0.0.1 -u{self.db_user} -p{self.db_password} "
-                f'-N -e "SELECT v FROM {self.db_name}.t WHERE id=1;"',
+                (
+                    f"mariadb -h 127.0.0.1 -u{self.db_user} -p{self.db_password} "
+                    f'-N -e "SELECT v FROM {self.db_name}.t WHERE id=1;"'
+                ),
             ]
         )
         self.assertEqual((p.stdout or "").strip(), "ok")

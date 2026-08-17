@@ -69,14 +69,18 @@ class TestSnapshotFlags(unittest.TestCase):
 
 class TestRequiredFlags(unittest.TestCase):
     def test_backups_dir_is_required(self) -> None:
-        with mock.patch("sys.argv", ["baudolo", "--compose-dir", "/compose"]):
-            with self.assertRaises(SystemExit):
-                parse_args()
+        with (
+            mock.patch("sys.argv", ["baudolo", "--compose-dir", "/compose"]),
+            self.assertRaises(SystemExit),
+        ):
+            parse_args()
 
     def test_compose_dir_is_required(self) -> None:
-        with mock.patch("sys.argv", ["baudolo", "--backups-dir", "/backups"]):
-            with self.assertRaises(SystemExit):
-                parse_args()
+        with (
+            mock.patch("sys.argv", ["baudolo", "--backups-dir", "/backups"]),
+            self.assertRaises(SystemExit),
+        ):
+            parse_args()
 
 
 if __name__ == "__main__":

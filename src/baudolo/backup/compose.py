@@ -4,10 +4,9 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import List, Optional
 
 
-def _build_compose_cmd(project_dir: str, passthrough: List[str]) -> List[str]:
+def _build_compose_cmd(project_dir: str, passthrough: list[str]) -> list[str]:
     """
     Build the compose command for this project directory.
 
@@ -30,7 +29,7 @@ def _build_compose_cmd(project_dir: str, passthrough: List[str]) -> List[str]:
     raise RuntimeError("Neither 'compose' nor 'docker' found in PATH")
 
 
-def _find_compose_file(project_dir: str) -> Optional[Path]:
+def _find_compose_file(project_dir: str) -> Path | None:
     """
     Detect a compose file in `project_dir` (case-insensitive).
 

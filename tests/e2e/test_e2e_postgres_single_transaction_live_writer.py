@@ -1,9 +1,8 @@
-# tests/e2e/test_e2e_postgres_single_transaction_live_writer.py
 import unittest
 
 from .helpers import (
-    POSTGRES_IMAGE,
     POSTGRES_DATA_DIR,
+    POSTGRES_IMAGE,
     backup_run,
     cleanup_docker,
     create_minimal_compose_dir,

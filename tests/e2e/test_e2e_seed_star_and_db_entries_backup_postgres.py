@@ -1,8 +1,8 @@
 import unittest
 
 from .helpers import (
-    POSTGRES_IMAGE,
     POSTGRES_DATA_DIR,
+    POSTGRES_IMAGE,
     backup_path,
     cleanup_docker,
     create_minimal_compose_dir,

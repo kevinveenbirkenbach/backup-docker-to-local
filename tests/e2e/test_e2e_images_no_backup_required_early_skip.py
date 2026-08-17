@@ -1,4 +1,3 @@
-# tests/e2e/test_e2e_images_no_backup_required_early_skip.py
 import unittest
 
 from .helpers import (
@@ -34,11 +33,9 @@ class TestE2EImagesNoBackupRequiredEarlySkip(unittest.TestCase):
         cls.containers = [cls.redis_container]
         cls.volumes = [cls.ignored_volume, cls.normal_volume]
 
-        # Create volumes
         run(["docker", "volume", "create", cls.ignored_volume])
         run(["docker", "volume", "create", cls.normal_volume])
 
-        # Start redis container using the ignored volume
         run(
             [
                 "docker",
@@ -71,7 +68,6 @@ class TestE2EImagesNoBackupRequiredEarlySkip(unittest.TestCase):
         cls.databases_csv = f"/tmp/{cls.prefix}/databases.csv"
         write_databases_csv(cls.databases_csv, [])
 
-        # Run baudolo with images-no-backup-required redis
         cmd = [
             "baudolo",
             "--compose-dir",

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import logging
 import os
 import pathlib
 import re
-import logging
-from typing import Optional
 
 import pandas
 
@@ -22,7 +21,7 @@ def get_instance(container: str, database_containers: list[str]) -> str:
     return re.split(r"(_|-)(database|db|postgres)", container)[0]
 
 
-def _validate_database_value(value: Optional[str], *, instance: str) -> str:
+def _validate_database_value(value: str | None, *, instance: str) -> str:
     """
     Enforce explicit database semantics:
 
@@ -70,7 +69,7 @@ def backup_database(
     container: str,
     volume_dir: str,
     db_type: str,
-    databases_df: "pandas.DataFrame",
+    databases_df: pandas.DataFrame,
     database_containers: list[str],
 ) -> bool:
     """
@@ -97,7 +96,6 @@ def backup_database(
 
         db_value = _validate_database_value(raw_db, instance=instance_name)
 
-        # Explicit: dump ALL databases
         if db_value == "*":
             if db_type != "postgres":
                 raise ValueError(
@@ -110,7 +108,6 @@ def backup_database(
             produced = True
             continue
 
-        # Concrete database dump
         db_name = db_value
         dump_file = os.path.join(out_dir, f"{db_name}.backup.sql")
 
@@ -135,7 +132,6 @@ def backup_database(
                 _atomic_write_cmd(cmd, dump_file)
                 produced = True
             except BackupException as e:
-                # Explicit DB dump failed -> hard error
                 raise BackupException(
                     f"Postgres dump failed for instance '{instance_name}', "
                     f"database '{db_name}'. This database was explicitly configured "
