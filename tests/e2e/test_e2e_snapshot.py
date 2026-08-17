@@ -17,6 +17,7 @@ from .helpers import require_docker, run, unique
 
 REPO_SRC = Path(__file__).resolve().parents[2] / "src"
 DRIVER = Path(__file__).resolve().parent / "snapshot_driver.py"
+FAITHFUL_DRIVER = Path(__file__).resolve().parent / "faithful_driver.py"
 IMAGE = "alpine:3.20"
 PACKAGES = "apk add -q btrfs-progs e2fsprogs zfs python3 util-linux"
 ATTACH = (
@@ -76,20 +77,17 @@ def required(fstype: str) -> bool:
     return fstype in demanded.replace(",", " ").split()
 
 
-def stage() -> Path:
+def stage(driver: Path) -> Path:
     """Copy source and driver under /tmp, the only path the DinD daemon shares."""
     staged = Path("/tmp") / unique("baudolo-e2e-snapshot")
     shutil.copytree(REPO_SRC, staged / "src")
-    shutil.copy(DRIVER, staged / "driver.py")
+    shutil.copy(driver, staged / "driver.py")
     return staged
 
 
-def drive(fstype: str, kind: str, expect: str) -> str:
-    staged = stage()
-    script = (
-        f"set -e; {mount_script(fstype)}; "
-        f"python3 /driver.py {kind} /subject/docker {expect}"
-    )
+def drive(fstype: str, arguments: str, *, driver: Path = DRIVER) -> str:
+    staged = stage(driver)
+    script = f"set -e; {mount_script(fstype)}; python3 /driver.py {arguments}"
     try:
         proc = run(
             [
@@ -115,7 +113,7 @@ def drive(fstype: str, kind: str, expect: str) -> str:
         shutil.rmtree(staged, ignore_errors=True)
     if proc.returncode != 0:
         raise AssertionError(
-            f"{fstype}/{kind} driver failed:\n{proc.stdout}\n{proc.stderr}"
+            f"{fstype} driver failed on {arguments}:\n{proc.stdout}\n{proc.stderr}"
         )
     return proc.stdout
 
@@ -126,7 +124,7 @@ class TestE2ESnapshot(unittest.TestCase):
         require_docker()
 
     def assert_freezes(self, fstype: str) -> None:
-        output = drive(fstype, fstype, "supported")
+        output = drive(fstype, f"{fstype} /subject/docker supported")
         self.assertIn("PASS the snapshot exposes the volume", output)
         self.assertIn("PASS a later write does not reach the snapshot", output)
         self.assertIn("PASS the snapshot is removed afterwards", output)
@@ -148,12 +146,23 @@ class TestE2ESnapshot(unittest.TestCase):
         self.assert_freezes("zfs")
 
     def test_ext4_has_no_snapshot_and_says_so(self) -> None:
-        output = drive("ext4", "btrfs", "unsupported")
+        output = drive("ext4", "btrfs /subject/docker unsupported")
         self.assertIn("PASS refused loudly", output)
 
     def test_an_unknown_kind_is_refused_before_touching_the_filesystem(self) -> None:
-        output = drive("ext4", "lvm", "unsupported")
+        output = drive("ext4", "lvm /subject/docker unsupported")
         self.assertIn("PASS refused loudly", output)
+
+    def test_a_volume_with_its_own_storage_is_copied_live_not_from_the_snapshot(
+        self,
+    ) -> None:
+        output = drive("btrfs", "/subject/docker", driver=FAITHFUL_DRIVER)
+        self.assertIn(
+            "PASS the snapshot shows the other volume as an empty directory", output
+        )
+        self.assertIn("PASS the other volume degrades to live", output)
+        self.assertIn("PASS the plain volume is read from the snapshot", output)
+        self.assertIn("ALL OK", output)
 
 
 if __name__ == "__main__":

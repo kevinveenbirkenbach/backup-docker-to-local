@@ -6,7 +6,9 @@ import unittest
 from unittest import mock
 
 from baudolo.backup import app
+from baudolo.backup import snapshot as snapshot_mod
 from baudolo.backup.snapshot import volume_snapshot
+from baudolo.backup.volume import Backing
 
 
 def stubbed_snapshot(kind: str, subject: str, tag: str):
@@ -26,7 +28,7 @@ ARGV = [
 ]
 
 
-def drive(*, present: bool) -> list[dict]:
+def drive(*, present: bool = True, reason: str | None = None) -> list[dict]:
     calls: list[dict] = []
 
     def record(versions_dir, volume_name, volume_dir, *, authoritative, source):
@@ -45,8 +47,11 @@ def drive(*, present: bool) -> list[dict]:
         mock.patch.object(app, "volume_is_fully_ignored", return_value=False),
         mock.patch.object(app, "backup_dumps_for_volume", return_value=(False, False)),
         mock.patch.object(
-            app, "get_storage_path", return_value="/var/lib/docker/volumes/vol/_data/"
+            app,
+            "inspect_backing",
+            return_value=Backing("/var/lib/docker/volumes/vol/_data"),
         ),
+        mock.patch.object(snapshot_mod, "unsnapshotted", return_value=reason),
         mock.patch.object(app, "stamp_directory"),
         mock.patch.object(app, "handle_docker_compose_services"),
         mock.patch.object(app.os.path, "isdir", return_value=present),
@@ -74,6 +79,14 @@ class TestSnapshotBranch(unittest.TestCase):
         call = drive(present=False)[0]
         self.assertEqual(call["source"], "/var/lib/docker/volumes/vol/_data/")
         self.assertFalse(call["authoritative"])
+
+    def test_a_volume_with_its_own_backing_store_is_copied_live(self) -> None:
+        call = drive(reason="it declares its own backing store")[0]
+        self.assertEqual(call["source"], "/var/lib/docker/volumes/vol/_data/")
+        self.assertFalse(
+            call["authoritative"],
+            "the snapshot holds an empty directory for it, not its data",
+        )
 
 
 if __name__ == "__main__":

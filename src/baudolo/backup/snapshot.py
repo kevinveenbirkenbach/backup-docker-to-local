@@ -9,6 +9,13 @@ built for. That also removes the reason to stop containers at all.
 The snapshot kind is stated by the caller rather than probed, because falling
 back to a live copy when a probe is inconclusive would hand out backups that
 look consistent and are not.
+
+Which volumes a snapshot of the subject contains is a different question, and
+it is decided per volume: a volume with a backing store of its own appears
+inside the snapshot as an existing empty directory, so copying from there
+succeeds and stores nothing. Such a volume is copied live instead - correct
+data without the point in time - while every other volume of the same run
+keeps its snapshot.
 """
 
 from __future__ import annotations
@@ -18,6 +25,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 
 from .shell import BackupException, execute_shell_command
+from .volume import Backing
 
 KINDS = ("btrfs", "zfs")
 
@@ -60,6 +68,60 @@ def _zfs(subject: str, name: str, run: Callable[[str], list[str]]) -> tuple[str,
 
 
 _CREATE = {"btrfs": _btrfs, "zfs": _zfs}
+
+
+def unsnapshotted(backing: Backing, subject: str) -> str | None:
+    """Return why a snapshot of ``subject`` does not hold this volume's data.
+
+    Docker mounts a volume's own backing store lazily and unmounts it when the
+    last consumer stops, so the declaration is what gets checked: it is true at
+    every moment, where the mount table is only true while a container happens
+    to hold the volume.
+
+    Args:
+        backing: the volume as the daemon describes it.
+        subject: the snapshot subject, e.g. ``/var/lib/docker``.
+
+    Returns:
+        The reason, or None when the snapshot holds the volume.
+    """
+    if backing.driver != "local":
+        return f"it uses the {backing.driver} driver"
+    if backing.options:
+        return f"it declares its own backing store {backing.options}"
+    if not backing.mountpoint:
+        return "it reports no mountpoint"
+    real = os.path.realpath(backing.mountpoint)
+    if os.path.ismount(real):
+        return f"its mountpoint {backing.mountpoint} sits on its own mount"
+    try:
+        crosses = os.stat(real).st_dev != os.stat(os.path.realpath(subject)).st_dev
+    except OSError as error:
+        return f"its mountpoint {backing.mountpoint} could not be read: {error}"
+    if crosses:
+        return f"its mountpoint {backing.mountpoint} crosses a filesystem boundary"
+    return None
+
+
+def snapshot_source(
+    resolve: Callable[[str], str], backing: Backing, subject: str
+) -> tuple[str | None, str]:
+    """Resolve where to read a volume from, and why if not from the snapshot.
+
+    Returns:
+        ``(path, "")`` to copy from the snapshot, or ``(None, reason)`` to copy
+        it live.
+    """
+    reason = unsnapshotted(backing, subject)
+    if reason:
+        return None, reason
+    try:
+        source = resolve(backing.source)
+    except SnapshotError as error:
+        return None, str(error)
+    if not os.path.isdir(source):
+        return None, "it was created after the snapshot was taken"
+    return source, ""
 
 
 @contextmanager

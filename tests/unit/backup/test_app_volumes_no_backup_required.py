@@ -7,6 +7,7 @@ import unittest
 from unittest import mock
 
 from baudolo.backup import app
+from baudolo.backup.volume import Backing
 
 ARGV = [
     "baudolo",
@@ -47,7 +48,7 @@ def drive() -> tuple[list[str], list[str], list[str]]:
         ),
         mock.patch.object(app, "volume_is_fully_ignored", return_value=False),
         mock.patch.object(app, "backup_dumps_for_volume", return_value=(False, False)),
-        mock.patch.object(app, "get_storage_path", return_value="/data/"),
+        mock.patch.object(app, "inspect_backing", return_value=Backing("/data")),
         mock.patch.object(app, "stamp_directory"),
         mock.patch.object(app, "handle_docker_compose_services"),
         mock.patch.object(app.os.path, "isdir", return_value=True),

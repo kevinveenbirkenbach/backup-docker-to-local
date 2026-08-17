@@ -22,8 +22,8 @@ from .layout import (
     stamp_directory,
 )
 from .policy import requires_stop, volume_is_fully_ignored
-from .snapshot import volume_snapshot
-from .volume import backup_volume, get_storage_path
+from .snapshot import snapshot_source, volume_snapshot
+from .volume import backup_volume, inspect_backing
 
 
 def main() -> int:
@@ -86,7 +86,8 @@ def main() -> int:
                 else:
                     continue
 
-            live_source = get_storage_path(volume_name)
+            backing = inspect_backing(volume_name)
+            live_source = backing.source
 
             def copy(
                 *,
@@ -104,13 +105,15 @@ def main() -> int:
                 )
 
             if resolve_source is not None:
-                snapshot_source = resolve_source(live_source)
-                if os.path.isdir(snapshot_source):
-                    copy(authoritative=True, source=snapshot_source)
+                source, reason = snapshot_source(
+                    resolve_source, backing, args.snapshot_subject
+                )
+                if source is not None:
+                    copy(authoritative=True, source=source)
                 else:
                     print(
                         f"WARNING: volume '{volume_name}' is not in the snapshot "
-                        "(created after it was taken); copying it live instead.",
+                        f"({reason}); copying it live instead.",
                         flush=True,
                     )
                     copy(authoritative=False)

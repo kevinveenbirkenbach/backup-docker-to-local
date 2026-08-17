@@ -1,16 +1,43 @@
 from __future__ import annotations
 
+import json
 import os
 import pathlib
+from dataclasses import dataclass, field
 
 from .shell import BackupException, execute_shell_command
 
 
-def get_storage_path(volume_name: str) -> str:
-    path = execute_shell_command(
-        f"docker volume inspect --format '{{{{ .Mountpoint }}}}' {volume_name}"
+@dataclass(frozen=True)
+class Backing:
+    """Where a docker volume actually keeps its data.
+
+    Args:
+        mountpoint: the path the daemon reports.
+        driver: the volume driver, ``local`` for the built-in one.
+        options: the driver options; a non-empty map means the mountpoint is a
+            mount target rather than the storage itself.
+    """
+
+    mountpoint: str
+    driver: str = "local"
+    options: dict = field(default_factory=dict)
+
+    @property
+    def source(self) -> str:
+        return f"{self.mountpoint}/"
+
+
+def inspect_backing(volume_name: str) -> Backing:
+    reported = execute_shell_command(
+        f"docker volume inspect --format '{{{{json .}}}}' {volume_name}"
     )[0]
-    return f"{path}/"
+    data = json.loads(reported)
+    return Backing(
+        data.get("Mountpoint") or "",
+        data.get("Driver") or "",
+        data.get("Options") or {},
+    )
 
 
 def get_last_backup_dir(
