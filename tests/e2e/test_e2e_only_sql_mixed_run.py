@@ -1,4 +1,7 @@
+import json
 import unittest
+
+from baudolo.generation import MANIFEST_FILE
 
 from .helpers import (
     POSTGRES_DATA_DIR,
@@ -178,4 +181,22 @@ class TestE2EOnlySqlMixedRun(unittest.TestCase):
         self.assertTrue(
             (base / "files").exists(),
             f"Expected non-DB volume files backup to exist at: {base / 'files'}",
+        )
+
+    def manifest(self) -> dict:
+        generation = backup_path(
+            self.backups_dir, self.repo_name, self.version, self.db_volume
+        ).parent
+        return json.loads((generation / MANIFEST_FILE).read_text(encoding="utf-8"))
+
+    def test_the_manifest_records_the_dumped_volume_as_dumped(self) -> None:
+        self.assertEqual(
+            self.manifest()["volumes"][self.db_volume],
+            {"database": True, "dumped": True, "engine": "postgres"},
+        )
+
+    def test_the_manifest_records_the_plain_volume_as_no_database(self) -> None:
+        self.assertEqual(
+            self.manifest()["volumes"][self.files_volume],
+            {"database": False, "dumped": False, "engine": None},
         )

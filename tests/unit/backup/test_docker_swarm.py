@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from baudolo.backup import docker as docker_mod
-from baudolo.backup.shell import BackupException
+from baudolo.backup.shell import BackupError
 
 
 class TestIsSwarmTask(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestIsSwarmTask(unittest.TestCase):
     @patch.object(
         docker_mod,
         "execute_shell_command",
-        side_effect=[BackupException("gone"), []],
+        side_effect=[BackupError("gone"), []],
     )
     def test_vanished_container_counts_as_not_stoppable(self, _mock) -> None:
         # A container removed between listing and inspect must not abort the
@@ -32,13 +32,13 @@ class TestIsSwarmTask(unittest.TestCase):
     @patch.object(
         docker_mod,
         "execute_shell_command",
-        side_effect=[BackupException("daemon hiccup"), ["still-here"]],
+        side_effect=[BackupError("daemon hiccup"), ["still-here"]],
     )
     def test_inspect_failure_on_existing_container_still_fails(self, _mock) -> None:
         # If the container still exists, an inspect failure must keep failing
         # the run: silently skipping the stop would back up a hot volume and
         # report green without the stop guarantee.
-        with self.assertRaises(BackupException):
+        with self.assertRaises(BackupError):
             docker_mod.is_swarm_task("still-here")
 
 

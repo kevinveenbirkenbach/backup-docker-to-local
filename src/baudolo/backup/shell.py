@@ -9,10 +9,14 @@ from __future__ import annotations
 
 import os
 import subprocess
-from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 
-class BackupException(Exception):
+class BackupError(Exception):
     """Generic exception for backup errors."""
 
 
@@ -21,7 +25,7 @@ def _child_env(env: Mapping[str, str] | None) -> dict[str, str] | None:
 
 
 def _fail(command: Sequence[str], returncode: int, out: bytes, err: bytes) -> None:
-    raise BackupException(
+    raise BackupError(
         f"Error in command: {' '.join(command)}\n"
         f"Output: {out}\nError: {err}\n"
         f"Exit code: {returncode}"
@@ -59,13 +63,13 @@ def execute_to_file(
     """
     command = list(command)
     print(" ".join(command), flush=True)
-    tmp = f"{out_file}.tmp"
-    with open(tmp, "wb") as handle:
+    tmp = Path(f"{out_file}.tmp")
+    with tmp.open("wb") as handle:
         process = subprocess.Popen(
             command, stdout=handle, stderr=subprocess.PIPE, env=_child_env(env)
         )
         _, err = process.communicate()
     if process.returncode != 0:
-        os.unlink(tmp)
+        tmp.unlink()
         _fail(command, process.returncode, b"", err)
-    os.replace(tmp, out_file)
+    tmp.replace(out_file)

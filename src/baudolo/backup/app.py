@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import os
 from contextlib import ExitStack
 from datetime import datetime
+from pathlib import Path
 
 from .cli import parse_args
 from .compose import handle_docker_compose_services
@@ -14,12 +14,13 @@ from .docker import (
     docker_volume_names,
     filter_stoppable,
 )
-from .dumps import backup_dumps_for_volume, load_databases_df
+from .dumps import VolumeOutcome, backup_dumps_for_volume, load_databases_df
 from .layout import (
     create_version_directory,
     create_volume_directory,
     get_machine_id,
     stamp_directory,
+    write_manifest,
 )
 from .policy import requires_stop, volume_is_fully_ignored
 from .snapshot import snapshot_source, volume_snapshot
@@ -34,12 +35,14 @@ def main() -> int:
     # order new ones before the existing ones wherever the offset is positive.
     backup_time = datetime.now().strftime("%Y%m%d%H%M%S")  # noqa: DTZ005
 
-    versions_dir = os.path.join(args.backups_dir, machine_id, args.repo_name)
+    versions_dir = str(Path(args.backups_dir) / machine_id / args.repo_name)
     version_dir = create_version_directory(versions_dir, backup_time)
 
     databases_df = None if args.only_files else load_databases_df(args.databases_csv)
 
     print("💾 Start volume backups...", flush=True)
+
+    outcomes: dict[str, VolumeOutcome] = {}
 
     with ExitStack() as stack:
         resolve_source = None
@@ -69,17 +72,18 @@ def main() -> int:
 
             vol_dir = create_volume_directory(version_dir, volume_name)
 
-            found_db = dumped_any = False
+            outcome = VolumeOutcome(database=False, dumped=False)
             if not args.only_files:
-                found_db, dumped_any = backup_dumps_for_volume(
+                outcome = backup_dumps_for_volume(
                     containers=containers,
                     vol_dir=vol_dir,
                     databases_df=databases_df,
                     database_containers=args.database_containers,
                 )
+            outcomes[volume_name] = outcome
 
-            if args.only_sql and found_db:
-                if not dumped_any:
+            if args.only_sql and outcome.database:
+                if not outcome.dumped:
                     print(
                         f"WARNING: only-sql requested but no DB dump was produced for DB volume '{volume_name}'. "
                         "Falling back to file backup.",
@@ -129,6 +133,7 @@ def main() -> int:
                 if not args.shutdown:
                     change_containers_status(stoppable, "start")
 
+    write_manifest(version_dir, outcomes)
     stamp_directory(version_dir)
     print("Finished volume backups.", flush=True)
 

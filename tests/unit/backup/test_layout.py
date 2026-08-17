@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from baudolo.backup import layout as mod
-from baudolo.backup.shell import BackupException
+from baudolo.backup.shell import BackupError
 
 
 class TestVersionDirectory(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestVersionDirectory(unittest.TestCase):
     def test_it_refuses_a_generation_another_run_already_claimed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             mod.create_version_directory(tmp, "20260731")
-            with self.assertRaises(BackupException) as caught:
+            with self.assertRaises(BackupError) as caught:
                 mod.create_version_directory(tmp, "20260731")
             self.assertIn("20260731", str(caught.exception))
 

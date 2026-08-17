@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
+from pathlib import Path
+
+from baudolo.generation import CLUSTER_SUFFIX, DUMP_SUFFIX, FILES_DIR, SQL_DIR
 
 
 @dataclass(frozen=True)
@@ -14,20 +16,20 @@ class BackupPaths:
 
     def root(self) -> str:
         # Always build an absolute path under backups_dir
-        return os.path.join(
-            self.backups_dir,
-            self.backup_hash,
-            self.repo_name,
-            self.version,
-            self.volume_name,
+        return str(
+            Path(self.backups_dir)
+            / self.backup_hash
+            / self.repo_name
+            / self.version
+            / self.volume_name
         )
 
     def files_dir(self) -> str:
-        return os.path.join(self.root(), "files")
+        return str(Path(self.root()) / FILES_DIR)
 
     def sql_file(self, db_name: str) -> str:
-        return os.path.join(self.root(), "sql", f"{db_name}.backup.sql")
+        return str(Path(self.root()) / SQL_DIR / f"{db_name}{DUMP_SUFFIX}")
 
     def cluster_file(self, instance: str) -> str:
         """The pg_dumpall stream a `database = '*'` row produces."""
-        return os.path.join(self.root(), "sql", f"{instance}.cluster.backup.sql")
+        return str(Path(self.root()) / SQL_DIR / f"{instance}{CLUSTER_SUFFIX}")

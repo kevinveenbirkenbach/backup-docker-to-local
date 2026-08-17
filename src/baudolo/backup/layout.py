@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-import os
+import json
 import pathlib
 
 from dirval import create_stamp_file
 
-from .shell import BackupException, execute_shell_command
+from baudolo.generation import MANIFEST_FILE, manifest_document
+
+from .shell import BackupError, execute_shell_command
 
 
 def get_machine_id() -> str:
@@ -22,11 +24,11 @@ def stamp_directory(version_dir: str) -> None:
 
 
 def create_version_directory(versions_dir: str, backup_time: str) -> str:
-    version_dir = os.path.join(versions_dir, backup_time)
+    version_dir = str(pathlib.Path(versions_dir) / backup_time)
     try:
         pathlib.Path(version_dir).mkdir(parents=True)
     except FileExistsError:
-        raise BackupException(
+        raise BackupError(
             f"generation {backup_time} already exists at {version_dir}; "
             "another run claimed this second - refusing to write into it, "
             "since rsync --delete would overwrite that generation"
@@ -35,6 +37,25 @@ def create_version_directory(versions_dir: str, backup_time: str) -> str:
 
 
 def create_volume_directory(version_dir: str, volume_name: str) -> str:
-    path = os.path.join(version_dir, volume_name)
-    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-    return path
+    path = pathlib.Path(version_dir) / volume_name
+    path.mkdir(parents=True, exist_ok=True)
+    return str(path)
+
+
+def write_manifest(version_dir: str, volumes: dict[str, dict[str, bool]]) -> str:
+    """Record the generation's layout and per-volume outcome.
+
+    Written before the directory is stamped, so the stamp covers it.
+
+    Args:
+        version_dir: the generation directory.
+        volumes: per volume name, ``database`` and ``dumped``.
+
+    Returns:
+        The path written.
+    """
+    path = pathlib.Path(version_dir) / MANIFEST_FILE
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest_document(volumes), handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    return str(path)

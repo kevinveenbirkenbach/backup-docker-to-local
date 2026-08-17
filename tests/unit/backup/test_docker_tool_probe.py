@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from baudolo.backup import docker as docker_mod
-from baudolo.backup.shell import BackupException
+from baudolo.backup.shell import BackupError
 
 
 class TestImageId(unittest.TestCase):
@@ -20,7 +20,7 @@ class TestHasTool(unittest.TestCase):
 
     def test_a_tool_that_exits_non_zero_is_absent(self) -> None:
         with patch.object(
-            docker_mod, "execute_shell_command", side_effect=BackupException("127")
+            docker_mod, "execute_shell_command", side_effect=BackupError("127")
         ):
             self.assertFalse(docker_mod.has_tool("c1", "mariadb-dump"))
 

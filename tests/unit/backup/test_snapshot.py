@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from baudolo.backup.shell import BackupException
+from baudolo.backup.shell import BackupError
 from baudolo.backup.snapshot import SnapshotError, volume_snapshot
 
 
@@ -143,7 +143,7 @@ class TestRejections(unittest.TestCase):
 class Busy(Runner):
     def __call__(self, command: list[str]) -> list[str]:
         if command[:3] == ["btrfs", "subvolume", "delete"]:
-            raise BackupException("target is busy")
+            raise BackupError("target is busy")
         return super().__call__(command)
 
 

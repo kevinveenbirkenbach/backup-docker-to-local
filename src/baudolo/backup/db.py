@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import logging
-import os
 import pathlib
 import re
-
-import pandas
+from typing import TYPE_CHECKING
 
 from baudolo.databases import CLUSTER_ROW, validate_database
+from baudolo.generation import CLUSTER_SUFFIX, DUMP_SUFFIX, SQL_DIR
 
 from .docker import docker_exec_argv
-from .shell import BackupException, execute_to_file
+from .shell import BackupError, execute_to_file
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ def backup_database(
     volume_dir: str,
     db_type: str,
     dump_tool: str,
-    databases_df: pandas.DataFrame,
+    databases_df: pd.DataFrame,
     database_containers: list[str],
 ) -> bool:
     """
@@ -66,8 +68,8 @@ def backup_database(
         log.debug("No database entries for instance '%s'", instance_name)
         return False
 
-    out_dir = os.path.join(volume_dir, "sql")
-    pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
+    out_dir = pathlib.Path(volume_dir) / SQL_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     produced = False
 
@@ -85,13 +87,13 @@ def backup_database(
                     f"'{CLUSTER_ROW}' is currently only supported for Postgres."
                 )
 
-            cluster_file = os.path.join(out_dir, f"{instance_name}.cluster.backup.sql")
+            cluster_file = str(out_dir / f"{instance_name}{CLUSTER_SUFFIX}")
             fallback_pg_dumpall(container, user, password, cluster_file)
             produced = True
             continue
 
         db_name = db_value
-        dump_file = os.path.join(out_dir, f"{db_name}.backup.sql")
+        dump_file = str(out_dir / f"{db_name}{DUMP_SUFFIX}")
 
         if db_type == "mariadb":
             # Force TCP so auth matches '<user>'@'%' instead of socket -> 'localhost'.
@@ -136,13 +138,13 @@ def backup_database(
                     env={"PGPASSWORD": password},
                 )
                 produced = True
-            except BackupException as e:
-                raise BackupException(
+            except BackupError as e:
+                raise BackupError(
                     f"Postgres dump failed for instance '{instance_name}', "
                     f"database '{db_name}'. This database was explicitly configured "
                     "and therefore must succeed.\n"
                     f"{e}"
-                )
+                ) from e
             continue
 
     return produced

@@ -50,9 +50,10 @@ def drive(*, present: bool = True, reason: str | None = None) -> list[dict]:
             return_value=Backing("/var/lib/docker/volumes/vol/_data"),
         ),
         mock.patch.object(snapshot_mod, "unsnapshotted", return_value=reason),
+        mock.patch.object(app, "write_manifest"),
         mock.patch.object(app, "stamp_directory"),
         mock.patch.object(app, "handle_docker_compose_services"),
-        mock.patch.object(app.os.path, "isdir", return_value=present),
+        mock.patch("os.path.isdir", return_value=present),
         mock.patch.object(app, "backup_volume", side_effect=record),
         mock.patch.object(app, "volume_snapshot", stubbed_snapshot),
     ):

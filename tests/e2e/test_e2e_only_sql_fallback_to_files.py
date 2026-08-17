@@ -1,4 +1,7 @@
+import json
 import unittest
+
+from baudolo.generation import FILES_DIR, MANIFEST_FILE, MANIFEST_SCHEMA, SQL_DIR
 
 from .helpers import (
     POSTGRES_DATA_DIR,
@@ -158,6 +161,31 @@ class TestE2EOnlySqlFallbackToFiles(unittest.TestCase):
                 0,
                 f"Did not expect SQL dump files, found: {dumps}",
             )
+
+    def manifest(self) -> dict:
+        generation = backup_path(
+            self.backups_dir, self.repo_name, self.version, self.pg_volume
+        ).parent
+        return json.loads((generation / MANIFEST_FILE).read_text(encoding="utf-8"))
+
+    def test_the_manifest_records_the_volume_as_a_database_left_undumped(self) -> None:
+        """The fallback is invisible in the tree: files/ looks like any copy."""
+        self.assertEqual(
+            self.manifest()["volumes"][self.pg_volume],
+            {"database": True, "dumped": False, "engine": "postgres"},
+        )
+
+    def test_the_manifest_layout_names_where_the_payload_really_landed(self) -> None:
+        layout = self.manifest()["layout"]
+        volume_dir = backup_path(
+            self.backups_dir, self.repo_name, self.version, self.pg_volume
+        )
+        self.assertTrue((volume_dir / layout["files_dir"]).is_dir())
+        self.assertEqual(layout["files_dir"], FILES_DIR)
+        self.assertEqual(layout["sql_dir"], SQL_DIR)
+
+    def test_the_manifest_states_a_schema_a_reader_can_check(self) -> None:
+        self.assertEqual(self.manifest()["schema"], MANIFEST_SCHEMA)
 
     def test_restored_files_contain_marker(self) -> None:
         p = run(

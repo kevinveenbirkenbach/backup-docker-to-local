@@ -1,15 +1,13 @@
 import unittest
 from unittest.mock import patch
 
-import pandas
+import pandas as pd
 
 from baudolo.backup import dumps as dumps_mod
 
 
 def _df(rows):
-    return pandas.DataFrame(
-        rows, columns=["instance", "database", "username", "password"]
-    )
+    return pd.DataFrame(rows, columns=["instance", "database", "username", "password"])
 
 
 class _Probe:
@@ -104,15 +102,16 @@ class TestBackupDispatch(unittest.TestCase):
             patch.object(dumps_mod, "image_id", probe.image_id),
             patch.object(dumps_mod, "backup_database", _fake_backup_database),
         ):
-            is_db, dumped = dumps_mod.backup_mariadb_or_postgres(
+            outcome = dumps_mod.backup_mariadb_or_postgres(
                 container="c1",
                 volume_dir="/tmp",
                 databases_df=_df([("c1", "appdb", "u", "p")]),
                 database_containers=["c1"],
             )
 
-        self.assertTrue(is_db)
-        self.assertTrue(dumped)
+        self.assertTrue(outcome.database)
+        self.assertTrue(outcome.dumped)
+        self.assertEqual(outcome.engine, "mariadb")
         self.assertEqual(seen["db_type"], "mariadb")
         self.assertEqual(seen["dump_tool"], "mysqldump")
 
@@ -130,7 +129,7 @@ class TestBackupDispatch(unittest.TestCase):
                     databases_df=_df([]),
                     database_containers=[],
                 ),
-                (False, False),
+                dumps_mod.VolumeOutcome(database=False, dumped=False, engine=None),
             )
 
 

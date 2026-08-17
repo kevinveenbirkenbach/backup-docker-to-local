@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import sys
+from typing import NamedTuple
 
-import pandas
+import pandas as pd
 from pandas.errors import EmptyDataError
 
 from baudolo.databases import COLUMNS, DELIMITER
@@ -19,6 +20,19 @@ DUMP_TOOLS: tuple[tuple[str, str], ...] = (
 )
 
 _ENGINE_BY_IMAGE: dict[str, tuple[str, str] | None] = {}
+
+
+class VolumeOutcome(NamedTuple):
+    """What a dump attempt established about one volume.
+
+    ``database`` says a container serving the volume speaks an engine this
+    tool can dump; ``dumped`` says a dump was actually written. ``engine`` is
+    the engine that was detected, or None when none was.
+    """
+
+    database: bool
+    dumped: bool
+    engine: str | None = None
 
 
 def container_engine(container: str) -> tuple[str, str] | None:
@@ -55,15 +69,13 @@ def backup_mariadb_or_postgres(
     *,
     container: str,
     volume_dir: str,
-    databases_df: pandas.DataFrame,
+    databases_df: pd.DataFrame,
     database_containers: list[str],
-) -> tuple[bool, bool]:
-    """
-    Returns (is_db_container, dumped_any)
-    """
+) -> VolumeOutcome:
+    """What this container contributes to its volume's outcome."""
     engine = container_engine(container)
     if engine is None:
-        return False, False
+        return VolumeOutcome(database=False, dumped=False)
     db_type, dump_tool = engine
     dumped = backup_database(
         container=container,
@@ -73,20 +85,20 @@ def backup_mariadb_or_postgres(
         databases_df=databases_df,
         database_containers=database_containers,
     )
-    return True, dumped
+    return VolumeOutcome(database=True, dumped=dumped, engine=db_type)
 
 
-def _empty_databases_df() -> pandas.DataFrame:
+def _empty_databases_df() -> pd.DataFrame:
     """
     Create an empty DataFrame with the expected schema for databases.csv.
 
     This allows the backup to continue without DB dumps when the CSV is missing
     or empty (pandas EmptyDataError).
     """
-    return pandas.DataFrame(columns=list(COLUMNS))
+    return pd.DataFrame(columns=list(COLUMNS))
 
 
-def load_databases_df(csv_path: str) -> pandas.DataFrame:
+def load_databases_df(csv_path: str) -> pd.DataFrame:
     """
     Load databases.csv robustly.
 
@@ -95,9 +107,7 @@ def load_databases_df(csv_path: str) -> pandas.DataFrame:
     - Valid CSV        -> return dataframe
     """
     try:
-        return pandas.read_csv(
-            csv_path, sep=DELIMITER, keep_default_na=False, dtype=str
-        )
+        return pd.read_csv(csv_path, sep=DELIMITER, keep_default_na=False, dtype=str)
     except FileNotFoundError:
         print(
             f"WARNING: databases.csv not found: {csv_path}. Continuing without database dumps.",
@@ -118,25 +128,26 @@ def backup_dumps_for_volume(
     *,
     containers: list[str],
     vol_dir: str,
-    databases_df: pandas.DataFrame,
+    databases_df: pd.DataFrame,
     database_containers: list[str],
-) -> tuple[bool, bool]:
-    """
-    Returns (found_db_container, dumped_any)
-    """
+) -> VolumeOutcome:
+    """The volume's outcome across every container that mounts it."""
     found_db = False
     dumped_any = False
+    engine: str | None = None
 
     for c in containers:
-        is_db, dumped = backup_mariadb_or_postgres(
+        outcome = backup_mariadb_or_postgres(
             container=c,
             volume_dir=vol_dir,
             databases_df=databases_df,
             database_containers=database_containers,
         )
-        if is_db:
+        if outcome.database:
             found_db = True
-        if dumped:
+        if outcome.dumped:
             dumped_any = True
+        if engine is None:
+            engine = outcome.engine
 
-    return found_db, dumped_any
+    return VolumeOutcome(database=found_db, dumped=dumped_any, engine=engine)

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
-from .shell import BackupException, execute_shell_command
+from .shell import BackupError, execute_shell_command
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def docker_exec_argv(
@@ -34,7 +37,7 @@ def has_tool(container: str, tool: str) -> bool:
     """
     try:
         execute_shell_command(docker_exec_argv(container, [tool, "--version"]))
-    except BackupException:
+    except BackupError:
         return False
     return True
 
@@ -74,7 +77,7 @@ def is_swarm_task(container: str) -> bool:
                 container,
             ]
         )
-    except BackupException:
+    except BackupError:
         still_listed = execute_shell_command(
             [
                 "docker",

@@ -21,11 +21,16 @@ keeps its snapshot.
 from __future__ import annotations
 
 import os
-from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-from .shell import BackupException, execute_shell_command
-from .volume import Backing
+from .shell import BackupError, execute_shell_command
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
+
+    from .volume import Backing
 
 KINDS = ("btrfs", "zfs")
 
@@ -36,10 +41,15 @@ class SnapshotError(RuntimeError):
 
 def _resolver(subject: str, root: str) -> Callable[[str], str]:
     def resolve(path: str) -> str:
-        relative = os.path.relpath(os.path.abspath(path), os.path.abspath(subject))
+        # Exception: abspath, not Path.resolve() - resolve() follows symlinks,
+        # which would let a symlinked volume test as inside the subject.
+        relative = os.path.relpath(
+            os.path.abspath(path),  # noqa: PTH100
+            os.path.abspath(subject),  # noqa: PTH100
+        )
         if relative.startswith(".."):
             raise SnapshotError(f"{path} lies outside the snapshot subject {subject}")
-        resolved = root if relative == "." else os.path.join(root, relative)
+        resolved = root if relative == "." else str(Path(root) / relative)
 
         # abspath drops a trailing separator, and rsync reads "dir/" as its
         # contents where "dir" means the directory itself.
@@ -54,7 +64,7 @@ def _btrfs(
     # The snapshot goes inside the subject, never beside it: the kernel rejects
     # a snapshot whose destination is on another filesystem, which is exactly
     # what the parent directory is when the subject is a mountpoint of its own.
-    target = os.path.join(os.path.abspath(subject), f".{name}")
+    target = str(Path(os.path.abspath(subject)) / f".{name}")  # noqa: PTH100 - see _resolver
     run(["btrfs", "subvolume", "snapshot", "-r", subject, target])
     return target, ["btrfs", "subvolume", "delete", target]
 
@@ -67,7 +77,7 @@ def _zfs(
     if not dataset:
         raise SnapshotError(f"no zfs dataset is mounted at {subject}")
     run(["zfs", "snapshot", f"{dataset}@{name}"])
-    root = os.path.join(subject, ".zfs", "snapshot", name)
+    root = str(Path(subject) / ".zfs" / "snapshot" / name)
     return root, ["zfs", "destroy", f"{dataset}@{name}"]
 
 
@@ -99,7 +109,9 @@ def unsnapshotted(backing: Backing, subject: str) -> str | None:
     if os.path.ismount(real):
         return f"its mountpoint {backing.mountpoint} sits on its own mount"
     try:
-        crosses = os.stat(real).st_dev != os.stat(os.path.realpath(subject)).st_dev
+        crosses = (
+            Path(real).stat().st_dev != Path(os.path.realpath(subject)).stat().st_dev
+        )
     except OSError as error:
         return f"its mountpoint {backing.mountpoint} could not be read: {error}"
     if crosses:
@@ -123,7 +135,7 @@ def snapshot_source(
         source = resolve(backing.source)
     except SnapshotError as error:
         return None, str(error)
-    if not os.path.isdir(source):
+    if not Path(source).is_dir():
         return None, "it was created after the snapshot was taken"
     return source, ""
 
@@ -159,6 +171,6 @@ def volume_snapshot(
     finally:
         try:
             run(remove)
-        except BackupException as error:
+        except BackupError as error:
             # Raising here would also mask whatever the body raised.
             print(f"WARNING: {root} could not be removed: {error}", flush=True)

@@ -5,7 +5,9 @@ import os
 import pathlib
 from dataclasses import dataclass, field
 
-from .shell import BackupException, execute_shell_command
+from baudolo.generation import FILES_DIR
+
+from .shell import BackupError, execute_shell_command
 
 
 @dataclass(frozen=True)
@@ -45,8 +47,8 @@ def get_last_backup_dir(
 ) -> str | None:
     versions = sorted(os.listdir(versions_dir), reverse=True)
     for version in versions:
-        candidate = os.path.join(versions_dir, version, volume_name, "files", "")
-        if candidate != current_backup_dir and os.path.isdir(candidate):
+        candidate = f"{pathlib.Path(versions_dir) / version / volume_name / FILES_DIR}/"
+        if candidate != current_backup_dir and pathlib.Path(candidate).is_dir():
             return candidate
     return None
 
@@ -69,7 +71,7 @@ def backup_volume(
         source: directory to read from - the volume's mountpoint, or its path
             inside a snapshot.
     """
-    dest = os.path.join(volume_dir, "files") + "/"
+    dest = f"{pathlib.Path(volume_dir) / FILES_DIR}/"
     pathlib.Path(dest).mkdir(parents=True, exist_ok=True)
 
     last = get_last_backup_dir(versions_dir, volume_name, dest)
@@ -82,7 +84,7 @@ def backup_volume(
 
     try:
         execute_shell_command(cmd)
-    except BackupException as e:
+    except BackupError as e:
         if "file has vanished" in str(e):
             print(
                 "Warning: Some files vanished before transfer. Continuing.", flush=True
