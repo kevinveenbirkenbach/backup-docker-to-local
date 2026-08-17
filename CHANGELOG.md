@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.5.0] - 2026-08-17
+
+- Restore: a *database = '*'* row makes the backup write
+  *<instance>.cluster.backup.sql* via *pg_dumpall*, and nothing could read it
+  back — the CLI knew *files*, *postgres* and *mariadb*, so that dump was
+  stored and unrestorable. *baudolo-restore cluster* replays it against the
+  control database, deliberately without *--single-transaction* because
+  CREATE DATABASE is forbidden inside a transaction block, and filters out the
+  CREATE ROLE of the connecting role, which the pre-clean cannot drop while it
+  holds the session. *--empty* drops the cluster's databases first, then
+  releases what its roles still own, then the roles themselves.
+
+- Lint: ruff was never wired into the repository — no target, no CI step, no
+  pin — and reported 45 findings across sources and tests. *make ruff* and
+  *make lint* now run it over every file, *make test* gates on a clean run as a
+  fourth parallel spur, and the linter is pinned in a *lint* extra because a
+  minor bump changes which rules fire.
+
 ## [3.4.3] - 2026-08-16
 
 - Backup: *create_version_directory* carried *exist_ok=True*, so a run starting
