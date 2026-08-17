@@ -13,7 +13,7 @@ def _df(rows):
     )
 
 
-def _capture_commands(*, db_type, rows, container):
+def _capture_commands(*, db_type, rows, container, dump_tool="mariadb-dump"):
     captured = []
 
     def _capture(cmd):
@@ -28,6 +28,7 @@ def _capture_commands(*, db_type, rows, container):
             container=container,
             volume_dir=td,
             db_type=db_type,
+            dump_tool=dump_tool,
             databases_df=_df(rows),
             database_containers=[container],
         )
@@ -56,6 +57,19 @@ class TestMariaDBDumpUsesTCP(unittest.TestCase):
         self.assertIn("-u appuser", cmd)
         self.assertIn("-ps3cret", cmd)
         self.assertIn(" appdb", cmd)
+
+    def test_the_probed_client_is_the_one_invoked(self):
+        captured = _capture_commands(
+            db_type="mariadb",
+            rows=[("mariadb", "appdb", "appuser", "s3cret")],
+            container="mariadb",
+            dump_tool="mysqldump",
+        )
+        dump_cmds = [c for c in captured if "mysqldump" in c]
+        self.assertEqual(
+            len(dump_cmds), 1, f"expected one dump command, got: {captured}"
+        )
+        self.assertNotIn("mariadb-dump", dump_cmds[0])
 
     def test_postgres_dump_unaffected(self):
         captured = _capture_commands(

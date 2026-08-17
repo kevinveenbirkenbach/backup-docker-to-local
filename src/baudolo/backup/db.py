@@ -69,11 +69,16 @@ def backup_database(
     container: str,
     volume_dir: str,
     db_type: str,
+    dump_tool: str,
     databases_df: pandas.DataFrame,
     database_containers: list[str],
 ) -> bool:
     """
     Backup databases for a given DB container.
+
+    Args:
+        dump_tool: the MariaDB client found in the container, so an image
+            that ships only mysqldump is dumped with the tool it has.
 
     Returns True if at least one dump was produced.
     """
@@ -114,7 +119,7 @@ def backup_database(
         if db_type == "mariadb":
             # Force TCP so auth matches '<user>'@'%' instead of socket -> 'localhost'.
             cmd = (
-                f"docker exec {container} /usr/bin/mariadb-dump "
+                f"docker exec {container} {dump_tool} "
                 f"-h 127.0.0.1 --protocol=tcp "
                 f"-u {user} -p{password} {db_name}"
             )

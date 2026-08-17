@@ -8,7 +8,45 @@ import pandas
 from pandas.errors import EmptyDataError
 
 from .db import backup_database
-from .docker import has_image
+from .docker import has_tool, image_id
+
+DUMP_TOOLS: tuple[tuple[str, str], ...] = (
+    ("postgres", "pg_dumpall"),
+    ("mariadb", "mariadb-dump"),
+    ("mariadb", "mysqldump"),
+)
+
+_ENGINE_BY_IMAGE: dict[str, tuple[str, str] | None] = {}
+
+
+def container_engine(container: str) -> tuple[str, str] | None:
+    """The (engine, dump tool) a container can serve, or None for neither.
+
+    Asks the container what it can run instead of reading its image name. A
+    dedicated Postgres is tagged `<app>-database` or `postgis/postgis` and
+    carries no engine token at all, while a swarm registry host such as
+    `svc-db-mariadb-swarm-mgr-01:5000` carries the wrong one.
+
+    Args:
+        container: must be running - `docker exec` is the probe, and a
+            stopped container would be cached as "no engine" for its whole
+            image. The only caller feeds it `docker ps` output.
+
+    Returns:
+        The engine and the tool that dumps it, cached per image ID so that
+        replicas of one image are probed once.
+    """
+    image = image_id(container)
+    if image not in _ENGINE_BY_IMAGE:
+        _ENGINE_BY_IMAGE[image] = next(
+            (
+                (engine, tool)
+                for engine, tool in DUMP_TOOLS
+                if has_tool(container, tool)
+            ),
+            None,
+        )
+    return _ENGINE_BY_IMAGE[image]
 
 
 def backup_mariadb_or_postgres(
@@ -21,17 +59,19 @@ def backup_mariadb_or_postgres(
     """
     Returns (is_db_container, dumped_any)
     """
-    for img in ["mariadb", "postgres"]:
-        if has_image(container, img):
-            dumped = backup_database(
-                container=container,
-                volume_dir=volume_dir,
-                db_type=img,
-                databases_df=databases_df,
-                database_containers=database_containers,
-            )
-            return True, dumped
-    return False, False
+    engine = container_engine(container)
+    if engine is None:
+        return False, False
+    db_type, dump_tool = engine
+    dumped = backup_database(
+        container=container,
+        volume_dir=volume_dir,
+        db_type=db_type,
+        dump_tool=dump_tool,
+        databases_df=databases_df,
+        database_containers=database_containers,
+    )
+    return True, dumped
 
 
 def _empty_databases_df() -> pandas.DataFrame:

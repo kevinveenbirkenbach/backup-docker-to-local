@@ -148,6 +148,7 @@ class TestE2EMariaDBAnonymousPreemption(unittest.TestCase):
                 container=self.db_container,
                 volume_dir=volume_dir,
                 db_type="mariadb",
+                dump_tool="mariadb-dump",
                 databases_df=df,
                 database_containers=[self.db_container],
             )
