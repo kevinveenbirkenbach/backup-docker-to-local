@@ -18,6 +18,8 @@ class TestVersionFlagReachesEveryEngine(unittest.TestCase):
             "app_vol",
             "hash",
             "20260817000000",
+            "--repo-name",
+            "repo",
             "--container",
             "db",
             "--db-password",

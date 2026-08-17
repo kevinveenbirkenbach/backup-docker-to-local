@@ -157,7 +157,6 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
             ]
         )
 
-        # --- Run baudolo with dump-only-sql ---
         cmd = [
             "baudolo",
             "--compose-dir",
@@ -168,7 +167,7 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
             cls.pg_container,
             "--images-no-stop-required",
             POSTGRES_IMAGE,
-            "--dump-only-sql",
+            "--only-sql",
             "--backups-dir",
             cls.backups_dir,
             "--repo-name",
@@ -194,7 +193,7 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
         self.assertTrue(sql_dir.exists(), f"Expected sql dir at: {sql_dir}")
         self.assertFalse(
             files_dir.exists(),
-            f"Did not expect files dir for DB volume when dump-only-sql succeeded: {files_dir}",
+            f"Did not expect files dir for DB volume when only-sql succeeded: {files_dir}",
         )
 
         # Cluster dump file produced by '*' entry

@@ -10,17 +10,15 @@ from baudolo.backup import snapshot as snapshot_mod
 from baudolo.backup.snapshot import volume_snapshot
 from baudolo.backup.volume import Backing
 
+from . import BASE_ARGV
+
 
 def stubbed_snapshot(kind: str, subject: str, tag: str):
     return volume_snapshot(kind, subject, tag, run=lambda command: [])
 
 
 ARGV = [
-    "baudolo",
-    "--compose-dir",
-    "/compose",
-    "--backups-dir",
-    "/backups",
+    *BASE_ARGV,
     "--snapshot",
     "btrfs",
     "--snapshot-subject",

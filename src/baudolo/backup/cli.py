@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import os
 
 
 def parse_args() -> argparse.Namespace:
-    dirname = os.path.dirname(__file__)
-    default_databases_csv = os.path.join(dirname, "databases.csv")
-
     p = argparse.ArgumentParser(description="Backup Docker volumes.")
 
     p.add_argument(
@@ -25,13 +21,12 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument(
         "--repo-name",
-        default="backup-docker-to-local",
-        help="Backup repo folder name under <backups-dir>/<machine-id>/ (default: git repo folder name)",
+        required=True,
+        help="Backup repo folder name under <backups-dir>/<machine-id>/",
     )
     p.add_argument(
         "--databases-csv",
-        default=default_databases_csv,
-        help=f"Path to databases.csv (default: {default_databases_csv})",
+        help="Path to databases.csv; required unless --only-files is given",
     )
     p.add_argument(
         "--backups-dir",
@@ -76,18 +71,14 @@ def parse_args() -> argparse.Namespace:
     )
 
     p.add_argument(
-        "--everything",
-        action="store_true",
-        help="Force file backup for all volumes and also execute database dumps (like old script)",
-    )
-    p.add_argument(
         "--shutdown",
         action="store_true",
         help="Do not restart containers after backup",
     )
 
-    p.add_argument(
-        "--dump-only-sql",
+    scope = p.add_mutually_exclusive_group()
+    scope.add_argument(
+        "--only-sql",
         action="store_true",
         help=(
             "Create database dumps only for DB volumes. "
@@ -96,7 +87,19 @@ def parse_args() -> argparse.Namespace:
             "If a DB dump cannot be produced, baudolo falls back to a file backup."
         ),
     )
+    scope.add_argument(
+        "--only-files",
+        action="store_true",
+        help=(
+            "Take no database dumps at all and back up every volume as files. "
+            "For hosts that hold no database credentials. A database's files "
+            "are only consistent if its containers are stopped for the second "
+            "pass, so keep its image off --images-no-stop-required."
+        ),
+    )
     args = p.parse_args()
+    if not args.only_files and not args.databases_csv:
+        p.error("--databases-csv is required unless --only-files is given")
     if bool(args.snapshot) != bool(args.snapshot_subject):
         p.error("--snapshot and --snapshot-subject must be given together")
     if args.snapshot and args.shutdown:

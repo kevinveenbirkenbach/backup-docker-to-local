@@ -37,7 +37,7 @@ def main() -> int:
     versions_dir = os.path.join(args.backups_dir, machine_id, args.repo_name)
     version_dir = create_version_directory(versions_dir, backup_time)
 
-    databases_df = load_databases_df(args.databases_csv)
+    databases_df = None if args.only_files else load_databases_df(args.databases_csv)
 
     print("💾 Start volume backups...", flush=True)
 
@@ -69,17 +69,19 @@ def main() -> int:
 
             vol_dir = create_volume_directory(version_dir, volume_name)
 
-            found_db, dumped_any = backup_dumps_for_volume(
-                containers=containers,
-                vol_dir=vol_dir,
-                databases_df=databases_df,
-                database_containers=args.database_containers,
-            )
+            found_db = dumped_any = False
+            if not args.only_files:
+                found_db, dumped_any = backup_dumps_for_volume(
+                    containers=containers,
+                    vol_dir=vol_dir,
+                    databases_df=databases_df,
+                    database_containers=args.database_containers,
+                )
 
-            if args.dump_only_sql and found_db:
+            if args.only_sql and found_db:
                 if not dumped_any:
                     print(
-                        f"WARNING: dump-only-sql requested but no DB dump was produced for DB volume '{volume_name}'. "
+                        f"WARNING: only-sql requested but no DB dump was produced for DB volume '{volume_name}'. "
                         "Falling back to file backup.",
                         flush=True,
                     )
@@ -117,15 +119,6 @@ def main() -> int:
                         flush=True,
                     )
                     copy(authoritative=False)
-                continue
-
-            if args.everything:
-                stoppable = filter_stoppable(containers)
-                copy(authoritative=False)
-                change_containers_status(stoppable, "stop")
-                copy(authoritative=True)
-                if not args.shutdown:
-                    change_containers_status(stoppable, "start")
                 continue
 
             copy(authoritative=False)

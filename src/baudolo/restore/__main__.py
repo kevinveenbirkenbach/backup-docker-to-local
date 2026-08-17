@@ -22,8 +22,8 @@ def _add_common_backup_args(p: argparse.ArgumentParser) -> None:
     )
     p.add_argument(
         "--repo-name",
-        default="backup-docker-to-local",
-        help="Backup repo folder name under <backups-dir>/<hash>/ (default: backup-docker-to-local)",
+        required=True,
+        help="Backup repo folder name under <backups-dir>/<hash>/",
     )
 
 

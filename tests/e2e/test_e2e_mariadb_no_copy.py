@@ -89,7 +89,7 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
             [(cls.db_container, cls.db_name, cls.db_user, cls.db_password)],
         )
 
-        # dump-only-sql => no files
+        # only-sql => no files
         backup_run(
             backups_dir=cls.backups_dir,
             repo_name=cls.repo_name,
@@ -97,7 +97,7 @@ class TestE2EMariaDBNoCopy(unittest.TestCase):
             databases_csv=cls.databases_csv,
             database_containers=[cls.db_container],
             images_no_stop_required=[MARIADB_IMAGE],
-            dump_only_sql=True,
+            only_sql=True,
         )
 
         cls.hash, cls.version = latest_version_dir(cls.backups_dir, cls.repo_name)

@@ -123,6 +123,8 @@ This information is used by `baudolo` to execute
 ```bash
 baudolo \
   --compose-dir /srv/docker \
+  --backups-dir /Backups \
+  --repo-name my-repo \
   --databases-csv /etc/baudolo/databases.csv \
   --database-containers central-postgres central-mariadb \
   --images-no-stop-required alpine postgres mariadb mysql \
@@ -133,11 +135,12 @@ baudolo \
 
 | Flag            | Description                                 |
 | --------------- | ------------------------------------------- |
-| `--everything`  | Always stop containers and re-run rsync     |
-| `--dump-only-sql`| Skip file backups only for DB volumes when dumps succeed; non-DB volumes are still backed up; fallback to files if no dump.    |
+| `--only-sql`    | Skip file backups only for DB volumes when dumps succeed; non-DB volumes are still backed up; fallback to files if no dump.    |
+| `--only-files`  | Take no dumps at all; every volume is backed up as files. Needs no `--databases-csv`. Mutually exclusive with `--only-sql`. |
 | `--shutdown`    | Do not restart containers after backup      |
-| `--backups-dir` | Backup root directory (default: `/Backups`) |
-| `--repo-name`   | Backup namespace under machine hash         |
+| `--backups-dir` | Backup root directory (required)            |
+| `--repo-name`   | Backup namespace under machine hash (required) |
+| `--databases-csv`| Path to `databases.csv` (required)         |
 
 ## ♻️ Restore Operations
 

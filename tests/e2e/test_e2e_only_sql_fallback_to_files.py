@@ -16,11 +16,11 @@ from .helpers import (
 )
 
 
-class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
+class TestE2EOnlySqlFallbackToFiles(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         require_docker()
-        cls.prefix = unique("baudolo-e2e-dump-only-sql-fallback")
+        cls.prefix = unique("baudolo-e2e-only-sql-fallback")
         cls.backups_dir = f"/tmp/{cls.prefix}/Backups"
         ensure_empty_dir(cls.backups_dir)
 
@@ -57,7 +57,7 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
         wait_for_postgres(cls.pg_container, user="postgres", timeout_s=90)
 
         # Add a deterministic marker file into the volume
-        cls.marker = "dump-only-sql-fallback-marker"
+        cls.marker = "only-sql-fallback-marker"
         run(
             [
                 "docker",
@@ -73,7 +73,7 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
         cls.databases_csv = f"/tmp/{cls.prefix}/databases.csv"
         write_databases_csv(cls.databases_csv, [])  # empty except header
 
-        # Run baudolo with --dump-only-sql and a DB container present:
+        # Run baudolo with --only-sql and a DB container present:
         # Expected: WARNING + FALLBACK to file backup (files/ must exist)
         cmd = [
             "baudolo",
@@ -91,7 +91,7 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
             cls.pg_container,
             "--images-no-stop-required",
             POSTGRES_IMAGE,
-            "--dump-only-sql",
+            "--only-sql",
         ]
         cp = run(cmd, capture=True, check=True)
 
@@ -122,7 +122,7 @@ class TestE2EDumpOnlyFallbackToFiles(unittest.TestCase):
 
     def test_warns_about_missing_dump_in_dump_only_mode(self) -> None:
         self.assertIn(
-            "WARNING: dump-only-sql requested but no DB dump was produced",
+            "WARNING: only-sql requested but no DB dump was produced",
             self.stdout,
             f"Expected warning in baudolo output. STDOUT:\n{self.stdout}",
         )

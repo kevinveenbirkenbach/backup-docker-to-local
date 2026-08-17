@@ -16,11 +16,11 @@ from .helpers import (
 )
 
 
-class TestE2EDumpOnlySqlMixedRun(unittest.TestCase):
+class TestE2EOnlySqlMixedRun(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         require_docker()
-        cls.prefix = unique("baudolo-e2e-dump-only-sql-mixed-run")
+        cls.prefix = unique("baudolo-e2e-only-sql-mixed-run")
         cls.backups_dir = f"/tmp/{cls.prefix}/Backups"
         ensure_empty_dir(cls.backups_dir)
 
@@ -123,7 +123,7 @@ class TestE2EDumpOnlySqlMixedRun(unittest.TestCase):
             cls.pg_container,
             "--images-no-stop-required",
             POSTGRES_IMAGE,
-            "--dump-only-sql",
+            "--only-sql",
             "--backups-dir",
             cls.backups_dir,
             "--repo-name",
@@ -170,8 +170,8 @@ class TestE2EDumpOnlySqlMixedRun(unittest.TestCase):
             f"Expected files dir for non-DB volume at: {files}",
         )
 
-    def test_dump_only_sql_does_not_disable_non_db_files_backup(self) -> None:
-        # Regression guard: even with --dump-only-sql, non-DB volumes must still be backed up as files
+    def test_only_sql_does_not_disable_non_db_files_backup(self) -> None:
+        # Regression guard: even with --only-sql, non-DB volumes must still be backed up as files
         base = backup_path(
             self.backups_dir, self.repo_name, self.version, self.files_volume
         )

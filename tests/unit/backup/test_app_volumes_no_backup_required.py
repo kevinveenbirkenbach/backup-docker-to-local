@@ -9,12 +9,10 @@ from unittest import mock
 from baudolo.backup import app
 from baudolo.backup.volume import Backing
 
+from . import BASE_ARGV
+
 ARGV = [
-    "baudolo",
-    "--compose-dir",
-    "/compose",
-    "--backups-dir",
-    "/backups",
+    *BASE_ARGV,
     "--volumes-no-backup-required",
     "derived",
 ]

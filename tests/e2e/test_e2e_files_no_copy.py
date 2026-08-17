@@ -47,7 +47,7 @@ class TestE2EFilesNoCopy(unittest.TestCase):
         cls.databases_csv = f"/tmp/{cls.prefix}/databases.csv"
         write_databases_csv(cls.databases_csv, [])
 
-        # dump-only-sql => non-DB volumes are STILL backed up as files
+        # only-sql => non-DB volumes are STILL backed up as files
         backup_run(
             backups_dir=cls.backups_dir,
             repo_name=cls.repo_name,
@@ -55,7 +55,7 @@ class TestE2EFilesNoCopy(unittest.TestCase):
             databases_csv=cls.databases_csv,
             database_containers=["dummy-db"],
             images_no_stop_required=["alpine:3.20"],
-            dump_only_sql=True,
+            only_sql=True,
         )
 
         cls.hash, cls.version = latest_version_dir(cls.backups_dir, cls.repo_name)

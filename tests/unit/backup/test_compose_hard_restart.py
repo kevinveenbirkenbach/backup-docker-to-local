@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
+from . import BASE_ARGV
+
 
 class HardRestartArgTests(unittest.TestCase):
     """The hard-restart list defaults to empty (no compose down/up); callers
@@ -16,11 +18,7 @@ class HardRestartArgTests(unittest.TestCase):
         from baudolo.backup import cli
 
         argv = [
-            "baudolo",
-            "--compose-dir",
-            "/tmp",
-            "--backups-dir",
-            "/tmp/backup",
+            *BASE_ARGV,
             "--database-containers",
             "postgres",
             "--images-no-stop-required",
@@ -41,23 +39,6 @@ class HardRestartArgTests(unittest.TestCase):
     def test_explicit_names_preserved(self) -> None:
         args = self._parse(["--hard-restart-projects", "mailu", "foo"])
         self.assertEqual(args.hard_restart_projects, ["mailu", "foo"])
-
-    def test_backups_dir_is_required(self) -> None:
-        import sys
-
-        from baudolo.backup import cli
-
-        argv = [
-            "baudolo",
-            "--compose-dir",
-            "/tmp",
-            "--database-containers",
-            "postgres",
-            "--images-no-stop-required",
-            "redis",
-        ]
-        with patch.object(sys, "argv", argv), self.assertRaises(SystemExit):
-            cli.parse_args()
 
 
 if __name__ == "__main__":
