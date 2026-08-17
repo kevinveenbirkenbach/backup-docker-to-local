@@ -2,7 +2,20 @@
 
 ## [3.6.0] - 2026-08-17
 
-Release 3.6.0
+- Restore: *--empty* drops the schema in one session and replays in the next,
+  with no rollback across the two, so a dump the engine could not parse left an
+  emptied database behind. The dump's header is now checked against the running
+  engine before anything is dropped, and a newer dump is refused.
+  Forward across a major version stays allowed; *--no-version-check* is the way out.
+- Restore: a volume with driver options — NFS, a bind device, tmpfs — keeps the
+  usual *_data* path, but docker mounts its real storage over it only while a
+  container holds it. Restoring meanwhile landed under the mount, stayed hidden
+  there, and rsync reported success. That volume is now refused until something
+  mounts it.
+- Backup: the same volume sits in a snapshot as an empty directory, so it was
+  copied empty and the generation stamped complete. Capture is decided per volume
+  now — an uncaptured one is copied live, the rest keep their snapshot. A single
+  NFS volume no longer costs the whole host its consistent backup.
 
 ## [3.5.0] - 2026-08-17
 
