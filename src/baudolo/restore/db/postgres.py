@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-import os
 import tempfile
-from collections.abc import Iterable, Iterator
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ..run import docker_exec
+from baudolo.restore.run import docker_exec
+
 from .version import guard
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator
+
 _SUPERUSER_ONLY_PREFIXES = (b"COMMENT ON EXTENSION", b"ALTER DEFAULT PRIVILEGES")
-_EMPTY_PRECLEAN_SQL = os.path.join(os.path.dirname(__file__), "empty_preclean.sql")
+_EMPTY_PRECLEAN_SQL = Path(__file__).parent / "empty_preclean.sql"
 
 
 def filter_superuser_only_lines(lines: Iterable[bytes]) -> Iterator[bytes]:
@@ -49,7 +53,7 @@ def restore_postgres_sql(
     empty: bool,
     check_version: bool = True,
 ) -> None:
-    if not os.path.isfile(sql_path):
+    if not Path(sql_path).is_file():
         raise FileNotFoundError(sql_path)
 
     if check_version:
@@ -64,7 +68,7 @@ def restore_postgres_sql(
     docker_env = {"PGPASSWORD": password}
 
     if empty:
-        with open(_EMPTY_PRECLEAN_SQL, encoding="utf-8") as preclean:
+        with _EMPTY_PRECLEAN_SQL.open(encoding="utf-8") as preclean:
             drop_sql = preclean.read()
         docker_exec(
             container,
@@ -76,7 +80,7 @@ def restore_postgres_sql(
     # Filter into a spooled temp file instead of building the whole dump in
     # memory: production dumps reach many GB and the previous read/splitlines/
     # join needed roughly three times the dump size in RSS.
-    with open(sql_path, "rb") as src, tempfile.TemporaryFile() as filtered:
+    with Path(sql_path).open("rb") as src, tempfile.TemporaryFile() as filtered:
         for line in filter_superuser_only_lines(src):
             filtered.write(line)
         filtered.seek(0)

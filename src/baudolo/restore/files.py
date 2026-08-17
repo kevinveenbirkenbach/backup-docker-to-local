@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 from .run import docker_volume_exists, run, stdout_of
 
@@ -21,7 +22,7 @@ INSPECT_FORMAT = (
 
 
 def restore_volume_files(volume_name: str, backup_files_dir: str) -> int:
-    if not os.path.isdir(backup_files_dir):
+    if not Path(backup_files_dir).is_dir():
         print(f"ERROR: backup files dir not found: {backup_files_dir}", file=sys.stderr)
         return 2
 
@@ -44,7 +45,7 @@ def restore_volume_files(volume_name: str, backup_files_dir: str) -> int:
         )
         return 2
 
-    driver, options = (fields + ["local", "plain"])[1:3]
+    driver, options = ([*fields, "local", "plain"])[1:3]
     if (driver != "local" or options == "opts") and not os.path.ismount(mountpoint):
         print(
             f"ERROR: volume {volume_name} has a backing store of its own "
@@ -55,8 +56,9 @@ def restore_volume_files(volume_name: str, backup_files_dir: str) -> int:
         )
         return 2
 
-    src = os.path.join(backup_files_dir, "")
-    dest = os.path.join(mountpoint, "")
+    # rsync reads "dir/" as its contents and "dir" as the directory itself.
+    src = f"{Path(backup_files_dir)}{os.sep}"
+    dest = f"{Path(mountpoint)}{os.sep}"
     run(["rsync", "-avv", "--delete", src, dest])
     print("File restore complete.")
     return 0

@@ -1,8 +1,8 @@
 import io
-import os
 import tempfile
 import unittest
 from contextlib import redirect_stderr
+from pathlib import Path
 
 import pandas as pd
 
@@ -15,7 +15,7 @@ EXPECTED_COLUMNS = ["instance", "database", "username", "password"]
 class TestLoadDatabasesDf(unittest.TestCase):
     def test_missing_csv_is_handled_with_warning_and_empty_df(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            missing_path = os.path.join(td, "does-not-exist.csv")
+            missing_path = str(Path(td) / "does-not-exist.csv")
 
             buf = io.StringIO()
             with redirect_stderr(buf):
@@ -31,8 +31,8 @@ class TestLoadDatabasesDf(unittest.TestCase):
 
     def test_empty_csv_is_handled_with_warning_and_empty_df(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            empty_path = os.path.join(td, "databases.csv")
-            with open(empty_path, "w", encoding="utf-8") as f:
+            empty_path = Path(td) / "databases.csv"
+            with empty_path.open("w", encoding="utf-8") as f:
                 f.write("")
 
             buf = io.StringIO()
@@ -49,10 +49,10 @@ class TestLoadDatabasesDf(unittest.TestCase):
 
     def test_valid_csv_loads_without_warning(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            csv_path = os.path.join(td, "databases.csv")
+            csv_path = Path(td) / "databases.csv"
 
             content = "instance;database;username;password\nmyapp;*;dbuser;secret\n"
-            with open(csv_path, "w", encoding="utf-8") as f:
+            with csv_path.open("w", encoding="utf-8") as f:
                 f.write(content)
 
             buf = io.StringIO()

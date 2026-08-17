@@ -1,6 +1,6 @@
-import os
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from baudolo.restore.db import cluster as cluster_mod
@@ -53,10 +53,10 @@ def cluster_header(roles: int) -> str:
 
 
 def dump_file(text: str) -> str:
-    path = os.path.join(tempfile.mkdtemp(), "app.backup.sql")
-    with open(path, "w", encoding="utf-8") as handle:
+    path = Path(tempfile.mkdtemp()) / "app.backup.sql"
+    with path.open("w", encoding="utf-8") as handle:
         handle.write(text)
-    return path
+    return str(path)
 
 
 class TestDumpVersion(unittest.TestCase):
@@ -78,19 +78,19 @@ class TestDumpVersion(unittest.TestCase):
 
     def test_cluster_dump_states_its_version_far_below_the_header(self) -> None:
         path = dump_file(cluster_header(roles=200))
-        with open(path, encoding="utf-8") as handle:
+        with Path(path).open(encoding="utf-8") as handle:
             offset = next(i for i, line in enumerate(handle) if "Dumped from" in line)
         self.assertGreater(offset, 100, "fixture must exercise the deep scan")
         self.assertEqual(ver.dump_version(path, "postgres"), "17.11")
 
     def test_a_version_beyond_the_scan_limit_is_refused_not_ignored(self) -> None:
         path = dump_file(cluster_header(roles=ver.SCAN_LINES))
-        with self.assertRaises(ver.VersionMismatch):
+        with self.assertRaises(ver.VersionMismatchError):
             ver.dump_version(path, "postgres")
 
     def test_a_dump_without_a_version_header_is_refused(self) -> None:
         path = dump_file("CREATE TABLE t (id int);\n")
-        with self.assertRaises(ver.VersionMismatch):
+        with self.assertRaises(ver.VersionMismatchError):
             ver.dump_version(path, "postgres")
 
 
@@ -102,13 +102,13 @@ class TestMajorOf(unittest.TestCase):
         self.assertEqual(ver.major_of("18beta1"), 18)
 
     def test_refuses_an_unreadable_version(self) -> None:
-        with self.assertRaises(ver.VersionMismatch):
+        with self.assertRaises(ver.VersionMismatchError):
             ver.major_of("unknown")
 
 
 class TestAssertReplayable(unittest.TestCase):
     def test_newer_dump_into_older_engine_is_refused(self) -> None:
-        with self.assertRaises(ver.VersionMismatch) as caught:
+        with self.assertRaises(ver.VersionMismatchError) as caught:
             ver.assert_replayable("/b/app.sql", "postgres", "17.11", "15.6")
         self.assertIn("17.11", str(caught.exception))
         self.assertIn("15.6", str(caught.exception))
@@ -154,7 +154,7 @@ class TestGateStopsBeforeDestroying(unittest.TestCase):
         path = dump_file(POSTGRES_HEADER)
         with (
             patch.object(pg_mod, "docker_exec") as replay,
-            self.assertRaises(ver.VersionMismatch),
+            self.assertRaises(ver.VersionMismatchError),
         ):
             pg_mod.restore_postgres_sql(
                 container="db",
@@ -171,7 +171,7 @@ class TestGateStopsBeforeDestroying(unittest.TestCase):
         path = dump_file(cluster_header(roles=3))
         with (
             patch.object(cluster_mod, "docker_exec") as replay,
-            self.assertRaises(ver.VersionMismatch),
+            self.assertRaises(ver.VersionMismatchError),
         ):
             cluster_mod.restore_cluster_sql(
                 container="db",
@@ -188,7 +188,7 @@ class TestGateStopsBeforeDestroying(unittest.TestCase):
         with (
             patch.object(mdb_mod, "_pick_client", return_value="mariadb"),
             patch.object(mdb_mod, "docker_exec") as replay,
-            self.assertRaises(ver.VersionMismatch),
+            self.assertRaises(ver.VersionMismatchError),
         ):
             mdb_mod.restore_mariadb_sql(
                 container="db",
@@ -235,7 +235,7 @@ class TestGateStopsBeforeDestroying(unittest.TestCase):
                 db_name="app",
                 user="app",
                 password="pw",
-                sql_path=os.path.join(tempfile.mkdtemp(), "absent.sql"),
+                sql_path=str(Path(tempfile.mkdtemp()) / "absent.sql"),
                 empty=True,
             )
 

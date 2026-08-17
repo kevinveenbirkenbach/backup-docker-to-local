@@ -19,16 +19,20 @@ the implementation:
 
 from __future__ import annotations
 
-import os
 import re
 import tempfile
-from collections.abc import Iterable, Iterator
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ..run import docker_exec
+from baudolo.restore.run import docker_exec
+
 from .version import guard
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator
+
 CONTROL_DB = "postgres"
-_CLUSTER_PRECLEAN_SQL = os.path.join(os.path.dirname(__file__), "cluster_preclean.sql")
+_CLUSTER_PRECLEAN_SQL = Path(__file__).parent / "cluster_preclean.sql"
 _CREATE_ROLE = re.compile(rb'^CREATE ROLE "?([^";]+)"?;\s*$')
 _CREATE_DATABASE = re.compile(rb"^CREATE DATABASE\s+(.*)$")
 _CREATE_ROLE_LINE = re.compile(rb"^CREATE ROLE\s+(.*)$")
@@ -92,7 +96,7 @@ def dump_inventory(sql_path: str) -> tuple[list[str], list[str]]:
     """
     databases: list[str] = []
     roles: list[str] = []
-    with open(sql_path, "rb") as handle:
+    with Path(sql_path).open("rb") as handle:
         for raw in handle:
             line = raw.decode("utf-8", "replace")
             for pattern, sink, read in (
@@ -111,7 +115,7 @@ def dump_inventory(sql_path: str) -> tuple[list[str], list[str]]:
 
 def preclean_sql() -> str:
     """The catalog-wide pre-clean, safe only behind the instance check."""
-    with open(_CLUSTER_PRECLEAN_SQL, encoding="utf-8") as preclean:
+    with _CLUSTER_PRECLEAN_SQL.open(encoding="utf-8") as preclean:
         return preclean.read()
 
 
@@ -158,7 +162,7 @@ def assert_instance_matches_dump(
     if foreign:
         raise RuntimeError(
             f"{container} also holds {', '.join(foreign)}, which "
-            f"{os.path.basename(sql_path)} does not carry. --empty wipes the "
+            f"{Path(sql_path).name} does not carry. --empty wipes the "
             "instance, so those would be destroyed with nothing to restore "
             "them from. Move them off this instance, or drop them yourself if "
             "they are disposable."
@@ -216,7 +220,7 @@ def restore_cluster_sql(
         check_version: refuse a dump from a newer major version than the
             running engine before anything is dropped.
     """
-    if not os.path.isfile(sql_path):
+    if not Path(sql_path).is_file():
         raise FileNotFoundError(sql_path)
 
     if check_version:
@@ -239,10 +243,10 @@ def restore_cluster_sql(
             docker_env=docker_env,
         )
 
-    with open(sql_path, "rb") as src, tempfile.TemporaryFile() as filtered:
+    with Path(sql_path).open("rb") as src, tempfile.TemporaryFile() as filtered:
         for line in filter_own_role_creation(src, user):
             filtered.write(line)
         filtered.seek(0)
         docker_exec(container, _psql(user), stdin=filtered, docker_env=docker_env)
 
-    print(f"PostgreSQL cluster restore complete from '{os.path.basename(sql_path)}'.")
+    print(f"PostgreSQL cluster restore complete from '{Path(sql_path).name}'.")

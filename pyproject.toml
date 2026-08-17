@@ -35,3 +35,52 @@ exclude = ["tests*"]
 
 [tool.setuptools.package-data]
 "baudolo.restore.db" = ["*.sql"]
+
+[tool.ruff]
+respect-gitignore = true
+# The package still declares >=3.9, so pyupgrade must not propose 3.10+ syntax.
+target-version = "py39"
+exclude = ["build", "dist", "*.egg-info", ".venv", "venv"]
+
+[tool.ruff.lint]
+# Adopted from infinito-nexus-core so both repositories are held to one bar;
+# see that project's pyproject.toml for what each selector buys.
+select = [
+    "E", "F", "I", "B", "UP", "RUF", "SIM", "C4", "PERF", "RET", "PIE",
+    "T10", "PGH", "EXE", "RSE", "ICN", "DTZ",
+    "TID", "LOG", "G",
+    "S",
+    "PTH",
+    "FURB", "W", "FA", "YTT", "A", "ISC", "SLOT", "FLY",
+    "PYI",
+    "TC", "N",
+    "PLE0605",
+    "PLW1510", "PLW2901", "PLW0108", "PLW0603",
+    "PLR5501", "PLC0207", "PLR1722", "PLR1714",
+    "TRY002", "TRY004", "TRY300", "TRY301",
+    "BLE001",
+]
+
+# E501: `ruff format` reflows what it can; the rest is unsplittable literals.
+# RUF001/002/003: the prose uses em-dashes deliberately, not homoglyphs.
+# S603/S607: this tool's whole job is running `docker` / dump binaries from
+#   PATH in list form, which is already injection-safe.
+# PTH207/PTH208: changing `glob.glob`/`os.listdir` return shapes needs a
+#   per-call-site review, not a blanket rewrite.
+ignore = [
+    "E501",
+    "RUF001", "RUF002", "RUF003",
+    "S603", "S607",
+    "PTH207", "PTH208",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test code legitimately uses what flake8-bandit flags in production code:
+# asserts, dummy credentials, /tmp fixtures, broad excepts in teardown, and
+# SQL built from fixture names (S608) to set the databases under test up.
+"tests/**" = [
+    "S101", "S102", "S105", "S106", "S108", "S110", "S112", "S608", "BLE001",
+]
+
+# The e2e helpers package is a deliberate re-export aggregator.
+"tests/e2e/helpers/__init__.py" = ["F403"]

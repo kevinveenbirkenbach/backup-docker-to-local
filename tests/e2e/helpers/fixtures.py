@@ -95,7 +95,7 @@ def write_databases_csv(path: str, rows: list[tuple[str, str, str, str]]) -> Non
     database may be '' (empty) to trigger pg_dumpall behavior if you want, but here we use db name.
     """
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    with Path(path).open("w", encoding="utf-8") as f:
         f.write("instance;database;username;password\n")
         f.writelines(f"{inst};{db};{user};{pw}\n" for inst, db, user, pw in rows)
 

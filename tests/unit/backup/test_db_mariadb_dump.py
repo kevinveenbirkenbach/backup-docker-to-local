@@ -2,15 +2,13 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import pandas
+import pandas as pd
 
 from baudolo.backup import db as db_mod
 
 
 def _df(rows):
-    return pandas.DataFrame(
-        rows, columns=["instance", "database", "username", "password"]
-    )
+    return pd.DataFrame(rows, columns=["instance", "database", "username", "password"])
 
 
 def _capture_dumps(*, db_type, rows, container, dump_tool="mariadb-dump"):

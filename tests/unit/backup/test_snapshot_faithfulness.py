@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from baudolo.backup.snapshot import SnapshotError, snapshot_source, unsnapshotted
@@ -19,8 +20,8 @@ from baudolo.backup.volume import Backing
 class TestUnsnapshotted(unittest.TestCase):
     def setUp(self) -> None:
         self.subject = tempfile.mkdtemp()
-        self.mountpoint = os.path.join(self.subject, "volumes", "app", "_data")
-        os.makedirs(self.mountpoint)
+        self.mountpoint = str(Path(self.subject) / "volumes" / "app" / "_data")
+        Path(self.mountpoint).mkdir(parents=True)
 
     def backing(self, **kwargs) -> Backing:
         return Backing(kwargs.pop("mountpoint", self.mountpoint), **kwargs)
@@ -71,7 +72,7 @@ class TestUnsnapshotted(unittest.TestCase):
 
     def test_an_unreadable_mountpoint_is_not(self) -> None:
         reason = unsnapshotted(
-            self.backing(mountpoint=os.path.join(self.subject, "gone")), self.subject
+            self.backing(mountpoint=str(Path(self.subject) / "gone")), self.subject
         )
         self.assertIn("could not be read", reason)
 
@@ -79,12 +80,12 @@ class TestUnsnapshotted(unittest.TestCase):
 class TestSnapshotSource(unittest.TestCase):
     def setUp(self) -> None:
         self.subject = tempfile.mkdtemp()
-        self.mountpoint = os.path.join(self.subject, "volumes", "app", "_data")
-        os.makedirs(self.mountpoint)
-        self.snapshot = os.path.join(
-            self.subject, ".baudolo-tag", "volumes", "app", "_data"
+        self.mountpoint = str(Path(self.subject) / "volumes" / "app" / "_data")
+        Path(self.mountpoint).mkdir(parents=True)
+        self.snapshot = str(
+            Path(self.subject) / ".baudolo-tag" / "volumes" / "app" / "_data"
         )
-        os.makedirs(self.snapshot)
+        Path(self.snapshot).mkdir(parents=True)
         self.backing = Backing(self.mountpoint)
 
     def test_a_captured_volume_reads_from_the_snapshot(self) -> None:
@@ -114,7 +115,7 @@ class TestSnapshotSource(unittest.TestCase):
 
     def test_a_volume_created_after_the_snapshot_degrades(self) -> None:
         source, reason = snapshot_source(
-            lambda path: os.path.join(self.subject, "absent") + "/",
+            lambda path: str(Path(self.subject) / "absent") + "/",
             self.backing,
             self.subject,
         )

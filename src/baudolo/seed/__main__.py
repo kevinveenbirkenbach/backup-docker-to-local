@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
+from pathlib import Path
 
 import pandas as pd
 from pandas.errors import EmptyDataError
@@ -30,7 +30,7 @@ def check_and_add_entry(
     """
     database = validate_database(database, instance=instance)
 
-    if os.path.exists(file_path):
+    if Path(file_path).exists():
         try:
             df = pd.read_csv(
                 file_path,

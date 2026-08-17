@@ -165,7 +165,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         parser.error("Unhandled command")
-        return 2
+        return 2  # noqa: TRY300 - the try wraps the whole dispatch on purpose
 
     except Exception as e:  # noqa: BLE001 - CLI boundary: any failure becomes exit 1
         print(f"ERROR: {e}", file=sys.stderr)

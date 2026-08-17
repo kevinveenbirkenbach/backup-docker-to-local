@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import re
+from pathlib import Path
 from typing import NamedTuple
 
 COLUMNS = ("instance", "database", "username", "password")
@@ -87,7 +88,7 @@ def read_rows(csv_path: str) -> list[Row]:
         DatabasesCsvError: a row holds fewer columns than :data:`COLUMNS`.
     """
     rows: list[Row] = []
-    with open(csv_path, newline="", encoding="utf-8") as handle:
+    with Path(csv_path).open(newline="", encoding="utf-8") as handle:
         reader = csv.reader(handle, delimiter=DELIMITER)
         next(reader, None)
         for raw in reader:

@@ -82,7 +82,7 @@ def handle_docker_compose_services(
             continue
 
         dir_path = entry.path
-        name = os.path.basename(dir_path)
+        name = Path(dir_path).name
 
         print(f"Checking directory: {dir_path}", flush=True)
 

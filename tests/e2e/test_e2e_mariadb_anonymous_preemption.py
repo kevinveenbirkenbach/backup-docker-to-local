@@ -21,13 +21,14 @@ are verifying is in the DB-dump stage, so testing backup_database() directly
 keeps the assertion focused and the test runnable both on-host and in DinD.
 """
 
-import os
 import tempfile
 import unittest
+from pathlib import Path
 
-import pandas
+import pandas as pd
 
 from baudolo.backup import db as db_mod
+from baudolo.generation import DUMP_SUFFIX, SQL_DIR
 
 from .helpers import (
     MARIADB_DATA_DIR,
@@ -140,7 +141,7 @@ class TestE2EMariaDBAnonymousPreemption(unittest.TestCase):
         # paths — just the dump that the negative-control proved is failing
         # under the same preemption setup.
         with tempfile.TemporaryDirectory() as volume_dir:
-            df = pandas.DataFrame(
+            df = pd.DataFrame(
                 [(self.db_container, self.db_name, self.db_user, self.db_password)],
                 columns=["instance", "database", "username", "password"],
             )
@@ -153,9 +154,9 @@ class TestE2EMariaDBAnonymousPreemption(unittest.TestCase):
                 database_containers=[self.db_container],
             )
             self.assertTrue(produced, "backup_database did not produce a dump")
-            dump_path = os.path.join(volume_dir, "sql", f"{self.db_name}.backup.sql")
-            self.assertTrue(os.path.isfile(dump_path), f"expected dump at {dump_path}")
-            with open(dump_path, "r", encoding="utf-8", errors="replace") as f:
+            dump_path = Path(volume_dir) / SQL_DIR / f"{self.db_name}{DUMP_SUFFIX}"
+            self.assertTrue(dump_path.is_file(), f"expected dump at {dump_path}")
+            with dump_path.open(encoding="utf-8", errors="replace") as f:
                 content = f.read()
             self.assertIn("INSERT INTO", content)
             self.assertIn("'ok'", content)

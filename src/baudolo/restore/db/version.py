@@ -24,8 +24,9 @@ with the cluster banner and the roles section, and the first
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
-from ..run import docker_exec, stdout_of
+from baudolo.restore.run import docker_exec, stdout_of
 
 SCAN_LINES = 2000
 DUMP_VERSION = {
@@ -34,7 +35,7 @@ DUMP_VERSION = {
 }
 
 
-class VersionMismatch(Exception):
+class VersionMismatchError(Exception):
     """The dump cannot be replayed into this engine."""
 
 
@@ -46,11 +47,11 @@ def major_of(version: str) -> int:
             ``11.8.8-MariaDB-ubu2404``.
 
     Raises:
-        VersionMismatch: the string does not start with a number.
+        VersionMismatchError: the string does not start with a number.
     """
     leading = re.match(r"(\d+)", version)
     if not leading:
-        raise VersionMismatch(f"cannot read a major version from '{version}'")
+        raise VersionMismatchError(f"cannot read a major version from '{version}'")
     return int(leading.group(1))
 
 
@@ -65,10 +66,10 @@ def dump_version(sql_path: str, engine: str) -> str:
         The version string as the dump spells it.
 
     Raises:
-        VersionMismatch: no version line within the first ``SCAN_LINES``.
+        VersionMismatchError: no version line within the first ``SCAN_LINES``.
     """
     pattern = DUMP_VERSION[engine]
-    with open(sql_path, encoding="utf-8", errors="replace") as handle:
+    with Path(sql_path).open(encoding="utf-8", errors="replace") as handle:
         for _ in range(SCAN_LINES):
             line = handle.readline()
             if not line:
@@ -76,7 +77,7 @@ def dump_version(sql_path: str, engine: str) -> str:
             found = pattern.search(line)
             if found:
                 return found.group(1)
-    raise VersionMismatch(
+    raise VersionMismatchError(
         f"{sql_path} carries no {engine} version header in its first {SCAN_LINES} lines"
     )
 
@@ -120,10 +121,10 @@ def assert_replayable(sql_path: str, engine: str, dumped: str, serving: str) -> 
     server rejects and the pre-clean would already have dropped the schema.
 
     Raises:
-        VersionMismatch: the dump is newer than the engine.
+        VersionMismatchError: the dump is newer than the engine.
     """
     if major_of(dumped) > major_of(serving):
-        raise VersionMismatch(
+        raise VersionMismatchError(
             f"{sql_path} came from {engine} {dumped} but {serving} is running; "
             "a newer dump does not replay into an older engine, and --empty "
             "would drop the schema before finding out"

@@ -51,7 +51,7 @@ class TestSeedMain(unittest.TestCase):
 
         return df
 
-    @patch("baudolo.seed.__main__.os.path.exists", return_value=False)
+    @patch("baudolo.seed.__main__.Path.exists", return_value=False)
     @patch("baudolo.seed.__main__.pd.read_csv")
     @patch("baudolo.seed.__main__._empty_df")
     @patch("baudolo.seed.__main__.pd.concat")
@@ -83,7 +83,7 @@ class TestSeedMain(unittest.TestCase):
             "/tmp/databases.csv", sep=";", index=False
         )
 
-    @patch("baudolo.seed.__main__.os.path.exists", return_value=True)
+    @patch("baudolo.seed.__main__.Path.exists", return_value=True)
     @patch("baudolo.seed.__main__.pd.read_csv", side_effect=EmptyDataError("empty"))
     @patch("baudolo.seed.__main__._empty_df")
     @patch("baudolo.seed.__main__.pd.concat")
@@ -110,8 +110,8 @@ class TestSeedMain(unittest.TestCase):
             password="pass",
         )
 
-        exists.assert_called_once_with("/tmp/databases.csv")
-        read_csv.assert_called_once()
+        exists.assert_called_once_with()
+        self.assertEqual(read_csv.call_args.args, ("/tmp/databases.csv",))
         empty_df.assert_called_once()
         concat.assert_called_once()
 
@@ -133,7 +133,7 @@ class TestSeedMain(unittest.TestCase):
             "/tmp/databases.csv", sep=";", index=False
         )
 
-    @patch("baudolo.seed.__main__.os.path.exists", return_value=True)
+    @patch("baudolo.seed.__main__.Path.exists", return_value=True)
     @patch("baudolo.seed.__main__.pd.read_csv")
     def test_check_and_add_entry_updates_existing_row(
         self,

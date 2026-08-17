@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import os
 import sys
+from pathlib import Path
 
-from ..run import docker_exec, docker_exec_sh
+from baudolo.restore.run import docker_exec, docker_exec_sh
+
 from .version import guard
+
+_NO_CLIENT = "ERROR: neither 'mariadb' nor 'mysql' found in container."
 
 
 def _pick_client(container: str) -> str:
@@ -20,14 +23,13 @@ exit 42
 """
     try:
         out = docker_exec_sh(container, script, capture=True).stdout.decode().strip()
-        if not out:
-            raise RuntimeError("empty client detection output")
-        return out
     except Exception:
-        print(
-            "ERROR: neither 'mariadb' nor 'mysql' found in container.", file=sys.stderr
-        )
+        print(_NO_CLIENT, file=sys.stderr)
         raise
+    if not out:
+        print(_NO_CLIENT, file=sys.stderr)
+        raise RuntimeError("empty client detection output")
+    return out
 
 
 def restore_mariadb_sql(
@@ -42,7 +44,7 @@ def restore_mariadb_sql(
 ) -> None:
     client = _pick_client(container)
 
-    if not os.path.isfile(sql_path):
+    if not Path(sql_path).is_file():
         raise FileNotFoundError(sql_path)
 
     if check_version:
@@ -66,7 +68,7 @@ def restore_mariadb_sql(
                 f"--password={password}",
                 "-N",
                 "-e",
-                f"SELECT table_name FROM information_schema.tables WHERE table_schema = '{db_name}';",
+                f"SELECT table_name FROM information_schema.tables WHERE table_schema = '{db_name}';",  # noqa: S608 - validate_database() constrains the name to ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$
             ],
             capture=True,
         )
@@ -94,7 +96,7 @@ def restore_mariadb_sql(
                 ],
             )
 
-    with open(sql_path, "rb") as f:
+    with Path(sql_path).open("rb") as f:
         docker_exec(
             container, [client, "-u", user, f"--password={password}", db_name], stdin=f
         )
