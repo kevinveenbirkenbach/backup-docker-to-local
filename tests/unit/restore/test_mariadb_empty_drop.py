@@ -29,6 +29,7 @@ class TestMariadbEmptyDrop(unittest.TestCase):
                     password="pw",
                     sql_path=sql.name,
                     empty=True,
+                    check_version=False,
                 )
 
         drop_calls = [argv for argv in calls if any("DROP TABLE" in a for a in argv)]

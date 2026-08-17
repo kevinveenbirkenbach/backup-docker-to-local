@@ -24,6 +24,7 @@ class TestPostgresSingleTransaction(unittest.TestCase):
                     password="pw",
                     sql_path=sql.name,
                     empty=True,
+                    check_version=False,
                 )
 
         self.assertEqual(len(calls), 2, f"expected pre-clean + replay: {calls}")

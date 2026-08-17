@@ -5,6 +5,7 @@ import tempfile
 from collections.abc import Iterable, Iterator
 
 from ..run import docker_exec
+from .version import guard
 
 _SUPERUSER_ONLY_PREFIXES = (b"COMMENT ON EXTENSION", b"ALTER DEFAULT PRIVILEGES")
 _EMPTY_PRECLEAN_SQL = os.path.join(os.path.dirname(__file__), "empty_preclean.sql")
@@ -46,9 +47,19 @@ def restore_postgres_sql(
     password: str,
     sql_path: str,
     empty: bool,
+    check_version: bool = True,
 ) -> None:
     if not os.path.isfile(sql_path):
         raise FileNotFoundError(sql_path)
+
+    if check_version:
+        guard(
+            sql_path=sql_path,
+            engine="postgres",
+            container=container,
+            user=user,
+            password=password,
+        )
 
     docker_env = {"PGPASSWORD": password}
 

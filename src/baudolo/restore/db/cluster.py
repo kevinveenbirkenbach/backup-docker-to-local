@@ -25,6 +25,7 @@ import tempfile
 from collections.abc import Iterable, Iterator
 
 from ..run import docker_exec
+from .version import guard
 
 CONTROL_DB = "postgres"
 _CLUSTER_PRECLEAN_SQL = os.path.join(os.path.dirname(__file__), "cluster_preclean.sql")
@@ -65,6 +66,7 @@ def restore_cluster_sql(
     password: str,
     sql_path: str,
     empty: bool,
+    check_version: bool = True,
 ) -> None:
     """Replay a pg_dumpall stream into a running instance.
 
@@ -78,9 +80,20 @@ def restore_cluster_sql(
             replay stops at the first object that already exists, which is the
             honest outcome: recreating a cluster over a populated one is a
             decision, not a default.
+        check_version: refuse a dump from a newer major version than the
+            running engine before anything is dropped.
     """
     if not os.path.isfile(sql_path):
         raise FileNotFoundError(sql_path)
+
+    if check_version:
+        guard(
+            sql_path=sql_path,
+            engine="postgres",
+            container=container,
+            user=user,
+            password=password,
+        )
 
     docker_env = {"PGPASSWORD": password}
 

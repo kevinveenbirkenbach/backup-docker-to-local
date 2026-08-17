@@ -27,6 +27,20 @@ def _add_common_backup_args(p: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_common_engine_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--container", required=True)
+    p.add_argument("--db-password", required=True)
+    p.add_argument("--empty", action="store_true")
+    p.add_argument(
+        "--no-version-check",
+        action="store_true",
+        help=(
+            "Replay even if the dump comes from a newer engine than the target. "
+            "With --empty this can leave an emptied database behind."
+        ),
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="baudolo-restore",
@@ -48,17 +62,15 @@ def main(argv: list[str] | None = None) -> int:
 
     p_pg = sub.add_parser("postgres", help="Restore a single PostgreSQL database dump")
     _add_common_backup_args(p_pg)
-    p_pg.add_argument("--container", required=True)
+    _add_common_engine_args(p_pg)
     p_pg.add_argument("--db-name", required=True)
     p_pg.add_argument("--db-user", default=None, help="Defaults to db-name if omitted")
-    p_pg.add_argument("--db-password", required=True)
-    p_pg.add_argument("--empty", action="store_true")
 
     p_cluster = sub.add_parser(
         "cluster", help="Restore a full PostgreSQL cluster dump (pg_dumpall)"
     )
     _add_common_backup_args(p_cluster)
-    p_cluster.add_argument("--container", required=True)
+    _add_common_engine_args(p_cluster)
     p_cluster.add_argument(
         "--instance",
         required=True,
@@ -69,18 +81,14 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         help="Superuser of the instance; the dump creates roles and databases",
     )
-    p_cluster.add_argument("--db-password", required=True)
-    p_cluster.add_argument("--empty", action="store_true")
 
     p_mdb = sub.add_parser(
         "mariadb", help="Restore a single MariaDB/MySQL-compatible dump"
     )
     _add_common_backup_args(p_mdb)
-    p_mdb.add_argument("--container", required=True)
+    _add_common_engine_args(p_mdb)
     p_mdb.add_argument("--db-name", required=True)
     p_mdb.add_argument("--db-user", default=None, help="Defaults to db-name if omitted")
-    p_mdb.add_argument("--db-password", required=True)
-    p_mdb.add_argument("--empty", action="store_true")
 
     args = parser.parse_args(argv)
 
@@ -116,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
                     backups_dir=args.backups_dir,
                 ).sql_file(args.db_name),
                 empty=args.empty,
+                check_version=not args.no_version_check,
             )
             return 0
 
@@ -132,6 +141,7 @@ def main(argv: list[str] | None = None) -> int:
                     backups_dir=args.backups_dir,
                 ).cluster_file(args.instance),
                 empty=args.empty,
+                check_version=not args.no_version_check,
             )
             return 0
 
@@ -150,6 +160,7 @@ def main(argv: list[str] | None = None) -> int:
                     backups_dir=args.backups_dir,
                 ).sql_file(args.db_name),
                 empty=args.empty,
+                check_version=not args.no_version_check,
             )
             return 0
 

@@ -40,6 +40,12 @@ def run(
         raise
 
 
+def stdout_of(completed: subprocess.CompletedProcess) -> str:
+    """The captured stdout as stripped text, whether it came back bytes or str."""
+    raw = completed.stdout or b""
+    return (raw.decode() if isinstance(raw, bytes) else raw).strip()
+
+
 def docker_exec(
     container: str,
     argv: list[str],

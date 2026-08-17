@@ -4,6 +4,7 @@ import os
 import sys
 
 from ..run import docker_exec, docker_exec_sh
+from .version import guard
 
 
 def _pick_client(container: str) -> str:
@@ -37,11 +38,22 @@ def restore_mariadb_sql(
     password: str,
     sql_path: str,
     empty: bool,
+    check_version: bool = True,
 ) -> None:
     client = _pick_client(container)
 
     if not os.path.isfile(sql_path):
         raise FileNotFoundError(sql_path)
+
+    if check_version:
+        guard(
+            sql_path=sql_path,
+            engine="mariadb",
+            container=container,
+            user=user,
+            password=password,
+            client=client,
+        )
 
     if empty:
         # Do not hardcode 'mysql': MariaDB 11 images may not ship that binary.

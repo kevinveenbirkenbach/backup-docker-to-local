@@ -24,6 +24,7 @@ class TestClusterReplay(unittest.TestCase):
                     password="pw",
                     sql_path=sql.name,
                     empty=empty,
+                    check_version=False,
                 )
         return calls
 
@@ -107,6 +108,7 @@ class TestClusterReplay(unittest.TestCase):
                 password="pw",
                 sql_path="/nonexistent/x.cluster.backup.sql",
                 empty=False,
+                check_version=False,
             )
 
     def test_the_path_helper_names_the_dumpall_file(self) -> None:
