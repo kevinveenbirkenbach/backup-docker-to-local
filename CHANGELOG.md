@@ -1,5 +1,52 @@
 # Changelog
 
+## [6.0.0] - 2026-08-18
+
+Breaking:
+- Backup: a database container whose name carries no *database*, *db* or
+  *postgres* token — preceded by a hyphen or underscore — must now be named in
+  *--database-containers*. Without that declaration its *databases.csv* rows no
+  longer match and no dump is written, silently, because nothing fails. The
+  shape this hits hardest is a container named exactly *postgres* or *mariadb*:
+  the token needs a separator in front of it, which a bare name does not have.
+  *app-database*, *app_database.1.<task>* from swarm and *app-postgres-1* are
+  unaffected, as is any container already declared.
+
+Fixed:
+- Backup: *docker exec* now forwards *PGPASSWORD* into the container.
+  *execute_to_file* set the variable on baudolo's own process, but nothing
+  carried it across the container boundary, so an engine whose *pg_hba* demands
+  a password on TCP loopback refused every dump — which is every dedicated
+  Postgres instance on a real host. The name travels as a bare *-e NAME* so
+  docker copies the value out of this process's environment; spelling
+  *-e NAME=value* instead would publish the secret in the host's process list.
+- Backup: *get_instance* no longer claims an instance it never derived. It
+  returned the container name unchanged when that name carried no database
+  token, so an application container answered the same *databases.csv* row as
+  its own dedicated engine. Application images frequently ship the engine's
+  client tools, so the dump command started and wrote a file that looked like a
+  backup and held none of the data: measured against Discourse, 1,680 bytes
+  from the application where the engine produced 10,469,439. The regex stays a
+  normaliser — *<app>-database* from compose and *<app>_database.1.<task>* from
+  swarm still resolve to one instance. Only the fallthrough changed.
+
+New:
+- Tests: *get_instance* has unit coverage for the first time. Eleven cases pin
+  the container names that compose, swarm and explicitly-named engines produce,
+  so a future change to the regex has to state which shape it gives up.
+- Tests: two e2e modules cover shapes the suite structurally could not see.
+  Every fixture passed its container in *--database-containers*, which left the
+  regex branch — the only one a dedicated database ever takes — dead code under
+  test, and no scenario made a password mandatory, because stock
+  *postgres:alpine* grants trust on loopback.
+  *test_e2e_postgres_password_required* starts an engine with
+  *--auth-host=scram-sha-256* and carries a negative control asserting the
+  server refuses an unauthenticated dump; without it the module would pass
+  whether or not the password is forwarded at all.
+  *test_e2e_app_container_ships_client_tools* places an application container
+  beside its engine with neither declared, and requires the engine dumped, the
+  application volume copied as files, and no dump written from the application.
+
 ## [5.0.0] - 2026-08-18
 
 **[5.0.0] - 2026-08-18**
