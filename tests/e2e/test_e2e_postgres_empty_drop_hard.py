@@ -24,6 +24,7 @@ from .helpers import (
 # is not unique") and english_stem_nostop reproduces taiga's text search
 # dictionary abort (duplicate pg_ts_dict_dictname_index).
 SCENARIO_SQL = (
+    "CREATE EXTENSION pg_trgm;"
     "CREATE SCHEMA discourse_functions;"
     "CREATE TABLE discourse_functions.helper (id int);"
     "INSERT INTO discourse_functions.helper VALUES (1);"
@@ -165,6 +166,13 @@ class TestE2EPostgresEmptyDropHard(unittest.TestCase):
             self._scalar("SELECT count(*) FROM pg_proc WHERE proname='f';"), "2"
         )
         self.assertEqual(self._scalar("SELECT public.f(41) + public.f();"), "42")
+
+    def test_the_extension_survived_the_preclean(self) -> None:
+        self.assertEqual(
+            self._scalar("SELECT count(*) FROM pg_extension WHERE extname='pg_trgm';"),
+            "1",
+        )
+        self.assertEqual(self._scalar("SELECT similarity('abc','abc')::int;"), "1")
 
     def test_text_search_dictionary_restored_once(self) -> None:
         self.assertEqual(
