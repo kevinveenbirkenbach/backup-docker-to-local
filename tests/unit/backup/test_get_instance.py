@@ -24,10 +24,19 @@ class TestDeclaredContainers(unittest.TestCase):
             get_instance("shop-database", ["shop-database"]), "shop-database"
         )
 
-    def test_an_undeclared_central_engine_resolves_to_nothing(self) -> None:
-        """`postgres-central` has no separator before its token, so nothing is
-        stripped - a central engine has to be declared to be found."""
+    def test_a_qualified_central_name_still_has_to_be_declared(self) -> None:
         self.assertIsNone(get_instance("postgres-central", []))
+
+
+class TestContainersNamedAfterTheirEngine(unittest.TestCase):
+    def test_a_bare_engine_name_is_its_own_instance(self) -> None:
+        for name in ("postgres", "mariadb", "mysql", "db", "database"):
+            with self.subTest(container=name):
+                self.assertEqual(get_instance(name, []), name)
+
+    def test_a_swarm_task_of_such_a_container_keeps_the_instance(self) -> None:
+        self.assertEqual(get_instance("postgres_postgres.1.k3f9x2", []), "postgres")
+        self.assertEqual(get_instance("mariadb_mariadb.1.k3f9x2", []), "mariadb")
 
 
 class TestDedicatedEngines(unittest.TestCase):
@@ -48,6 +57,10 @@ class TestDedicatedEngines(unittest.TestCase):
 
     def test_mariadb_uses_the_same_suffix(self) -> None:
         self.assertEqual(get_instance("matomo-database", []), "matomo")
+
+    def test_an_engine_named_suffix_is_stripped_too(self) -> None:
+        self.assertEqual(get_instance("shop-mariadb", []), "shop")
+        self.assertEqual(get_instance("shop-mysql", []), "shop")
 
 
 class TestApplicationContainers(unittest.TestCase):

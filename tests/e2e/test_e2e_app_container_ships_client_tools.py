@@ -13,10 +13,11 @@ by its own launcher and ships pg_dumpall, so a dump command starts there and
 writes a file that looks like a backup and holds none of the data.
 """
 
+import json
 import unittest
 from pathlib import Path
 
-from baudolo.generation import DUMP_SUFFIX, FILES_DIR, SQL_DIR
+from baudolo.generation import DUMP_SUFFIX, FILES_DIR, MANIFEST_FILE, SQL_DIR
 
 from .helpers import (
     POSTGRES_DATA_DIR,
@@ -157,6 +158,26 @@ class TestE2EAppContainerShipsClientTools(unittest.TestCase):
         marker = self.volume_dir(self.app_volume) / FILES_DIR / "marker.txt"
         self.assertTrue(marker.is_file(), f"expected a file backup at {marker}")
         self.assertIn(MARKER, marker.read_text(encoding="utf-8"))
+
+    def test_the_manifest_does_not_call_the_application_volume_a_database(self) -> None:
+        manifest = json.loads(
+            (self.volume_dir(self.app_volume).parent / MANIFEST_FILE).read_text(
+                encoding="utf-8"
+            )
+        )
+        entry = manifest["volumes"][self.app_volume]
+        self.assertFalse(entry["database"], entry)
+        self.assertFalse(entry["dumped"], entry)
+
+    def test_the_manifest_records_the_engine_volume_as_dumped(self) -> None:
+        manifest = json.loads(
+            (self.volume_dir(self.engine_volume).parent / MANIFEST_FILE).read_text(
+                encoding="utf-8"
+            )
+        )
+        entry = manifest["volumes"][self.engine_volume]
+        self.assertTrue(entry["database"], entry)
+        self.assertTrue(entry["dumped"], entry)
 
 
 if __name__ == "__main__":

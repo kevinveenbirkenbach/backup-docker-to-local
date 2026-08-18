@@ -10,7 +10,7 @@ from pandas.errors import EmptyDataError
 
 from baudolo.databases import COLUMNS, DELIMITER
 
-from .db import backup_database
+from .db import backup_database, get_instance
 from .docker import has_tool, image_id
 
 DUMP_TOOLS: tuple[tuple[str, str], ...] = (
@@ -75,6 +75,8 @@ def backup_mariadb_or_postgres(
     """What this container contributes to its volume's outcome."""
     engine = container_engine(container)
     if engine is None:
+        return VolumeOutcome(database=False, dumped=False)
+    if get_instance(container, database_containers) is None:
         return VolumeOutcome(database=False, dumped=False)
     db_type, dump_tool = engine
     dumped = backup_database(

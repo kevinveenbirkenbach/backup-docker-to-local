@@ -16,13 +16,18 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+ENGINE_NAMES = ("database", "postgres", "mariadb", "mysql", "db")
+_SUFFIX_RE = re.compile(rf"(_|-)({'|'.join(ENGINE_NAMES)})")
+
 
 def get_instance(container: str, database_containers: list[str]) -> str | None:
     """The databases.csv instance a container serves, or None for no database.
 
-    A declared container is its own instance. Every other name is normalised by
-    stripping a database suffix token, which maps both `<app>-database` from
-    compose and `<app>_database.1.<task>` from swarm onto the same instance.
+    A declared container is its own instance. Every other name is read against
+    ENGINE_NAMES: carrying one as a suffix makes the rest the instance, which
+    maps `<app>-database` from compose and `<app>_database.1.<task>` from swarm
+    onto the same one; being one outright makes the container its own instance,
+    the shape a compose file writes as `container_name: postgres`.
 
     Args:
         container: the running container's name.
@@ -30,14 +35,16 @@ def get_instance(container: str, database_containers: list[str]) -> str | None:
             declared engines whatever they are called.
 
     Returns:
-        The instance name, or None when the name carries no database token: an
-        application container is not an engine, even when it ships the client
-        tools that would let a dump command start.
+        The instance name, or None when the name neither carries nor is an
+        engine name: an application container is not an engine, even when it
+        ships the client tools that would let a dump command start.
     """
     if container in database_containers:
         return container
-    parts = re.split(r"(_|-)(database|db|postgres)", container)
-    return parts[0] if len(parts) > 1 else None
+    parts = _SUFFIX_RE.split(container)
+    if len(parts) > 1:
+        return parts[0]
+    return container if container in ENGINE_NAMES else None
 
 
 def fallback_pg_dumpall(
