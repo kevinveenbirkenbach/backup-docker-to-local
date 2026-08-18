@@ -1,5 +1,22 @@
 # Changelog
 
+## [7.0.1] - 2026-08-18
+
+- Restore: *--empty* no longer aborts on a database that carries an extension.
+  The pre-clean picked its candidates by owner, on the stated assumption that
+  extension members are superuser-owned and would therefore never be selected.
+  That holds only when a superuser installed the extension: a role that
+  installs one itself owns its functions, so they were listed for a one-by-one
+  *DROP* that postgres refuses — *cannot drop function
+  vector_in(cstring,oid,integer) because extension vector requires it*. Under
+  *ON_ERROR_STOP* that ends the whole restore, which is how a generation of an
+  application declaring the *vector* extension became unreplayable. Membership
+  now comes from *pg_depend* rather than from ownership; each branch carries
+  its oid and classid so one *NOT EXISTS* covers all seven instead of seven
+  separate predicates, and the schema branch is guarded too because an
+  extension can own a schema. Skipping the members suffices — the dump's
+  *CREATE EXTENSION IF NOT EXISTS* finds the surviving extension either way.
+
 ## [7.0.0] - 2026-08-18
 
 Breaking:
