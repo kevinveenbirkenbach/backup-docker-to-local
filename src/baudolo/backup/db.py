@@ -17,13 +17,27 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def get_instance(container: str, database_containers: list[str]) -> str:
-    """
-    Derive a stable instance name from the container name.
+def get_instance(container: str, database_containers: list[str]) -> str | None:
+    """The databases.csv instance a container serves, or None for no database.
+
+    A declared container is its own instance. Every other name is normalised by
+    stripping a database suffix token, which maps both `<app>-database` from
+    compose and `<app>_database.1.<task>` from swarm onto the same instance.
+
+    Args:
+        container: the running container's name.
+        database_containers: names passed via --database-containers, taken as
+            declared engines whatever they are called.
+
+    Returns:
+        The instance name, or None when the name carries no database token: an
+        application container is not an engine, even when it ships the client
+        tools that would let a dump command start.
     """
     if container in database_containers:
         return container
-    return re.split(r"(_|-)(database|db|postgres)", container)[0]
+    parts = re.split(r"(_|-)(database|db|postgres)", container)
+    return parts[0] if len(parts) > 1 else None
 
 
 def fallback_pg_dumpall(
@@ -37,6 +51,7 @@ def fallback_pg_dumpall(
             container,
             ["pg_dumpall", "-U", username, "-h", "localhost"],
             interactive=True,
+            forward_env=["PGPASSWORD"],
         ),
         out_file,
         env={"PGPASSWORD": password},
@@ -62,6 +77,9 @@ def backup_database(
     Returns True if at least one dump was produced.
     """
     instance_name = get_instance(container, database_containers)
+    if instance_name is None:
+        log.debug("Container '%s' carries no database token", container)
+        return False
 
     entries = databases_df[databases_df["instance"] == instance_name]
     if entries.empty:
@@ -133,6 +151,7 @@ def backup_database(
                             "--no-privileges",
                         ],
                         interactive=True,
+                        forward_env=["PGPASSWORD"],
                     ),
                     dump_file,
                     env={"PGPASSWORD": password},

@@ -9,10 +9,35 @@ if TYPE_CHECKING:
 
 
 def docker_exec_argv(
-    container: str, argv: Sequence[str], *, interactive: bool = False
+    container: str,
+    argv: Sequence[str],
+    *,
+    interactive: bool = False,
+    forward_env: Sequence[str] = (),
 ) -> list[str]:
-    """The argv that runs *argv* inside *container*."""
-    return ["docker", "exec", *(["-i"] if interactive else []), container, *argv]
+    """The argv that runs *argv* inside *container*.
+
+    Args:
+        container: the container to run in.
+        argv: the command, already split.
+        interactive: keep stdin open, for a command that is fed a dump.
+        forward_env: names of environment variables to hand to the container.
+            Passed as bare ``-e NAME``, so docker copies the value out of this
+            process's own environment; spelling ``-e NAME=value`` instead would
+            publish a secret in the host's process list.
+
+    Returns:
+        The argv list.
+    """
+    forwarded = [arg for name in forward_env for arg in ("-e", name)]
+    return [
+        "docker",
+        "exec",
+        *(["-i"] if interactive else []),
+        *forwarded,
+        container,
+        *argv,
+    ]
 
 
 def get_image_info(container: str) -> str:
