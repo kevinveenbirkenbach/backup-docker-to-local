@@ -1,5 +1,38 @@
 # Changelog
 
+## [7.0.0] - 2026-08-18
+
+Breaking:
+- Backup: *mariadb* and *mysql* join the suffix tokens, so a container named
+  *<app>-mariadb* or *<app>-mysql* now resolves to the instance *<app>* instead
+  of to its own name. A *databases.csv* keyed on the full container name has to
+  move to the application name, or name the container in
+  *--database-containers*. This narrows what 6.0.0 broke rather than widening
+  it: a container named exactly *postgres*, *mariadb*, *mysql*, *db* or
+  *database* resolves again without any declaration, which is the shape a
+  compose file writes as *container_name: postgres* and the most common
+  configuration there is.
+
+Fixed:
+- Backup: a container named exactly after its engine is dumped again. The
+  suffix match needs a hyphen or underscore in front of the token, which a bare
+  name does not carry, so 6.0.0 resolved *container_name: postgres* to nothing
+  and stopped dumping it without saying so. *ENGINE_NAMES* now states the set
+  once and serves both readings — carried as a suffix it makes the rest the
+  instance, being one outright makes the container its own instance.
+- Backup: a central MariaDB under swarm is dumped for the first time. Swarm
+  names its task *mariadb_mariadb.1.<id>*, which matches neither the static
+  *mariadb* passed through *--database-containers* nor any token the suffix
+  match knew, since *_mariadb* is not *_db*. The database was silently absent
+  from every swarm backup this tool has ever written, before 6.0.0 as well.
+- Backup: an application container is no longer recorded as a database.
+  *container_engine* recognises an engine by its client tools, which an
+  application image frequently ships, so refusing its dump alone would have
+  written the volume to the manifest as *database: true, dumped: false* — the
+  exact shape a restore drill reads as a database that was missed. Without an
+  instance there is no database to record, and the volume is a file backup like
+  any other.
+
 ## [6.0.0] - 2026-08-18
 
 Breaking:
