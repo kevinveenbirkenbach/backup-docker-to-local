@@ -19,7 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 # Pinned: a ruff minor bump changes which rules fire, and `make test` gates on
 # a clean run, so an unpinned lint would fail the suite on an unrelated day.
-lint = ["ruff==0.16.1"]
+lint = ["ruff==0.16.3"]
 
 [project.scripts]
 baudolo = "baudolo.backup.__main__:main"
