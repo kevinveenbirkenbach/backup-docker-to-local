@@ -25,7 +25,7 @@ def backup_run(
     images_no_stop_required: list[str],
     images_no_backup_required: list[str] | None = None,
     only_sql: bool = False,
-) -> None:
+) -> subprocess.CompletedProcess:
     cmd = [
         "baudolo",
         "--compose-dir",
@@ -49,7 +49,7 @@ def backup_run(
         cmd += ["--only-sql"]
 
     try:
-        run(cmd, capture=True, check=True)
+        return run(cmd, capture=True, check=True)
     except subprocess.CalledProcessError as e:
         print(">>> baudolo failed (exit code:", e.returncode, ")")
         if e.stdout:

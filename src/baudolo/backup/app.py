@@ -23,6 +23,7 @@ from .layout import (
     write_manifest,
 )
 from .policy import requires_stop, volume_is_fully_ignored
+from .shell import BackupError
 from .snapshot import snapshot_source, volume_snapshot
 from .volume import backup_volume, inspect_backing
 
@@ -125,13 +126,23 @@ def main() -> int:
                     copy(authoritative=False)
                 continue
 
-            copy(authoritative=False)
-            if requires_stop(containers, args.images_no_stop_required):
-                stoppable = filter_stoppable(containers)
-                change_containers_status(stoppable, "stop")
-                copy(authoritative=True)
-                if not args.shutdown:
-                    change_containers_status(stoppable, "start")
+            if not requires_stop(containers, args.images_no_stop_required):
+                copy(authoritative=False)
+                continue
+
+            try:
+                copy(authoritative=False)
+            except BackupError as error:
+                print(
+                    f"WARNING: live pre-copy of volume '{volume_name}' failed; "
+                    f"the copy with its containers stopped replaces it.\n{error}",
+                    flush=True,
+                )
+            stoppable = filter_stoppable(containers)
+            change_containers_status(stoppable, "stop")
+            copy(authoritative=True)
+            if not args.shutdown:
+                change_containers_status(stoppable, "start")
 
     write_manifest(version_dir, outcomes)
     stamp_directory(version_dir)
