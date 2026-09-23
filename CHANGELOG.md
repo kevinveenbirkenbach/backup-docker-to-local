@@ -1,5 +1,12 @@
 # Changelog
 
+## [7.0.2] - 2026-09-23
+
+* Backup: failed live pre-copy no longer aborts when a stopped copy follows
+* Backup: stopped --checksum copy replaces pre-copy hit by live writer (rc 23)
+* Backup: failing sole live copy or failing stopped copy still fails the run
+* Tests: e2e live writer shrinking files mid-read reproduces the rsync failure
+
 ## [7.0.1] - 2026-08-18
 
 - Restore: *--empty* no longer aborts on a database that carries an extension.
