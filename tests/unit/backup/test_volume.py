@@ -46,9 +46,12 @@ class TestBackupVolume(unittest.TestCase):
     def test_it_carries_no_kernel_objects_into_a_generation(self) -> None:
         self.assertIn("--no-D", self.copy())
 
+    def test_it_stores_the_metadata_a_restore_has_to_give_back(self) -> None:
+        self.assertIn("-aHAX", self.copy())
+
     def test_it_keeps_no_twin_of_what_the_second_pass_replaces(self) -> None:
         command = self.copy(authoritative=True)
-        self.assertEqual(command[:2], ["rsync", "-aP"])
+        self.assertEqual(command[:3], ["rsync", "-aHAX", "-P"])
         self.assertNotIn("--backup", command)
 
     def test_it_creates_the_destination(self) -> None:

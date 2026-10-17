@@ -75,7 +75,7 @@ def backup_volume(
     pathlib.Path(dest).mkdir(parents=True, exist_ok=True)
 
     last = get_last_backup_dir(versions_dir, volume_name, dest)
-    cmd = ["rsync", "-aP", "--no-D", "--delete", "--delete-excluded"]
+    cmd = ["rsync", "-aHAX", "-P", "--no-D", "--delete", "--delete-excluded"]
     if authoritative:
         cmd.append("--checksum")
     if last:

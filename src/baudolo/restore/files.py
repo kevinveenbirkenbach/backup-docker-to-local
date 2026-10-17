@@ -59,6 +59,6 @@ def restore_volume_files(volume_name: str, backup_files_dir: str) -> int:
     # rsync reads "dir/" as its contents and "dir" as the directory itself.
     src = f"{Path(backup_files_dir)}{os.sep}"
     dest = f"{Path(mountpoint)}{os.sep}"
-    run(["rsync", "-avv", "--delete", src, dest])
+    run(["rsync", "-aHAX", "-vv", "--delete", src, dest])
     print("File restore complete.")
     return 0
