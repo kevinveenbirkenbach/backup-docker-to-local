@@ -96,12 +96,13 @@ def wait_for_mariadb(
     container: str, *, root_password: str, timeout_s: int = 90
 ) -> None:
     """
-    Liveness probe for MariaDB.
+    Readiness probe for MariaDB, as root over the socket.
 
-    IMPORTANT (MariaDB 11):
-    Root TCP auth is often restricted (unix_socket auth), so a TCP ping like
-    `mariadb-admin -uroot -p... -h localhost ping` can fail even though the server is up.
-    We therefore check readiness via a socket-based query.
+    The entrypoint drops root@127.0.0.1, so root is socket-only, and it
+    installs root@localhost without unix_socket auth: a probe without the
+    password only passes in the init window before the password is set.
+    `@@skip_networking` must be 0 so the entrypoint's temporary server,
+    which shuts down right after init, does not count as ready.
     """
     deadline = time.time() + timeout_s
     while time.time() < deadline:
@@ -112,12 +113,15 @@ def wait_for_mariadb(
                 container,
                 "sh",
                 "-lc",
-                'mariadb -uroot --protocol=socket -e "SELECT 1;"',
+                (
+                    f"mariadb -uroot -p{root_password} --protocol=socket "
+                    '-N -e "SELECT @@skip_networking;"'
+                ),
             ],
             capture=True,
             check=False,
         )
-        if p.returncode == 0:
+        if p.returncode == 0 and p.stdout.strip() == "0":
             return
         time.sleep(1)
     raise TimeoutError(

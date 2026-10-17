@@ -100,7 +100,10 @@ class TestE2EMariaDBAnonymousPreemption(unittest.TestCase):
                 cls.db_container,
                 "sh",
                 "-lc",
-                f'mariadb -uroot --protocol=socket -e "{bootstrap_sql}"',
+                (
+                    f"mariadb -uroot -p{cls.root_password} --protocol=socket "
+                    f'-e "{bootstrap_sql}"'
+                ),
             ]
         )
 
