@@ -1,5 +1,18 @@
 # Changelog
 
+## [7.1.1] - 2026-10-17
+
+Fixed:
+
+- Tests: e2e MariaDB probe ran root passwordless and timed out at random
+- Tests: probe now logs in with the root password, skips the temp server
+- Tests: anonymous-preemption bootstrap now uses the root password too
+
+Upgrade notes:
+
+- 7.1.0 never reached stable: its CI failed, no image was published
+- 7.1.1 is the first published -aHAX build; 7.1.0 upgrade notes apply
+
 ## [7.1.0] - 2026-10-17
 
 Fixed:
