@@ -1,5 +1,17 @@
 # Changelog
 
+## [7.1.2] - 2026-10-18
+
+Fixed:
+
+- Backup: *--snapshot zfs* found no snapshot inside a container; now mounts it
+- Tests: e2e zfs pool now sits on a loop device; a file vdev never worked
+
+Upgrade notes:
+
+- Backup: zfs snapshots mount at *.baudolo-TAG* in the subject, not *.zfs*
+- Image: first ghcr image since 3.1.2; the 4.0.0 to 7.1.1 notes apply
+
 ## [7.1.1] - 2026-10-17
 
 Fixed:
