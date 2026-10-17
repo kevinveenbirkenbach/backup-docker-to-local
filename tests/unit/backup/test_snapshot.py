@@ -21,6 +21,14 @@ class Runner:
         return []
 
 
+class Unmountable(Runner):
+    def __call__(self, command: list[str]) -> list[str]:
+        result = super().__call__(command)
+        if command[0] == "mount":
+            raise BackupError("permission denied")
+        return result
+
+
 class TestBtrfs(unittest.TestCase):
     def test_it_creates_a_read_only_snapshot_inside_the_subject(self) -> None:
         run = Runner()
@@ -95,13 +103,56 @@ class TestZfs(unittest.TestCase):
             run.calls[-1], ["zfs", "destroy", "tank/docker@baudolo-20260731"]
         )
 
-    def test_it_maps_a_volume_path_through_the_dot_zfs_directory(self) -> None:
+    def test_it_mounts_the_snapshot_inside_the_subject(self) -> None:
+        run = self._run()
+        with volume_snapshot("zfs", "/var/lib/docker", "20260731", run=run):
+            pass
+        self.assertIn(
+            [
+                "mount",
+                "-t",
+                "zfs",
+                "tank/docker@baudolo-20260731",
+                "/var/lib/docker/.baudolo-20260731",
+            ],
+            run.calls,
+        )
+
+    def test_it_maps_a_volume_path_into_the_mounted_snapshot(self) -> None:
         run = self._run()
         with volume_snapshot("zfs", "/var/lib/docker", "20260731", run=run) as resolve:
             self.assertEqual(
                 resolve("/var/lib/docker/volumes/postgres_data/_data"),
-                "/var/lib/docker/.zfs/snapshot/baudolo-20260731/volumes/postgres_data/_data",
+                "/var/lib/docker/.baudolo-20260731/volumes/postgres_data/_data",
             )
+
+    def test_it_unmounts_before_it_destroys(self) -> None:
+        run = self._run()
+        with volume_snapshot("zfs", "/var/lib/docker", "20260731", run=run):
+            pass
+        self.assertEqual(
+            run.calls[-3:],
+            [
+                ["umount", "/var/lib/docker/.baudolo-20260731"],
+                ["rmdir", "/var/lib/docker/.baudolo-20260731"],
+                ["zfs", "destroy", "tank/docker@baudolo-20260731"],
+            ],
+        )
+
+    def test_a_failed_mount_leaves_no_snapshot_behind(self) -> None:
+        run = Unmountable({"zfs list": ["tank/docker"]})
+        with (
+            self.assertRaises(BackupError),
+            volume_snapshot("zfs", "/var/lib/docker", "20260731", run=run),
+        ):
+            pass
+        self.assertEqual(
+            run.calls[-2:],
+            [
+                ["rmdir", "/var/lib/docker/.baudolo-20260731"],
+                ["zfs", "destroy", "tank/docker@baudolo-20260731"],
+            ],
+        )
 
     def test_an_unmounted_dataset_is_an_error(self) -> None:
         run = Runner({"zfs list": [""]})

@@ -36,9 +36,14 @@ ZFS_READY = "{ [ -c /dev/zfs ] || modprobe zfs 2>/dev/null; }; [ -c /dev/zfs ]"
 def mount_script(fstype: str) -> str:
     """Build a filesystem on a loop device and carve out the snapshot subject."""
     if fstype == "zfs":
+        # Exception: a loop device, not the /img file, because the kernel opens
+        # vdevs from a taskq thread that resolves paths in the host's root.
+        # The pool is kernel-wide, so it is destroyed on exit, but only once
+        # this script created it.
         return (
-            f"{PACKAGES} && {ZFS_READY} && truncate -s 400M /img "
-            "&& zpool create -m none baudolo /img "
+            f"{PACKAGES} && {ZFS_READY} && truncate -s 400M /img && {ATTACH} "
+            '&& zpool create -m none baudolo "$LOOP" '
+            "&& trap 'zpool destroy -f baudolo; losetup -d \"$LOOP\"' EXIT "
             "&& zfs create -o mountpoint=/subject/docker baudolo/docker"
         )
     return (

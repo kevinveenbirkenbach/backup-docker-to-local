@@ -58,27 +58,50 @@ def _resolver(subject: str, root: str) -> Callable[[str], str]:
     return resolve
 
 
+def _remove(
+    root: str, commands: list[list[str]], run: Callable[[list[str]], list[str]]
+) -> None:
+    try:
+        for command in commands:
+            run(command)
+    except BackupError as error:
+        # Raising here would also mask whatever the body raised.
+        print(f"WARNING: {root} could not be removed: {error}", flush=True)
+
+
 def _btrfs(
     subject: str, name: str, run: Callable[[list[str]], list[str]]
-) -> tuple[str, list[str]]:
+) -> tuple[str, list[list[str]]]:
     # The snapshot goes inside the subject, never beside it: the kernel rejects
     # a snapshot whose destination is on another filesystem, which is exactly
     # what the parent directory is when the subject is a mountpoint of its own.
     target = str(Path(os.path.abspath(subject)) / f".{name}")  # noqa: PTH100 - see _resolver
     run(["btrfs", "subvolume", "snapshot", "-r", subject, target])
-    return target, ["btrfs", "subvolume", "delete", target]
+    return target, [["btrfs", "subvolume", "delete", target]]
 
 
 def _zfs(
     subject: str, name: str, run: Callable[[list[str]], list[str]]
-) -> tuple[str, list[str]]:
+) -> tuple[str, list[list[str]]]:
     output = run(["zfs", "list", "-H", "-o", "name", subject])
     dataset = (output[0] if output else "").strip()
     if not dataset:
         raise SnapshotError(f"no zfs dataset is mounted at {subject}")
-    run(["zfs", "snapshot", f"{dataset}@{name}"])
-    root = str(Path(subject) / ".zfs" / "snapshot" / name)
-    return root, ["zfs", "destroy", f"{dataset}@{name}"]
+    snapshot = f"{dataset}@{name}"
+    # Exception: mounted here rather than read through .zfs/snapshot, which the
+    # kernel automounts via a usermode helper in the host's mount namespace,
+    # so a containerised run never sees it.
+    root = str(Path(os.path.abspath(subject)) / f".{name}")  # noqa: PTH100 - see _resolver
+    run(["zfs", "snapshot", snapshot])
+    remove = [["zfs", "destroy", snapshot]]
+    try:
+        run(["mkdir", root])
+        remove.insert(0, ["rmdir", root])
+        run(["mount", "-t", "zfs", snapshot, root])
+    except BaseException:
+        _remove(root, remove, run)
+        raise
+    return root, [["umount", root], *remove]
 
 
 _CREATE = {"btrfs": _btrfs, "zfs": _zfs}
@@ -169,8 +192,4 @@ def volume_snapshot(
     try:
         yield _resolver(subject, root)
     finally:
-        try:
-            run(remove)
-        except BackupError as error:
-            # Raising here would also mask whatever the body raised.
-            print(f"WARNING: {root} could not be removed: {error}", flush=True)
+        _remove(root, remove, run)
