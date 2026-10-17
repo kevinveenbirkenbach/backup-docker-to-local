@@ -1,5 +1,19 @@
 # Changelog
 
+## [7.1.0] - 2026-10-17
+
+Fixed:
+
+- Backup: rsync -a stored no xattrs, ACLs or hardlinks; now -aHAX
+- Restore: restore_volume_files had the same gap; now -aHAX too
+- An OpenCloud volume lost its storage metadata through a DR drill
+
+Upgrade notes:
+
+- First backup re-copies every attribute-carrying volume once in full
+- A destination without xattr support now fails the backup run outright
+- exFAT, xattr-less NFS and object-storage FUSE mounts must move first
+
 ## [7.0.2] - 2026-09-23
 
 * Backup: failed live pre-copy no longer aborts when a stopped copy follows
