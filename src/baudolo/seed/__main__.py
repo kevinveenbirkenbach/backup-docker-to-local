@@ -73,9 +73,30 @@ def main() -> None:
         help="Database name or '*' to dump all databases",
     )
     parser.add_argument("username", help="Database username")
-    parser.add_argument("password", help="Database password")
+    parser.add_argument(
+        "password",
+        nargs="?",
+        help="Deprecated: database password as an argument, visible in the "
+        "process list; use --password-stdin",
+    )
+    parser.add_argument(
+        "--password-stdin",
+        action="store_true",
+        help="Read the database password from stdin",
+    )
 
     args = parser.parse_args()
+    if args.password_stdin == (args.password is not None):
+        parser.error("give the password either via --password-stdin or as an argument")
+    if args.password_stdin:
+        password = sys.stdin.read().removesuffix("\n")
+    else:
+        print(
+            "WARNING: a password argument is visible in the process list; "
+            "use --password-stdin",
+            file=sys.stderr,
+        )
+        password = args.password
 
     try:
         check_and_add_entry(
@@ -83,7 +104,7 @@ def main() -> None:
             instance=args.instance,
             database=args.database,
             username=args.username,
-            password=args.password,
+            password=password,
         )
     except Exception as exc:  # noqa: BLE001 - CLI boundary: any failure becomes exit 1
         print(f"ERROR: {exc}", file=sys.stderr)

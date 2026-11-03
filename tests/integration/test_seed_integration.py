@@ -65,6 +65,32 @@ def run_seed_expect_fail(
     )
 
 
+def run_seed_stdin(
+    csv_path: Path, instance: str, database: str, username: str, stdin: str, *extra: str
+) -> subprocess.CompletedProcess:
+    """
+    Run the real CLI with --password-stdin, feeding the password on stdin.
+    Any extra arguments are appended after the username.
+    """
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "baudolo.seed",
+            "--password-stdin",
+            str(csv_path),
+            instance,
+            database,
+            username,
+            *extra,
+        ],
+        input=stdin,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def read_csv_semicolon(path: Path) -> list[dict]:
     with path.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f, delimiter=";")
@@ -194,6 +220,61 @@ class TestSeedIntegration(unittest.TestCase):
             rows = read_csv_semicolon(p)
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["database"], "my_db-1")
+
+    def test_password_stdin_stores_the_password_without_its_trailing_newline(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "databases.csv"
+
+            cp = run_seed_stdin(p, "docker.test", "appdb", "alice", "s3cr;et\n")
+
+            self.assertEqual(cp.returncode, 0, cp.stderr)
+            self.assertNotIn("WARNING", cp.stderr)
+            rows = read_csv_semicolon(p)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["username"], "alice")
+            self.assertEqual(rows[0]["password"], "s3cr;et")
+
+    def test_password_argument_still_works_with_a_deprecation_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "databases.csv"
+
+            cp = run_seed(p, "docker.test", "appdb", "alice", "secret")
+
+            self.assertIn("--password-stdin", cp.stderr)
+            self.assertEqual(read_csv_semicolon(p)[0]["password"], "secret")
+
+    def test_password_given_both_ways_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "databases.csv"
+
+            cp = run_seed_stdin(p, "docker.test", "appdb", "alice", "pw\n", "pw")
+
+            self.assertNotEqual(cp.returncode, 0)
+            self.assertFalse(p.exists(), "Should not create file on invalid input")
+
+    def test_password_given_no_way_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "databases.csv"
+
+            cp = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "baudolo.seed",
+                    str(p),
+                    "docker.test",
+                    "appdb",
+                    "alice",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(cp.returncode, 0)
+            self.assertFalse(p.exists(), "Should not create file on invalid input")
 
     def test_file_is_semicolon_delimited_and_has_header(self) -> None:
         with tempfile.TemporaryDirectory() as td:

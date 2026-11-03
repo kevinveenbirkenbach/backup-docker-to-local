@@ -164,6 +164,7 @@ class TestSeedMain(unittest.TestCase):
         ns.database = "db"
         ns.username = "user"
         ns.password = "pass"
+        ns.password_stdin = False
         parse_args.return_value = ns
 
         seed_main.main()
@@ -195,6 +196,7 @@ class TestSeedMain(unittest.TestCase):
         ns.database = "db"
         ns.username = "user"
         ns.password = "pass"
+        ns.password_stdin = False
         parse_args.return_value = ns
 
         seed_main.main()
