@@ -1,5 +1,20 @@
 # Changelog
 
+## [7.2.0] - 2026-11-03
+
+Added:
+
+- Seed: *--password-stdin* reads the database password from stdin
+- Seed: a password given both ways or not at all is rejected
+
+Changed:
+
+- Seed: the password argument still works but warns it is visible in *ps*
+
+Upgrade notes:
+
+- Seed: pass the password via *--password-stdin*; the argument is deprecated
+
 ## [7.1.2] - 2026-10-18
 
 Fixed:
