@@ -137,10 +137,10 @@ class TestE2EMariaDBFull(unittest.TestCase):
                 cls.db_name,
                 "--db-user",
                 cls.db_user,
-                "--db-password",
-                cls.db_password,
+                "--db-password-stdin",
                 "--empty",
-            ]
+            ],
+            stdin_text=cls.db_password,
         )
 
     @classmethod

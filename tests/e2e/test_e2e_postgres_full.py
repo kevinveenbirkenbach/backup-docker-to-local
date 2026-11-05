@@ -94,7 +94,7 @@ class TestE2EPostgresFull(unittest.TestCase):
         )
 
         # Restore
-        run(
+        cls.restored = run(
             [
                 "baudolo-restore",
                 "postgres",
@@ -128,6 +128,9 @@ class TestE2EPostgresFull(unittest.TestCase):
             / "appdb.backup.sql"
         )
         self.assertTrue(p.is_file(), f"Expected dump file at: {p}")
+
+    def test_the_deprecated_password_argument_still_restores_but_warns(self) -> None:
+        self.assertIn("visible in the process list", self.restored.stderr)
 
     def test_data_restored(self) -> None:
         p = run(

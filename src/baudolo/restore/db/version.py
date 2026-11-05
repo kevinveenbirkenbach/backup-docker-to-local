@@ -102,13 +102,13 @@ def server_version(
                 client or "mariadb",
                 "-u",
                 user,
-                f"--password={password}",
                 "-N",
                 "-B",
                 "-e",
                 "SELECT VERSION()",
             ],
             capture=True,
+            docker_env={"MYSQL_PWD": password},
         )
     )
 

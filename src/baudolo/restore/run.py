@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 
@@ -46,6 +47,38 @@ def stdout_of(completed: subprocess.CompletedProcess) -> str:
     return (raw.decode() if isinstance(raw, bytes) else raw).strip()
 
 
+def docker_exec_cmd(
+    container: str, argv: list[str], docker_env: dict[str, str] | None
+) -> list[str]:
+    """
+    Args:
+        container: the container to run in.
+        argv: the command, already split.
+        docker_env: variables to hand to the container; only their names
+            reach the returned argv.
+
+    Returns:
+        The ``docker exec -i`` argv.
+    """
+    forwarded = [arg for name in docker_env or {} for arg in ("-e", name)]
+    return ["docker", "exec", "-i", *forwarded, container, *argv]
+
+
+def child_env(env: dict | None, docker_env: dict[str, str] | None) -> dict | None:
+    """
+    Args:
+        env: the docker CLI's environment, or None to inherit this process's.
+        docker_env: variables whose values the docker CLI copies into the
+            container for a bare ``-e NAME``.
+
+    Returns:
+        The environment for the docker CLI, or None to inherit unchanged.
+    """
+    if not docker_env:
+        return env
+    return {**(os.environ if env is None else env), **docker_env}
+
+
 def docker_exec(
     container: str,
     argv: list[str],
@@ -55,12 +88,12 @@ def docker_exec(
     env: dict | None = None,
     docker_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
-    cmd: list[str] = ["docker", "exec", "-i"]
-    if docker_env:
-        for k, v in docker_env.items():
-            cmd.extend(["-e", f"{k}={v}"])
-    cmd.extend([container, *argv])
-    return run(cmd, stdin=stdin, capture=capture, env=env)
+    return run(
+        docker_exec_cmd(container, argv, docker_env),
+        stdin=stdin,
+        capture=capture,
+        env=child_env(env, docker_env),
+    )
 
 
 def docker_exec_sh(

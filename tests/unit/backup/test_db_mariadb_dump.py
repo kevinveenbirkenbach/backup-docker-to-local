@@ -16,7 +16,7 @@ def _capture_dumps(*, db_type, rows, container, dump_tool="mariadb-dump"):
     captured = []
 
     def _capture(command, out_file, *, env=None):
-        captured.append((list(command), env))
+        captured.append((list(command), env, out_file))
 
     with (
         tempfile.TemporaryDirectory() as td,
@@ -46,14 +46,13 @@ class TestMariaDBDumpUsesTCP(unittest.TestCase):
         )
         self.assertEqual(len(captured), 1, f"expected one dump, got: {captured}")
 
-        argv, env = captured[0]
-        self.assertEqual(argv[:3], ["docker", "exec", "mariadb"])
+        argv, _env, _out = captured[0]
+        self.assertEqual(argv[:2], ["docker", "exec"])
+        self.assertEqual(argv[argv.index(dump_tool_of(argv)) - 1], "mariadb")
         self.assertIn("--protocol=tcp", argv)
         self.assertEqual(argv[argv.index("-h") + 1], "127.0.0.1")
         self.assertEqual(argv[argv.index("-u") + 1], "appuser")
-        self.assertIn("-ps3cret", argv)
         self.assertEqual(argv[-1], "appdb")
-        self.assertIsNone(env)
 
     def test_the_probed_client_is_the_one_invoked(self):
         captured = _capture_dumps(
@@ -62,7 +61,7 @@ class TestMariaDBDumpUsesTCP(unittest.TestCase):
             container="mariadb",
             dump_tool="mysqldump",
         )
-        argv, _env = captured[0]
+        argv, _env, _out = captured[0]
         self.assertIn("mysqldump", argv)
         self.assertNotIn("mariadb-dump", argv)
 
@@ -72,20 +71,32 @@ class TestMariaDBDumpUsesTCP(unittest.TestCase):
             rows=[("pg", "appdb", "appuser", "s3cret")],
             container="pg",
         )
-        argv, _env = captured[0]
+        argv, _env, _out = captured[0]
         self.assertIn("pg_dump", argv)
         self.assertNotIn("--protocol=tcp", argv)
 
     def test_the_password_travels_in_the_environment_not_the_argv(self):
-        """A process listing shows argv; PGPASSWORD must not be in it."""
-        captured = _capture_dumps(
-            db_type="postgres",
-            rows=[("pg", "appdb", "appuser", "s3cret")],
-            container="pg",
-        )
-        argv, env = captured[0]
-        self.assertEqual(env, {"PGPASSWORD": "s3cret"})
-        self.assertNotIn("s3cret", argv)
+        for db_type, container, variable in (
+            ("postgres", "pg", "PGPASSWORD"),
+            ("mariadb", "mariadb", "MYSQL_PWD"),
+        ):
+            with self.subTest(engine=db_type):
+                argv, env, _out = _capture_dumps(
+                    db_type=db_type,
+                    rows=[(container, "appdb", "appuser", "s3cret")],
+                    container=container,
+                )[0]
+                self.assertEqual(env, {variable: "s3cret"})
+                self.assertEqual(argv[argv.index("-e") + 1], variable)
+                self.assertLess(argv.index("-e"), argv.index(container))
+                self.assertFalse(
+                    [arg for arg in argv if "s3cret" in arg],
+                    f"password reached the argv: {argv}",
+                )
+
+
+def dump_tool_of(argv):
+    return next(arg for arg in argv if arg in ("mariadb-dump", "mysqldump"))
 
 
 class TestNoShellReachesTheDump(unittest.TestCase):

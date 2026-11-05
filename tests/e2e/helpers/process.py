@@ -13,7 +13,17 @@ def run(
     capture: bool = True,
     check: bool = True,
     cwd: str | None = None,
+    stdin_text: str | None = None,
 ) -> subprocess.CompletedProcess:
+    """
+    Args:
+        cmd: argv, the program first.
+        capture: keep stdout and stderr on the result.
+        check: raise on a non-zero exit.
+        cwd: working directory.
+        stdin_text: text fed to the command's stdin, e.g. a password for
+            ``--db-password-stdin``.
+    """
     try:
         return subprocess.run(
             cmd,
@@ -21,6 +31,7 @@ def run(
             cwd=cwd,
             text=True,
             capture_output=capture,
+            input=stdin_text,
         )
     except subprocess.CalledProcessError as e:
         # Print captured output so failing E2E tests are "live" / debuggable in CI logs

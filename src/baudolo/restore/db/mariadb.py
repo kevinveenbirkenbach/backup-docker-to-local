@@ -47,6 +47,8 @@ def restore_mariadb_sql(
     if not Path(sql_path).is_file():
         raise FileNotFoundError(sql_path)
 
+    docker_env = {"MYSQL_PWD": password}
+
     if check_version:
         guard(
             sql_path=sql_path,
@@ -65,12 +67,12 @@ def restore_mariadb_sql(
                 client,
                 "-u",
                 user,
-                f"--password={password}",
                 "-N",
                 "-e",
                 f"SELECT table_name FROM information_schema.tables WHERE table_schema = '{db_name}';",  # noqa: S608 - validate_database() constrains the name to ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$
             ],
             capture=True,
+            docker_env=docker_env,
         )
         tables = result.stdout.decode().split()
 
@@ -90,15 +92,15 @@ def restore_mariadb_sql(
                     client,
                     "-u",
                     user,
-                    f"--password={password}",
                     "-e",
                     drop_sql,
                 ],
+                docker_env=docker_env,
             )
 
     with Path(sql_path).open("rb") as f:
         docker_exec(
-            container, [client, "-u", user, f"--password={password}", db_name], stdin=f
+            container, [client, "-u", user, db_name], stdin=f, docker_env=docker_env
         )
 
     print(f"MariaDB/MySQL restore complete for db '{db_name}'.")

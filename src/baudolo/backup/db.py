@@ -132,11 +132,12 @@ def backup_database(
                         "--protocol=tcp",
                         "-u",
                         user,
-                        f"-p{password}",
                         db_name,
                     ],
+                    forward_env=["MYSQL_PWD"],
                 ),
                 dump_file,
+                env={"MYSQL_PWD": password},
             )
             produced = True
             continue

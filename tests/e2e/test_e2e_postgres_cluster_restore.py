@@ -89,33 +89,12 @@ class TestE2EPostgresClusterRestore(unittest.TestCase):
             / f"{cls.pg_container}.cluster.backup.sql"
         )
 
-        run(
-            [
-                "baudolo-restore",
-                "cluster",
-                cls.pg_volume,
-                cls.hash,
-                cls.version,
-                "--backups-dir",
-                cls.backups_dir,
-                "--repo-name",
-                cls.repo_name,
-                "--container",
-                cls.pg_container,
-                "--instance",
-                cls.pg_container,
-                "--db-user",
-                "postgres",
-                "--db-password",
-                "pgpw",
-                "--empty",
-            ]
-        )
+        run(cls._restore_argv(), stdin_text="pgpw")
 
         for statement in SIBLING_SQL:
             cls._psql("postgres", statement)
         cls._psql("sibling", SIBLING_PAYLOAD)
-        cls.refused = run(cls._restore_argv(), check=False)
+        cls.refused = run(cls._restore_argv(), check=False, stdin_text="pgpw")
 
     @classmethod
     def _restore_argv(cls) -> list:
@@ -135,8 +114,7 @@ class TestE2EPostgresClusterRestore(unittest.TestCase):
             cls.pg_container,
             "--db-user",
             "postgres",
-            "--db-password",
-            "pgpw",
+            "--db-password-stdin",
             "--empty",
         ]
 

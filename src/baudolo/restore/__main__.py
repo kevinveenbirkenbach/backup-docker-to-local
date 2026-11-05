@@ -10,6 +10,29 @@ from .files import restore_volume_files
 from .paths import BackupPaths
 
 
+def _password(parser: argparse.ArgumentParser, args: argparse.Namespace) -> str:
+    """
+    Args:
+        parser: reports a password given both ways or not at all.
+        args: the parsed engine subcommand.
+
+    Returns:
+        The database password, from stdin or from the deprecated argument.
+    """
+    if args.db_password_stdin == (args.db_password is not None):
+        parser.error(
+            "give the password either via --db-password-stdin or --db-password"
+        )
+    if args.db_password_stdin:
+        return sys.stdin.read().removesuffix("\n")
+    print(
+        "WARNING: --db-password is visible in the process list; "
+        "use --db-password-stdin",
+        file=sys.stderr,
+    )
+    return args.db_password
+
+
 def _add_common_backup_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("volume_name", help="Docker volume name (target volume)")
     p.add_argument("backup_hash", help="Hashed machine id")
@@ -29,7 +52,16 @@ def _add_common_backup_args(p: argparse.ArgumentParser) -> None:
 
 def _add_common_engine_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--container", required=True)
-    p.add_argument("--db-password", required=True)
+    p.add_argument(
+        "--db-password",
+        default=None,
+        help="Deprecated: visible in the process list; use --db-password-stdin",
+    )
+    p.add_argument(
+        "--db-password-stdin",
+        action="store_true",
+        help="Read the database password from stdin",
+    )
     p.add_argument("--empty", action="store_true")
     p.add_argument(
         "--no-version-check",
@@ -91,6 +123,7 @@ def main(argv: list[str] | None = None) -> int:
     p_mdb.add_argument("--db-user", default=None, help="Defaults to db-name if omitted")
 
     args = parser.parse_args(argv)
+    password = None if args.cmd == "files" else _password(parser, args)
 
     try:
         if args.cmd == "files":
@@ -115,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
                 container=args.container,
                 db_name=args.db_name,
                 user=user,
-                password=args.db_password,
+                password=password,
                 sql_path=BackupPaths(
                     args.volume_name,
                     args.backup_hash,
@@ -132,7 +165,7 @@ def main(argv: list[str] | None = None) -> int:
             restore_cluster_sql(
                 container=args.container,
                 user=args.db_user,
-                password=args.db_password,
+                password=password,
                 sql_path=BackupPaths(
                     args.volume_name,
                     args.backup_hash,
@@ -151,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
                 container=args.container,
                 db_name=args.db_name,
                 user=user,
-                password=args.db_password,
+                password=password,
                 sql_path=BackupPaths(
                     args.volume_name,
                     args.backup_hash,

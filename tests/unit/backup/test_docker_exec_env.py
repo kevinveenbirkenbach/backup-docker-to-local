@@ -54,7 +54,7 @@ class TestPostgresDumpCarriesThePassword(unittest.TestCase):
         self.assertIn("-e", seen["command"])
         self.assertEqual(seen["command"][seen["command"].index("-e") + 1], "PGPASSWORD")
         self.assertEqual(seen["env"], {"PGPASSWORD": "secret"})
-        self.assertNotIn("secret", seen["command"])
+        self.assertFalse([arg for arg in seen["command"] if "secret" in arg])
 
 
 if __name__ == "__main__":

@@ -174,9 +174,13 @@ baudolo-restore postgres \
   <version> \
   --container postgres \
   --db-name appdb \
-  --db-password secret \
-  --empty
+  --db-password-stdin \
+  --empty < password-file
 ```
+
+`--db-password-stdin` reads the password from stdin. The older
+`--db-password <value>` still works but warns: it is visible in the process
+list.
 
 ### Restore MariaDB / MySQL
 
@@ -187,8 +191,8 @@ baudolo-restore mariadb \
   <version> \
   --container mariadb \
   --db-name shopdb \
-  --db-password secret \
-  --empty
+  --db-password-stdin \
+  --empty < password-file
 ```
 
 > `baudolo` automatically detects whether `mariadb` or `mysql`
