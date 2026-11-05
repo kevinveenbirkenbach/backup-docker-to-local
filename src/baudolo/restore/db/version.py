@@ -23,9 +23,10 @@ with the cluster banner and the roles section, and the first
 
 from __future__ import annotations
 
+import io
 import re
-from pathlib import Path
 
+from baudolo.restore.dumpfile import open_dump
 from baudolo.restore.run import docker_exec, stdout_of
 
 SCAN_LINES = 2000
@@ -69,7 +70,9 @@ def dump_version(sql_path: str, engine: str) -> str:
         VersionMismatchError: no version line within the first ``SCAN_LINES``.
     """
     pattern = DUMP_VERSION[engine]
-    with Path(sql_path).open(encoding="utf-8", errors="replace") as handle:
+    with io.TextIOWrapper(
+        open_dump(sql_path), encoding="utf-8", errors="replace"
+    ) as handle:
         for _ in range(SCAN_LINES):
             line = handle.readline()
             if not line:

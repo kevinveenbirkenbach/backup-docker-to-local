@@ -10,6 +10,8 @@ import re
 import unittest
 from pathlib import Path
 
+from baudolo.generation import DUMP_SUFFIX, SQL_DIR
+
 from .helpers import (
     MARIADB_DATA_DIR,
     MARIADB_IMAGE,
@@ -19,6 +21,7 @@ from .helpers import (
     backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
+    dump_text,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -28,6 +31,7 @@ from .helpers import (
     wait_for_mariadb_sql,
     wait_for_postgres,
     write_databases_csv,
+    write_dump_text,
 )
 
 PAYLOAD = "gate-payload"
@@ -36,14 +40,14 @@ FUTURE = "99.0"
 
 def rewrite_version(dump: Path, pattern: str, version: str) -> str:
     """Make the dump claim ``version``; return what it claimed before."""
-    text = dump.read_text(encoding="utf-8", errors="replace")
+    text = dump_text(dump)
     found = re.search(pattern, text)
     if not found:
         raise AssertionError(f"{dump} carries no version header matching {pattern}")
     claimed = found.group(1)
-    dump.write_text(
+    write_dump_text(
+        dump,
         text.replace(found.group(0), found.group(0).replace(claimed, version), 1),
-        encoding="utf-8",
     )
     return claimed
 
@@ -103,8 +107,8 @@ class GateCase:
         cls.hash, cls.version = latest_version_dir(cls.backups_dir, cls.repo_name)
         cls.dump = (
             backup_path(cls.backups_dir, cls.repo_name, cls.version, cls.volume)
-            / "sql"
-            / f"{cls.db_name}.backup.sql"
+            / SQL_DIR
+            / f"{cls.db_name}{DUMP_SUFFIX}"
         )
 
         cls.truthful_version = rewrite_version(cls.dump, cls.pattern, FUTURE)

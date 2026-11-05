@@ -44,12 +44,12 @@ class TestPostgresDumpCarriesThePassword(unittest.TestCase):
 
         import baudolo.backup.db as db
 
-        original = db.execute_to_file
-        db.execute_to_file = fake
+        original = db.execute_to_gzip
+        db.execute_to_gzip = fake
         try:
             fallback_pg_dumpall("pg", "user", "secret", "/tmp/out.sql")
         finally:
-            db.execute_to_file = original
+            db.execute_to_gzip = original
 
         self.assertIn("-e", seen["command"])
         self.assertEqual(seen["command"][seen["command"].index("-e") + 1], "PGPASSWORD")

@@ -20,6 +20,7 @@ class TestMariadbEmptyDrop(unittest.TestCase):
             sql.flush()
             with (
                 patch.object(mariadb_mod, "docker_exec", side_effect=_capture),
+                patch.object(mariadb_mod, "docker_exec_stream"),
                 patch.object(mariadb_mod, "_pick_client", return_value="mariadb"),
             ):
                 mariadb_mod.restore_mariadb_sql(

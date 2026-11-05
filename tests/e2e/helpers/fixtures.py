@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import gzip
 import shutil
 import subprocess
 from pathlib import Path
+
+from baudolo.generation import DUMP_SUFFIX, LEGACY_DUMP_SUFFIX
+from baudolo.restore.dumpfile import open_dump
 
 from .process import machine_hash, run
 
@@ -112,3 +116,54 @@ def ensure_empty_dir(path: str) -> None:
     if p.exists():
         shutil.rmtree(p)
     p.mkdir(parents=True, exist_ok=True)
+
+
+def dump_text(path: Path | str) -> str:
+    """
+    Args:
+        path: a dump, gzip-compressed or plain.
+
+    Returns:
+        Its SQL text.
+    """
+    with open_dump(str(path)) as handle:
+        return handle.read().decode("utf-8", errors="replace")
+
+
+def write_dump_text(path: Path | str, text: str) -> None:
+    """
+    Args:
+        path: a gzip dump to overwrite.
+        text: the SQL text it carries afterwards.
+    """
+    with gzip.open(str(path), "wb") as handle:
+        handle.write(text.encode("utf-8"))
+
+
+def dumps_in(sql_dir: Path) -> list[Path]:
+    """
+    Args:
+        sql_dir: a volume's sql directory, which may be absent.
+
+    Returns:
+        Every dump in it, compressed or plain, single-database or cluster.
+    """
+    if not sql_dir.is_dir():
+        return []
+    return sorted(
+        {*sql_dir.glob(f"*{DUMP_SUFFIX}"), *sql_dir.glob(f"*{LEGACY_DUMP_SUFFIX}")}
+    )
+
+
+def assert_dumps_in_sees_both_suffixes(case, scratch: str) -> None:
+    """
+    Args:
+        case: the running ``unittest.TestCase``.
+        scratch: an empty directory to place the probe dumps in.
+    """
+    probe = Path(scratch) / "dumps-in-probe"
+    probe.mkdir(parents=True, exist_ok=True)
+    expected = [probe / f"a{DUMP_SUFFIX}", probe / f"b{LEGACY_DUMP_SUFFIX}"]
+    for path in expected:
+        path.write_bytes(b"")
+    case.assertEqual(dumps_in(probe), expected)

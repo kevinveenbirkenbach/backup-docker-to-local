@@ -26,6 +26,7 @@ from .helpers import (
     backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
+    dump_text,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -140,7 +141,7 @@ class TestE2EAppContainerShipsClientTools(unittest.TestCase):
     def test_the_engine_volume_was_dumped(self) -> None:
         dump = self.volume_dir(self.engine_volume) / SQL_DIR / f"shopdb{DUMP_SUFFIX}"
         self.assertTrue(dump.is_file(), f"expected a dump at {dump}")
-        self.assertIn(PAYLOAD, dump.read_text(encoding="utf-8"))
+        self.assertIn(PAYLOAD, dump_text(dump))
 
     def test_the_application_volume_produced_no_dump(self) -> None:
         """The collision this module exists for: the application container

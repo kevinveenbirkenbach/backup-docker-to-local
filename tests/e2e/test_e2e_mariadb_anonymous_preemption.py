@@ -34,6 +34,7 @@ from .helpers import (
     MARIADB_DATA_DIR,
     MARIADB_IMAGE,
     cleanup_docker,
+    dump_text,
     require_docker,
     run,
     unique,
@@ -159,8 +160,7 @@ class TestE2EMariaDBAnonymousPreemption(unittest.TestCase):
             self.assertTrue(produced, "backup_database did not produce a dump")
             dump_path = Path(volume_dir) / SQL_DIR / f"{self.db_name}{DUMP_SUFFIX}"
             self.assertTrue(dump_path.is_file(), f"expected dump at {dump_path}")
-            with dump_path.open(encoding="utf-8", errors="replace") as f:
-                content = f.read()
+            content = dump_text(dump_path)
             self.assertIn("INSERT INTO", content)
             self.assertIn("'ok'", content)
 

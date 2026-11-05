@@ -19,6 +19,7 @@ from .helpers import (
     backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
+    dump_text,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -137,19 +138,19 @@ class TestE2EPostgresPasswordRequired(unittest.TestCase):
     def test_the_configured_database_was_dumped(self) -> None:
         dump = self.volume_dir() / SQL_DIR / f"appdb{DUMP_SUFFIX}"
         self.assertTrue(dump.is_file(), f"expected a dump at {dump}")
-        self.assertIn("Dumped by pg_dump", dump.read_text(encoding="utf-8"))
+        self.assertIn("Dumped by pg_dump", dump_text(dump))
 
     def test_the_dump_carries_the_payload(self) -> None:
         """pg_dump emits table data as COPY ... FROM stdin, so the row reads as
         tab-separated values rather than as an INSERT literal."""
-        dump = self.volume_dir() / SQL_DIR / f"appdb{DUMP_SUFFIX}"
-        self.assertIn("COPY public.t (id, v) FROM stdin;", dump.read_text("utf-8"))
-        self.assertIn("1\tok", dump.read_text(encoding="utf-8"))
+        text = dump_text(self.volume_dir() / SQL_DIR / f"appdb{DUMP_SUFFIX}")
+        self.assertIn("COPY public.t (id, v) FROM stdin;", text)
+        self.assertIn("1\tok", text)
 
     def test_the_cluster_row_was_dumped_too(self) -> None:
         cluster = self.volume_dir() / SQL_DIR / f"{self.pg_container}{CLUSTER_SUFFIX}"
         self.assertTrue(cluster.is_file(), f"expected a cluster dump at {cluster}")
-        self.assertIn("CREATE DATABASE", cluster.read_text(encoding="utf-8"))
+        self.assertIn("CREATE DATABASE", dump_text(cluster))
 
     def test_only_sql_left_no_file_copy_behind(self) -> None:
         self.assertFalse((self.volume_dir() / FILES_DIR).exists())

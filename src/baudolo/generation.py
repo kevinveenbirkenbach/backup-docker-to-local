@@ -18,8 +18,12 @@ from __future__ import annotations
 
 FILES_DIR = "files"
 SQL_DIR = "sql"
-DUMP_SUFFIX = ".backup.sql"
-CLUSTER_SUFFIX = ".cluster.backup.sql"
+LEGACY_DUMP_SUFFIX = ".backup.sql"
+LEGACY_CLUSTER_SUFFIX = ".cluster.backup.sql"
+COMPRESSED_SUFFIX = ".gz"
+DUMP_COMPRESSION = "gzip"
+DUMP_SUFFIX = LEGACY_DUMP_SUFFIX + COMPRESSED_SUFFIX
+CLUSTER_SUFFIX = LEGACY_CLUSTER_SUFFIX + COMPRESSED_SUFFIX
 
 MANIFEST_FILE = "manifest.json"
 MANIFEST_SCHEMA = 1
@@ -42,6 +46,7 @@ def manifest_document(volumes: dict[str, object]) -> dict[str, object]:
             "sql_dir": SQL_DIR,
             "dump_suffix": DUMP_SUFFIX,
             "cluster_suffix": CLUSTER_SUFFIX,
+            "dump_compression": DUMP_COMPRESSION,
         },
         "volumes": {
             name: {

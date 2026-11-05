@@ -20,7 +20,7 @@ def _capture_dumps(*, db_type, rows, container, dump_tool="mariadb-dump"):
 
     with (
         tempfile.TemporaryDirectory() as td,
-        patch.object(db_mod, "execute_to_file", side_effect=_capture),
+        patch.object(db_mod, "execute_to_gzip", side_effect=_capture),
     ):
         db_mod.backup_database(
             container=container,
@@ -93,6 +93,20 @@ class TestMariaDBDumpUsesTCP(unittest.TestCase):
                     [arg for arg in argv if "s3cret" in arg],
                     f"password reached the argv: {argv}",
                 )
+
+    def test_every_dump_is_written_gzip_named(self):
+        for db_type, container, database, suffix in (
+            ("postgres", "pg", "appdb", ".backup.sql.gz"),
+            ("mariadb", "mariadb", "appdb", ".backup.sql.gz"),
+            ("postgres", "pg", "*", ".cluster.backup.sql.gz"),
+        ):
+            with self.subTest(engine=db_type, database=database):
+                _argv, _env, out = _capture_dumps(
+                    db_type=db_type,
+                    rows=[(container, database, "appuser", "s3cret")],
+                    container=container,
+                )[0]
+                self.assertTrue(out.endswith(suffix), out)
 
 
 def dump_tool_of(argv):

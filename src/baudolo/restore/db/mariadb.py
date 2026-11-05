@@ -3,7 +3,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from baudolo.restore.run import docker_exec, docker_exec_sh
+from baudolo.restore.dumpfile import open_dump, verify
+from baudolo.restore.run import docker_exec, docker_exec_sh, docker_exec_stream
 
 from .version import guard
 
@@ -47,6 +48,7 @@ def restore_mariadb_sql(
     if not Path(sql_path).is_file():
         raise FileNotFoundError(sql_path)
 
+    verify(sql_path)
     docker_env = {"MYSQL_PWD": password}
 
     if check_version:
@@ -98,9 +100,12 @@ def restore_mariadb_sql(
                 docker_env=docker_env,
             )
 
-    with Path(sql_path).open("rb") as f:
-        docker_exec(
-            container, [client, "-u", user, db_name], stdin=f, docker_env=docker_env
+    with open_dump(sql_path) as source:
+        docker_exec_stream(
+            container,
+            [client, "-u", user, db_name],
+            source=source,
+            docker_env=docker_env,
         )
 
     print(f"MariaDB/MySQL restore complete for db '{db_name}'.")

@@ -1,5 +1,7 @@
 import unittest
 
+from baudolo.generation import DUMP_SUFFIX, SQL_DIR
+
 from .helpers import (
     POSTGRES_DATA_DIR,
     POSTGRES_IMAGE,
@@ -7,6 +9,7 @@ from .helpers import (
     backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
+    dump_text,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -94,11 +97,11 @@ class TestE2EEngineDetectionRegistryPrefix(unittest.TestCase):
     def test_the_registry_host_does_not_pick_the_engine(self) -> None:
         p = (
             backup_path(self.backups_dir, self.repo_name, self.version, self.pg_volume)
-            / "sql"
-            / "appdb.backup.sql"
+            / SQL_DIR
+            / f"appdb{DUMP_SUFFIX}"
         )
         self.assertTrue(p.is_file(), f"Expected a pg_dump at: {p}")
-        self.assertIn("Dumped by pg_dump", p.read_text(encoding="utf-8"))
+        self.assertIn("Dumped by pg_dump", dump_text(p))
 
 
 if __name__ == "__main__":

@@ -1,11 +1,14 @@
 import unittest
 
+from baudolo.generation import CLUSTER_SUFFIX, DUMP_SUFFIX
+
 from .helpers import (
     POSTGRES_DATA_DIR,
     POSTGRES_IMAGE,
     backup_path,
     cleanup_docker,
     create_minimal_compose_dir,
+    dump_text,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -197,15 +200,15 @@ class TestE2ESeedStarAndDbEntriesBackupPostgres(unittest.TestCase):
         )
 
         # Cluster dump file produced by '*' entry
-        cluster = sql_dir / f"{self.pg_container}.cluster.backup.sql"
+        cluster = sql_dir / f"{self.pg_container}{CLUSTER_SUFFIX}"
         self.assertTrue(cluster.is_file(), f"Expected cluster dump file at: {cluster}")
 
         # Concrete DB dump produced by normal entry
-        db1 = sql_dir / f"{self.pg_db1}.backup.sql"
+        db1 = sql_dir / f"{self.pg_db1}{DUMP_SUFFIX}"
         self.assertTrue(db1.is_file(), f"Expected db dump file at: {db1}")
 
         # Basic sanity: cluster dump usually contains CREATE DATABASE statements
-        txt = cluster.read_text(encoding="utf-8", errors="ignore")
+        txt = dump_text(cluster)
         self.assertIn(
             "CREATE DATABASE",
             txt,

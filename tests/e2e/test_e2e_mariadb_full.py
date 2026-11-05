@@ -1,5 +1,7 @@
 import unittest
 
+from baudolo.generation import DUMP_SUFFIX, SQL_DIR
+
 from .helpers import (
     MARIADB_DATA_DIR,
     MARIADB_IMAGE,
@@ -7,6 +9,7 @@ from .helpers import (
     backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
+    dump_text,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -150,10 +153,11 @@ class TestE2EMariaDBFull(unittest.TestCase):
     def test_dump_file_exists(self) -> None:
         p = (
             backup_path(self.backups_dir, self.repo_name, self.version, self.db_volume)
-            / "sql"
-            / f"{self.db_name}.backup.sql"
+            / SQL_DIR
+            / f"{self.db_name}{DUMP_SUFFIX}"
         )
         self.assertTrue(p.is_file(), f"Expected dump file at: {p}")
+        self.assertIn("INSERT INTO", dump_text(p))
 
     def test_data_restored(self) -> None:
         p = run(

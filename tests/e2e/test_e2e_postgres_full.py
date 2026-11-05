@@ -1,5 +1,7 @@
 import unittest
 
+from baudolo.generation import DUMP_SUFFIX, SQL_DIR
+
 from .helpers import (
     POSTGRES_DATA_DIR,
     POSTGRES_IMAGE,
@@ -7,6 +9,7 @@ from .helpers import (
     backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
+    dump_text,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -124,10 +127,11 @@ class TestE2EPostgresFull(unittest.TestCase):
     def test_dump_file_exists(self) -> None:
         p = (
             backup_path(self.backups_dir, self.repo_name, self.version, self.pg_volume)
-            / "sql"
-            / "appdb.backup.sql"
+            / SQL_DIR
+            / f"appdb{DUMP_SUFFIX}"
         )
         self.assertTrue(p.is_file(), f"Expected dump file at: {p}")
+        self.assertIn("Dumped by pg_dump", dump_text(p))
 
     def test_the_deprecated_password_argument_still_restores_but_warns(self) -> None:
         self.assertIn("visible in the process list", self.restored.stderr)

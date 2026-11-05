@@ -13,6 +13,8 @@ from baudolo.generation import (
     CLUSTER_SUFFIX,
     DUMP_SUFFIX,
     FILES_DIR,
+    LEGACY_CLUSTER_SUFFIX,
+    LEGACY_DUMP_SUFFIX,
     MANIFEST_FILE,
     MANIFEST_SCHEMA,
     SQL_DIR,
@@ -30,8 +32,18 @@ class TestManifestDocument(unittest.TestCase):
                 "sql_dir": SQL_DIR,
                 "dump_suffix": DUMP_SUFFIX,
                 "cluster_suffix": CLUSTER_SUFFIX,
+                "dump_compression": "gzip",
             },
         )
+
+    def test_dumps_are_named_as_gzip_and_the_legacy_names_stay_known(self) -> None:
+        self.assertEqual(DUMP_SUFFIX, ".backup.sql.gz")
+        self.assertEqual(CLUSTER_SUFFIX, ".cluster.backup.sql.gz")
+        self.assertEqual(LEGACY_DUMP_SUFFIX, ".backup.sql")
+        self.assertEqual(LEGACY_CLUSTER_SUFFIX, ".cluster.backup.sql")
+
+    def test_the_schema_stays_one_so_existing_readers_keep_reading(self) -> None:
+        self.assertEqual(MANIFEST_SCHEMA, 1)
 
     def test_it_carries_a_schema_so_a_reader_can_refuse_a_newer_one(self) -> None:
         self.assertEqual(manifest_document({})["schema"], MANIFEST_SCHEMA)

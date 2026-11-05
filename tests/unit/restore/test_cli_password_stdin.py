@@ -24,6 +24,7 @@ class TestRestorePasswordChannel(unittest.TestCase):
         stderr = io.StringIO()
         with (
             patch.object(cli, "restore_postgres_sql") as restore,
+            patch.object(cli, "locate", side_effect=lambda path: path),
             patch("sys.stdin", io.StringIO(stdin)),
             contextlib.redirect_stderr(stderr),
         ):

@@ -117,7 +117,7 @@ class TestClusterReplay(unittest.TestCase):
         paths = BackupPaths("vol", "hash", "v1", repo_name="repo", backups_dir="/B")
         self.assertEqual(
             paths.cluster_file("bigbluebutton"),
-            "/B/hash/repo/v1/vol/sql/bigbluebutton.cluster.backup.sql",
+            "/B/hash/repo/v1/vol/sql/bigbluebutton.cluster.backup.sql.gz",
         )
 
 

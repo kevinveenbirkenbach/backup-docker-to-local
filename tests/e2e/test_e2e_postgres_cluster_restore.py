@@ -1,5 +1,7 @@
 import unittest
 
+from baudolo.generation import CLUSTER_SUFFIX, SQL_DIR
+
 from .helpers import (
     POSTGRES_DATA_DIR,
     POSTGRES_IMAGE,
@@ -85,8 +87,8 @@ class TestE2EPostgresClusterRestore(unittest.TestCase):
         cls.hash, cls.version = latest_version_dir(cls.backups_dir, cls.repo_name)
         cls.dump = (
             backup_path(cls.backups_dir, cls.repo_name, cls.version, cls.pg_volume)
-            / "sql"
-            / f"{cls.pg_container}.cluster.backup.sql"
+            / SQL_DIR
+            / f"{cls.pg_container}{CLUSTER_SUFFIX}"
         )
 
         run(cls._restore_argv(), stdin_text="pgpw")

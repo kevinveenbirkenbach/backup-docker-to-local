@@ -6,6 +6,7 @@ import sys
 from .db.cluster import restore_cluster_sql
 from .db.mariadb import restore_mariadb_sql
 from .db.postgres import restore_postgres_sql
+from .dumpfile import locate
 from .files import restore_volume_files
 from .paths import BackupPaths
 
@@ -106,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     p_cluster.add_argument(
         "--instance",
         required=True,
-        help="Instance the dump was taken from; names <instance>.cluster.backup.sql",
+        help="Instance the dump was taken from; names <instance>.cluster.backup.sql.gz",
     )
     p_cluster.add_argument(
         "--db-user",
@@ -149,13 +150,15 @@ def main(argv: list[str] | None = None) -> int:
                 db_name=args.db_name,
                 user=user,
                 password=password,
-                sql_path=BackupPaths(
-                    args.volume_name,
-                    args.backup_hash,
-                    args.version,
-                    repo_name=args.repo_name,
-                    backups_dir=args.backups_dir,
-                ).sql_file(args.db_name),
+                sql_path=locate(
+                    BackupPaths(
+                        args.volume_name,
+                        args.backup_hash,
+                        args.version,
+                        repo_name=args.repo_name,
+                        backups_dir=args.backups_dir,
+                    ).sql_file(args.db_name)
+                ),
                 empty=args.empty,
                 check_version=not args.no_version_check,
             )
@@ -166,13 +169,15 @@ def main(argv: list[str] | None = None) -> int:
                 container=args.container,
                 user=args.db_user,
                 password=password,
-                sql_path=BackupPaths(
-                    args.volume_name,
-                    args.backup_hash,
-                    args.version,
-                    repo_name=args.repo_name,
-                    backups_dir=args.backups_dir,
-                ).cluster_file(args.instance),
+                sql_path=locate(
+                    BackupPaths(
+                        args.volume_name,
+                        args.backup_hash,
+                        args.version,
+                        repo_name=args.repo_name,
+                        backups_dir=args.backups_dir,
+                    ).cluster_file(args.instance)
+                ),
                 empty=args.empty,
                 check_version=not args.no_version_check,
             )
@@ -185,13 +190,15 @@ def main(argv: list[str] | None = None) -> int:
                 db_name=args.db_name,
                 user=user,
                 password=password,
-                sql_path=BackupPaths(
-                    args.volume_name,
-                    args.backup_hash,
-                    args.version,
-                    repo_name=args.repo_name,
-                    backups_dir=args.backups_dir,
-                ).sql_file(args.db_name),
+                sql_path=locate(
+                    BackupPaths(
+                        args.volume_name,
+                        args.backup_hash,
+                        args.version,
+                        repo_name=args.repo_name,
+                        backups_dir=args.backups_dir,
+                    ).sql_file(args.db_name)
+                ),
                 empty=args.empty,
                 check_version=not args.no_version_check,
             )

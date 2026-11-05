@@ -7,13 +7,21 @@ string handed to ``shell=True`` allowed.
 
 from __future__ import annotations
 
+import gzip
 import os
 import subprocess
+import tempfile
+import zlib
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
+
+GZIP_LEVEL = 6
+READ_BYTES = 1 << 20
+SYNC_BYTES = 1 << 16
 
 
 class BackupError(Exception):
@@ -53,23 +61,71 @@ def execute_shell_command(
     return [line.decode("utf-8") for line in out.splitlines()]
 
 
-def execute_to_file(
+def is_sync_point(piece: bytes) -> bool:
+    """
+    Args:
+        piece: a line of the dump, or a READ_BYTES slice of a longer one.
+
+    Returns:
+        True when a full flush follows *piece*, decided by its bytes alone, on
+        average once per SYNC_BYTES of input.
+    """
+    return zlib.crc32(piece) % max(1, SYNC_BYTES // len(piece)) == 0
+
+
+def _abort(process: subprocess.Popen, tmp: Path) -> None:
+    process.kill()
+    process.wait()
+    tmp.unlink(missing_ok=True)
+
+
+def execute_to_gzip(
     command: Sequence[str], out_file: str, *, env: Mapping[str, str] | None = None
 ) -> None:
-    """Run *command*, writing its stdout to *out_file* only once it succeeded.
+    """
+    Args:
+        command: argv, the program first; its stdout is the dump.
+        out_file: the final gzip path. The stream is written to
+            ``<out_file>.tmp`` and renamed only after the command exited 0.
+        env: variables added to the child's environment.
 
-    The output goes to a sibling temporary file first, so a partial or empty
-    stream from a failing dump never takes the place of a valid backup.
+    Raises:
+        BackupError: the command failed, or the file could not be written.
     """
     command = list(command)
     print(" ".join(command), flush=True)
     tmp = Path(f"{out_file}.tmp")
-    with tmp.open("wb") as handle:
+    with tempfile.TemporaryFile() as err_sink:
         process = subprocess.Popen(
-            command, stdout=handle, stderr=subprocess.PIPE, env=_child_env(env)
+            command, stdout=subprocess.PIPE, stderr=err_sink, env=_child_env(env)
         )
-        _, err = process.communicate()
-    if process.returncode != 0:
+        try:
+            with (
+                tmp.open("wb") as raw,
+                gzip.GzipFile(
+                    filename="",
+                    mode="wb",
+                    fileobj=raw,
+                    compresslevel=GZIP_LEVEL,
+                    mtime=0,
+                ) as packed,
+            ):
+                for piece in iter(partial(process.stdout.readline, READ_BYTES), b""):
+                    packed.write(piece)
+                    if is_sync_point(piece):
+                        packed.flush(zlib.Z_FULL_FLUSH)
+        except OSError as error:
+            _abort(process, tmp)
+            raise BackupError(f"Error writing {out_file}: {error}") from error
+        except BaseException:
+            _abort(process, tmp)
+            raise
+        finally:
+            process.stdout.close()
+        returncode = process.wait()
+        err_sink.seek(0)
+        err = err_sink.read()
+    if returncode != 0:
         tmp.unlink()
-        _fail(command, process.returncode, b"", err)
+        _fail(command, returncode, b"", err)
     tmp.replace(out_file)

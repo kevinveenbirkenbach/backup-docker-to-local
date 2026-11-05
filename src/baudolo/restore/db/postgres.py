@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from baudolo.restore.dumpfile import open_dump
 from baudolo.restore.run import docker_exec
 
 from .version import guard
@@ -67,23 +68,22 @@ def restore_postgres_sql(
 
     docker_env = {"PGPASSWORD": password}
 
-    if empty:
-        with _EMPTY_PRECLEAN_SQL.open(encoding="utf-8") as preclean:
-            drop_sql = preclean.read()
-        docker_exec(
-            container,
-            ["psql", "-v", "ON_ERROR_STOP=1", "-U", user, "-d", db_name],
-            stdin=drop_sql.encode(),
-            docker_env=docker_env,
-        )
-
     # Filter into a spooled temp file instead of building the whole dump in
     # memory: production dumps reach many GB and the previous read/splitlines/
     # join needed roughly three times the dump size in RSS.
-    with Path(sql_path).open("rb") as src, tempfile.TemporaryFile() as filtered:
+    with open_dump(sql_path) as src, tempfile.TemporaryFile() as filtered:
         for line in filter_superuser_only_lines(src):
             filtered.write(line)
         filtered.seek(0)
+        if empty:
+            with _EMPTY_PRECLEAN_SQL.open(encoding="utf-8") as preclean:
+                drop_sql = preclean.read()
+            docker_exec(
+                container,
+                ["psql", "-v", "ON_ERROR_STOP=1", "-U", user, "-d", db_name],
+                stdin=drop_sql.encode(),
+                docker_env=docker_env,
+            )
         docker_exec(
             container,
             [

@@ -24,6 +24,7 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from baudolo.restore.dumpfile import open_dump
 from baudolo.restore.run import docker_exec
 
 from .version import guard
@@ -96,7 +97,7 @@ def dump_inventory(sql_path: str) -> tuple[list[str], list[str]]:
     """
     databases: list[str] = []
     roles: list[str] = []
-    with Path(sql_path).open("rb") as handle:
+    with open_dump(sql_path) as handle:
         for raw in handle:
             line = raw.decode("utf-8", "replace")
             for pattern, sink, read in (
@@ -212,7 +213,8 @@ def restore_cluster_sql(
         user: a superuser of that instance; the dump creates roles and
             databases, which an application role may not do.
         password: its password, handed to psql through the container's env.
-        sql_path: the ``<instance>.cluster.backup.sql`` of a generation.
+        sql_path: the ``<instance>.cluster.backup.sql.gz`` of a generation, or
+            the uncompressed ``<instance>.cluster.backup.sql`` of an older one.
         empty: drop the cluster's databases and roles first. Without it the
             replay stops at the first object that already exists, which is the
             honest outcome: recreating a cluster over a populated one is a
@@ -243,7 +245,7 @@ def restore_cluster_sql(
             docker_env=docker_env,
         )
 
-    with Path(sql_path).open("rb") as src, tempfile.TemporaryFile() as filtered:
+    with open_dump(sql_path) as src, tempfile.TemporaryFile() as filtered:
         for line in filter_own_role_creation(src, user):
             filtered.write(line)
         filtered.seek(0)

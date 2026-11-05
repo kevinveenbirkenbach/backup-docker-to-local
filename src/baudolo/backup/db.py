@@ -9,7 +9,7 @@ from baudolo.databases import CLUSTER_ROW, validate_database
 from baudolo.generation import CLUSTER_SUFFIX, DUMP_SUFFIX, SQL_DIR
 
 from .docker import docker_exec_argv
-from .shell import BackupError, execute_to_file
+from .shell import BackupError, execute_to_gzip
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -53,7 +53,7 @@ def fallback_pg_dumpall(
     """
     Perform a full Postgres cluster dump using pg_dumpall.
     """
-    execute_to_file(
+    execute_to_gzip(
         docker_exec_argv(
             container,
             ["pg_dumpall", "-U", username, "-h", "localhost"],
@@ -122,7 +122,7 @@ def backup_database(
 
         if db_type == "mariadb":
             # Force TCP so auth matches '<user>'@'%' instead of socket -> 'localhost'.
-            execute_to_file(
+            execute_to_gzip(
                 docker_exec_argv(
                     container,
                     [
@@ -144,7 +144,7 @@ def backup_database(
 
         if db_type == "postgres":
             try:
-                execute_to_file(
+                execute_to_gzip(
                     docker_exec_argv(
                         container,
                         [

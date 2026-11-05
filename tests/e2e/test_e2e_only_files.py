@@ -7,12 +7,16 @@ make the flag useless there.
 
 import unittest
 
+from baudolo.generation import SQL_DIR
+
 from .helpers import (
     POSTGRES_DATA_DIR,
     POSTGRES_IMAGE,
+    assert_dumps_in_sees_both_suffixes,
     backup_path,
     cleanup_docker,
     create_minimal_compose_dir,
+    dumps_in,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -104,8 +108,8 @@ class TestE2EOnlyFiles(unittest.TestCase):
         self.assertEqual(marker.read_text(encoding="utf-8").strip(), MARKER)
 
     def test_no_dump_is_written(self) -> None:
-        sql_dir = self._volume_dir() / "sql"
-        dumps = list(sql_dir.glob("*.sql")) if sql_dir.exists() else []
+        assert_dumps_in_sees_both_suffixes(self, f"/tmp/{self.prefix}")
+        dumps = dumps_in(self._volume_dir() / SQL_DIR)
         self.assertEqual(dumps, [], f"did not expect any dump, found: {dumps}")
 
     def test_the_missing_databases_csv_is_not_reported(self) -> None:

@@ -27,7 +27,10 @@ class TestVersionFlagReachesEveryEngine(unittest.TestCase):
             *required,
             *extra,
         ]
-        with patch.object(cli, target) as restore:
+        with (
+            patch.object(cli, target) as restore,
+            patch.object(cli, "locate", side_effect=lambda path: path),
+        ):
             self.assertEqual(cli.main(argv), 0)
         return restore.call_args.kwargs
 

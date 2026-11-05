@@ -47,8 +47,12 @@ Backups are stored in a deterministic, fully nested structure:
             └── <volume-name>/
                 ├── files/
                 └── sql/
-                    └── <database>.backup.sql
+                    └── <database>.backup.sql.gz
 ```
+
+Dumps are gzip-compressed while they are written; no uncompressed copy
+touches the disk. Generations written before compression hold
+`<database>.backup.sql`; `baudolo-restore` reads both.
 
 ### Meaning of each level
 

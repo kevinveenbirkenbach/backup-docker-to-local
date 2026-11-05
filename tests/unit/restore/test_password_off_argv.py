@@ -1,3 +1,4 @@
+import gzip
 import tempfile
 import unittest
 from pathlib import Path
@@ -39,6 +40,20 @@ class TestDockerExecForwardsByName(unittest.TestCase):
         self.assertIsNone(run.call_args.kwargs["env"])
         self.assertEqual(run.call_args.args[0], ["docker", "exec", "-i", "db", "true"])
 
+    def test_the_stream_forwards_by_name_too(self):
+        with patch.object(run_mod.subprocess, "Popen") as popen:
+            popen.return_value.wait.return_value = 0
+            run_mod.docker_exec_stream(
+                "db",
+                ["mariadb"],
+                source=MagicMock(read=MagicMock(return_value=b"")),
+                docker_env={"MYSQL_PWD": SECRET},
+            )
+        cmd = popen.call_args.args[0]
+        self.assertFalse([arg for arg in cmd if SECRET in arg])
+        self.assertIn("MYSQL_PWD", cmd)
+        self.assertEqual(popen.call_args.kwargs["env"]["MYSQL_PWD"], SECRET)
+
 
 class TestNoRestoreArgvCarriesThePassword(unittest.TestCase):
     def setUp(self):
@@ -54,12 +69,20 @@ class TestNoRestoreArgvCarriesThePassword(unittest.TestCase):
                 stdout = b"11.8.8-MariaDB\n"
             return MagicMock(stdout=stdout)
 
+        def fake_popen(cmd, *, stdin=None, env=None):
+            self.argvs.append(cmd)
+            self.envs.append(env or {})
+            process = MagicMock()
+            process.wait.return_value = 0
+            return process
+
         patch.object(run_mod, "run", side_effect=fake_run).start()
+        patch.object(run_mod.subprocess, "Popen", side_effect=fake_popen).start()
         self.addCleanup(patch.stopall)
 
     def dump(self, name: str, text: str) -> str:
         path = self.dir / name
-        path.write_text(text, encoding="utf-8")
+        path.write_bytes(gzip.compress(text.encode()))
         return str(path)
 
     def assert_clean(self, variable: str):
@@ -74,7 +97,7 @@ class TestNoRestoreArgvCarriesThePassword(unittest.TestCase):
             db_name="app",
             user="app",
             password=SECRET,
-            sql_path=self.dump("app.backup.sql", POSTGRES_HEADER),
+            sql_path=self.dump("app.backup.sql.gz", POSTGRES_HEADER),
             empty=True,
         )
         self.assert_clean("PGPASSWORD")
@@ -85,7 +108,7 @@ class TestNoRestoreArgvCarriesThePassword(unittest.TestCase):
                 container="db",
                 user="postgres",
                 password=SECRET,
-                sql_path=self.dump("c.cluster.backup.sql", cluster_header(roles=1)),
+                sql_path=self.dump("c.cluster.backup.sql.gz", cluster_header(roles=1)),
                 empty=True,
             )
         self.assert_clean("PGPASSWORD")
@@ -97,7 +120,7 @@ class TestNoRestoreArgvCarriesThePassword(unittest.TestCase):
                 db_name="app",
                 user="app",
                 password=SECRET,
-                sql_path=self.dump("app.backup.sql", MARIADB_HEADER),
+                sql_path=self.dump("app.backup.sql.gz", MARIADB_HEADER),
                 empty=True,
             )
         self.assert_clean("MYSQL_PWD")

@@ -1,14 +1,24 @@
 import json
 import unittest
 
-from baudolo.generation import FILES_DIR, MANIFEST_FILE, MANIFEST_SCHEMA, SQL_DIR
+from baudolo.generation import (
+    CLUSTER_SUFFIX,
+    DUMP_COMPRESSION,
+    DUMP_SUFFIX,
+    FILES_DIR,
+    MANIFEST_FILE,
+    MANIFEST_SCHEMA,
+    SQL_DIR,
+)
 
 from .helpers import (
     POSTGRES_DATA_DIR,
     POSTGRES_IMAGE,
+    assert_dumps_in_sees_both_suffixes,
     backup_path,
     cleanup_docker,
     create_minimal_compose_dir,
+    dumps_in,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -143,7 +153,7 @@ class TestE2EOnlySqlFallbackToFiles(unittest.TestCase):
         self.assertTrue(p.is_dir(), f"Expected files backup dir at: {p}")
 
     def test_sql_dump_not_present(self) -> None:
-        # There should be no sql dumps because databases.csv had no matching entry.
+        assert_dumps_in_sees_both_suffixes(self, f"/tmp/{self.prefix}")
         sql_dir = (
             backup_path(
                 self.backups_dir,
@@ -151,16 +161,10 @@ class TestE2EOnlySqlFallbackToFiles(unittest.TestCase):
                 self.version,
                 self.pg_volume,
             )
-            / "sql"
+            / SQL_DIR
         )
-        # Could exist (dir created) in some edge cases, but should contain no *.sql dumps.
-        if sql_dir.exists():
-            dumps = list(sql_dir.glob("*.sql"))
-            self.assertEqual(
-                len(dumps),
-                0,
-                f"Did not expect SQL dump files, found: {dumps}",
-            )
+        dumps = dumps_in(sql_dir)
+        self.assertEqual(dumps, [], f"Did not expect SQL dump files, found: {dumps}")
 
     def manifest(self) -> dict:
         generation = backup_path(
@@ -183,6 +187,9 @@ class TestE2EOnlySqlFallbackToFiles(unittest.TestCase):
         self.assertTrue((volume_dir / layout["files_dir"]).is_dir())
         self.assertEqual(layout["files_dir"], FILES_DIR)
         self.assertEqual(layout["sql_dir"], SQL_DIR)
+        self.assertEqual(layout["dump_suffix"], DUMP_SUFFIX)
+        self.assertEqual(layout["cluster_suffix"], CLUSTER_SUFFIX)
+        self.assertEqual(layout["dump_compression"], DUMP_COMPRESSION)
 
     def test_the_manifest_states_a_schema_a_reader_can_check(self) -> None:
         self.assertEqual(self.manifest()["schema"], MANIFEST_SCHEMA)

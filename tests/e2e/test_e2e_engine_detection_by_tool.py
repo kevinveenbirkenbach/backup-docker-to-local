@@ -13,6 +13,8 @@ inside Alpine and takes the whole run with it.
 
 import unittest
 
+from baudolo.generation import DUMP_SUFFIX, SQL_DIR
+
 from .helpers import (
     POSTGRES_DATA_DIR,
     POSTGRES_IMAGE,
@@ -20,6 +22,8 @@ from .helpers import (
     backup_run,
     cleanup_docker,
     create_minimal_compose_dir,
+    dump_text,
+    dumps_in,
     ensure_empty_dir,
     latest_version_dir,
     require_docker,
@@ -142,16 +146,20 @@ class TestE2EEngineDetectionByTool(unittest.TestCase):
         return backup_path(self.backups_dir, self.repo_name, self.version, volume)
 
     def test_an_engine_without_an_engine_name_is_still_dumped(self) -> None:
-        dump = self._volume_dir(self.engine_volume) / "sql" / "appdb.backup.sql"
+        dump = self._volume_dir(self.engine_volume) / SQL_DIR / f"appdb{DUMP_SUFFIX}"
         self.assertTrue(
             dump.is_file(),
             f"a Postgres tagged '{self.engine_image}' produced no dump at {dump}",
         )
-        self.assertIn("Dumped by pg_dump", dump.read_text(encoding="utf-8"))
+        self.assertIn("Dumped by pg_dump", dump_text(dump))
 
     def test_an_engine_name_without_an_engine_is_not_dumped(self) -> None:
-        sql_dir = self._volume_dir(self.impostor_volume) / "sql"
-        dumps = list(sql_dir.glob("*.sql")) if sql_dir.exists() else []
+        self.assertEqual(
+            dumps_in(self._volume_dir(self.engine_volume) / SQL_DIR),
+            [self._volume_dir(self.engine_volume) / SQL_DIR / f"appdb{DUMP_SUFFIX}"],
+            "the glob must see the real engine's dump, or the check below is vacuous",
+        )
+        dumps = dumps_in(self._volume_dir(self.impostor_volume) / SQL_DIR)
         self.assertEqual(
             dumps,
             [],

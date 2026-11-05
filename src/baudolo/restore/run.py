@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 import os
+import shutil
 import subprocess
 import sys
+from typing import BinaryIO
+
+STREAM_BYTES = 1 << 20
 
 
 def run(
@@ -94,6 +99,43 @@ def docker_exec(
         capture=capture,
         env=child_env(env, docker_env),
     )
+
+
+def docker_exec_stream(
+    container: str,
+    argv: list[str],
+    *,
+    source: BinaryIO,
+    docker_env: dict[str, str] | None = None,
+) -> None:
+    """
+    Args:
+        container: the container to run in.
+        argv: the command, fed *source* on stdin.
+        source: a binary reader, copied in STREAM_BYTES chunks, so a reader
+            without a file descriptor of its own, such as a gzip one, works.
+        docker_env: as for :func:`docker_exec`.
+
+    Raises:
+        subprocess.CalledProcessError: the command exited non-zero.
+    """
+    cmd = docker_exec_cmd(container, argv, docker_env)
+    process = subprocess.Popen(
+        cmd, stdin=subprocess.PIPE, env=child_env(None, docker_env)
+    )
+    try:
+        with contextlib.suppress(BrokenPipeError):
+            shutil.copyfileobj(source, process.stdin, STREAM_BYTES)
+        with contextlib.suppress(BrokenPipeError):
+            process.stdin.close()
+    except BaseException:
+        process.kill()
+        process.wait()
+        raise
+    returncode = process.wait()
+    if returncode != 0:
+        print(f"ERROR: command failed ({returncode}): {' '.join(cmd)}", file=sys.stderr)
+        raise subprocess.CalledProcessError(returncode, cmd)
 
 
 def docker_exec_sh(
