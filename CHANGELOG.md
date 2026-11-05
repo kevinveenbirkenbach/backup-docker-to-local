@@ -1,5 +1,30 @@
 # Changelog
 
+## [8.0.0] - 2026-11-05
+
+Breaking:
+
+- Backup: dumps are gzip-compressed and named *name.backup.sql.gz*
+
+Added:
+
+- Restore: *--db-password-stdin* reads the database password from stdin
+
+Changed:
+
+- Restore: *--db-password* still works but warns it is visible in *ps*
+- Restore: reads gzip and plain dumps, so older generations still restore
+
+Fixed:
+
+- Security: MariaDB passwords no longer appear in any process argv
+- Restore: a truncated gzip dump stops the restore before anything is dropped
+
+Upgrade notes:
+
+- Scripts that find dumps by name must also accept the *.gz* suffix
+- Scripts that read dumps as plain SQL must decompress them first
+
 ## [7.2.0] - 2026-11-03
 
 Added:
